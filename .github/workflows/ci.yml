@@ -2,10 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [master]
     tags: ['v*']
-  pull_request:
-    branches: [master]
 
 jobs:
   test:
@@ -30,8 +27,6 @@ jobs:
     name: Build & Push
     needs: test
     runs-on: ubuntu-latest
-    # Only publish on pushes to master or version tags — not on PRs
-    if: github.event_name == 'push'
     permissions:
       contents: read
     steps:
@@ -49,14 +44,12 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/homepage-vue
           tags: |
-            # :latest on every master push
-            type=raw,value=latest,enable={{is_default_branch}}
-            # :v1.2.3 and :v1.2 and :v1 on version tags
+            # :latest always tracks the highest version tag
+            type=raw,value=latest
+            # :v1.2.3 and :v1.2 and :v1
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
-            # short commit SHA always
-            type=sha
 
       - uses: docker/build-push-action@v6
         with:
