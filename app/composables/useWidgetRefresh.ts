@@ -6,16 +6,31 @@ const refreshKey = ref(0)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let tickTimer: ReturnType<typeof setInterval> | null = null
 let consumers = 0
+let pendingRefresh = false
 
 function start() {
   countdown.value = INTERVAL
-  pollTimer = setInterval(() => { refreshKey.value++; countdown.value = INTERVAL }, INTERVAL * 1000)
+  pollTimer = setInterval(() => {
+    if (document.hidden) { pendingRefresh = true; return }
+    refreshKey.value++
+    countdown.value = INTERVAL
+  }, INTERVAL * 1000)
   tickTimer = setInterval(() => { if (countdown.value > 0) countdown.value-- }, 1000)
 }
 
 function stop() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null }
   if (tickTimer) { clearInterval(tickTimer); tickTimer = null }
+}
+
+function onVisible() {
+  if (!document.hidden && pendingRefresh) {
+    pendingRefresh = false
+    refreshKey.value++
+    countdown.value = INTERVAL
+    stop()
+    start()
+  }
 }
 
 function forceRefresh() {
@@ -26,7 +41,17 @@ function forceRefresh() {
 }
 
 export function useWidgetRefresh() {
-  onMounted(() => { if (++consumers === 1) start() })
-  onUnmounted(() => { if (--consumers === 0) stop() })
+  onMounted(() => {
+    if (++consumers === 1) {
+      start()
+      document.addEventListener('visibilitychange', onVisible)
+    }
+  })
+  onUnmounted(() => {
+    if (--consumers === 0) {
+      stop()
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  })
   return { countdown, refreshKey, forceRefresh }
 }
