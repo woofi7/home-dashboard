@@ -10,6 +10,9 @@ const props = defineProps<{
   edit: boolean
 }>()
 
+const visible = ref(false)
+onMounted(() => nextTick(() => { visible.value = true }))
+
 const emit = defineEmits<{
   update: [group: BookmarkGroup]
   dirty: []
@@ -135,7 +138,10 @@ function faviconUrl(url: string) {
 </script>
 
 <template>
-  <div class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-4">
+  <div
+    class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-4 transition-[opacity,transform] duration-[400ms] ease-out"
+    :class="visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'"
+  >
     <!-- Header -->
     <div class="flex items-center gap-2 mb-4">
       <span v-if="edit" class="section-handle cursor-grab text-[var(--color-text-muted)] select-none">⠿</span>

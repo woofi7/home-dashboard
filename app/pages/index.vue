@@ -7,16 +7,15 @@ type ServiceGroup = { name: string; services: Service[] }
 type Bookmark = { name: string; url: string; icon?: string }
 type BookmarkGroup = { name: string; bookmarks: Bookmark[] }
 
-const { data: config, refresh } = await useFetch('/api/config')
-const { data: background } = await useFetch('/api/background').catch(() => ({ data: ref(null) }))
-const { data: weather } = await useFetch('/api/weather').catch(() => ({ data: ref(null) }))
+const { data: config, refresh } = useFetch('/api/config', { lazy: true })
+const { data: background } = useFetch('/api/background', { lazy: true })
+const { data: weather } = useFetch('/api/weather', { lazy: true })
+const { data: calendar } = useFetch('/api/calendar', { lazy: true })
 
-const { data: calendar } = await useFetch('/api/calendar').catch(() => ({ data: ref(null) }))
-
-const now = ref<Date | null>(null)
-onMounted(() => { now.value = new Date(); setInterval(() => { now.value = new Date() }, 1000) })
-const timeStr = computed(() => now.value?.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) ?? '')
-const dateStr = computed(() => now.value?.toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) ?? '')
+const now = ref(new Date())
+onMounted(() => { setInterval(() => { now.value = new Date() }, 1000) })
+const timeStr = computed(() => now.value.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
+const dateStr = computed(() => now.value.toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
 const fullLoaded = ref(false)
 if (import.meta.client) {
   watch(() => (background.value as Record<string, string> | null)?.full, (url) => {
@@ -32,7 +31,7 @@ const localConfig = ref<{
   services: ServiceGroup[]
   bookmarks: BookmarkGroup[]
   widgets: Record<string, unknown>[]
-}>(JSON.parse(JSON.stringify(config.value ?? { services: [], bookmarks: [], widgets: [], settings: {} })))
+}>({ services: [], bookmarks: [], widgets: [], settings: {} })
 
 const { active: editActive, dirty, snapshot, enter, exit } = useEditMode()
 const { countdown, forceRefresh } = useWidgetRefresh()
@@ -61,7 +60,13 @@ const pendingCount = computed(() => {
   return count
 })
 
-const sectionOrder = ref<Array<{ type: 'service' | 'bookmark'; name: string }>>(buildDefaultOrder())
+const sectionOrder = ref<Array<{ type: 'service' | 'bookmark'; name: string }>>([])
+
+watch(config, (v) => {
+  if (!v || editActive.value) return
+  localConfig.value = JSON.parse(JSON.stringify(v))
+  sectionOrder.value = buildDefaultOrder()
+}, { immediate: true })
 
 function buildDefaultOrder() {
   const saved = localConfig.value.settings?.sectionOrder as Array<{ type: string; name: string }> | undefined
@@ -129,7 +134,7 @@ function handleCancel() {
   exit()
 }
 
-useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
+useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })))
 </script>
 
 <template>
@@ -146,7 +151,7 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
       :class="fullLoaded ? 'opacity-100' : 'opacity-0'"
       :style="{ backgroundImage: `url(${background.full})` }"
     />
-    <div v-if="background?.thumb" class="fixed inset-0 -z-10 bg-black/70" />
+    <div v-if="background?.thumb" class="fixed inset-0 -z-10 bg-black/40" />
     <a
       v-if="background?.author"
       :href="background.authorLink"
@@ -159,8 +164,16 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
 
       <!-- Left: Today's calendar events -->
       <div class="space-y-1.5 order-2 md:order-1">
+        <Transition name="fade" mode="out-in">
+        <div v-if="calendar === null" key="cal-ghost" class="space-y-2 animate-pulse">
+          <div class="h-2.5 w-8 rounded bg-white/10 mb-3" />
+          <div class="h-10 rounded-lg bg-white/10" />
+          <div class="h-10 rounded-lg bg-white/10" />
+          <div class="h-10 rounded-lg bg-white/10" />
+        </div>
+        <div v-else key="cal-real">
         <template v-if="(calendar as any)?.authorized">
-          <p class="text-[10px] text-white/30 uppercase tracking-widest mb-2">Today</p>
+          <p class="text-[10px] text-white/50 uppercase tracking-widest mb-2">Today</p>
           <!-- All-day events -->
           <a
             v-for="e in (calendar as any).todayAllDay"
@@ -173,7 +186,7 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
             <div class="w-1 self-stretch rounded-full bg-purple-400/70 shrink-0" />
             <div class="min-w-0 flex-1">
               <p class="text-xs text-white/80 font-medium truncate">{{ e.summary }}</p>
-              <p class="text-[10px] text-white/35">All day</p>
+              <p class="text-[10px] text-white/55">All day</p>
             </div>
             <svg class="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </a>
@@ -189,14 +202,14 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
             <div class="w-1 self-stretch rounded-full bg-[var(--color-accent)] shrink-0" />
             <div class="min-w-0 flex-1">
               <p class="text-xs text-white/80 font-medium truncate">{{ e.summary }}</p>
-              <p class="text-[10px] text-white/35">{{ new Date(e.start).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) }} – {{ new Date(e.end).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</p>
+              <p class="text-[10px] text-white/55">{{ new Date(e.start).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) }} – {{ new Date(e.end).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</p>
             </div>
             <svg class="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
           </a>
-          <p v-if="!(calendar as any).todayAllDay.length && !(calendar as any).todayTimed.length" class="text-xs text-white/30 italic">No events today</p>
+          <p v-if="!(calendar as any).todayAllDay.length && !(calendar as any).todayTimed.length" class="text-xs text-white/50 italic">No events today</p>
           <!-- Tomorrow -->
           <template v-if="(calendar as any).tomorrow?.length">
-            <p class="text-[10px] text-white/30 uppercase tracking-widest mt-3 mb-2">Tomorrow</p>
+            <p class="text-[10px] text-white/50 uppercase tracking-widest mt-3 mb-2">Tomorrow</p>
             <a
               v-for="e in (calendar as any).tomorrow"
               :key="'tmr-' + e.id"
@@ -207,14 +220,16 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
             >
               <div class="w-1 self-stretch rounded-full bg-white/25 shrink-0" />
               <div class="min-w-0 flex-1">
-                <p class="text-xs text-white/55 font-medium truncate">{{ e.summary }}</p>
-                <p class="text-[10px] text-white/25">{{ e.allDay ? 'All day' : `${new Date(e.start).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })} – ${new Date(e.end).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}` }}</p>
+                <p class="text-xs text-white/70 font-medium truncate">{{ e.summary }}</p>
+                <p class="text-[10px] text-white/45">{{ e.allDay ? 'All day' : `${new Date(e.start).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })} – ${new Date(e.end).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })}` }}</p>
               </div>
               <svg class="w-3 h-3 text-white/15 group-hover:text-white/40 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
             </a>
           </template>
         </template>
         <a v-else-if="(calendar as any)?.authorized === false" href="/api/auth/google" class="text-xs text-white/30 hover:text-white/60 transition-colors">Connect Google Calendar →</a>
+        </div>
+        </Transition>
       </div>
 
       <!-- Center: Clock only -->
@@ -225,7 +240,20 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
 
       <!-- Right: Weather card -->
       <div class="order-3">
-        <div v-if="weather" class="bg-black/30 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
+        <Transition name="fade" mode="out-in">
+        <div v-if="weather === null" key="wx-ghost" class="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-4 animate-pulse space-y-3">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-white/10 shrink-0" />
+            <div class="flex-1 space-y-2">
+              <div class="h-6 w-20 rounded-lg bg-white/10" />
+              <div class="h-3 w-40 rounded bg-white/10" />
+            </div>
+          </div>
+          <div class="flex gap-2 pt-1">
+            <div v-for="i in 4" :key="i" class="flex-1 h-16 rounded-lg bg-white/10" />
+          </div>
+        </div>
+        <div v-else key="wx-real" class="bg-black/30 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
           <!-- Current conditions -->
           <a :href="(weather as any).url" target="_blank" rel="noopener"
             class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors no-underline group">
@@ -233,9 +261,9 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
             <div class="flex-1 min-w-0">
               <div class="flex items-baseline gap-2">
                 <span class="text-2xl font-semibold text-white">{{ (weather as any).temp }}°C</span>
-                <span class="text-sm text-white/50">{{ (weather as any).description }}</span>
+                <span class="text-sm text-white/70">{{ (weather as any).description }}</span>
               </div>
-              <div class="text-[11px] text-white/35 mt-0.5">
+              <div class="text-[11px] text-white/55 mt-0.5">
                 {{ (weather as any).city }} · Feels {{ (weather as any).feels }}° · 💧{{ (weather as any).humidity }}% · 💨 {{ (weather as any).wind }} km/h
               </div>
             </div>
@@ -243,14 +271,14 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
           </a>
           <!-- Later today -->
           <div v-if="(weather as any).laterToday?.length" class="border-t border-white/8 px-4 py-2">
-            <p class="text-[9px] text-white/25 uppercase tracking-widest mb-2">Later today</p>
+            <p class="text-[9px] text-white/45 uppercase tracking-widest mb-2">Later today</p>
             <div class="flex gap-3 justify-between">
               <div
                 v-for="h in (weather as any).laterToday"
                 :key="h.time"
                 class="flex flex-col items-center gap-0.5 text-center flex-1"
               >
-                <span class="text-[10px] text-white/35">{{ h.time }}</span>
+                <span class="text-[10px] text-white/55">{{ h.time }}</span>
                 <span class="text-base leading-none">{{ h.icon }}</span>
                 <span class="text-xs font-medium text-white/80">{{ h.temp }}°</span>
                 <span v-if="h.precip > 0" class="text-[9px] text-blue-300/60">{{ h.precip }}%</span>
@@ -259,16 +287,17 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
           </div>
           <!-- Tomorrow -->
           <div v-if="(weather as any).tomorrow" class="border-t border-white/8 px-4 py-2.5 flex items-center gap-3">
-            <p class="text-[9px] text-white/25 uppercase tracking-widest w-14 shrink-0">Tomorrow</p>
+            <p class="text-[9px] text-white/45 uppercase tracking-widest w-14 shrink-0">Tomorrow</p>
             <span class="text-xl leading-none">{{ (weather as any).tomorrow.icon }}</span>
-            <span class="text-sm text-white/50">{{ (weather as any).tomorrow.description }}</span>
+            <span class="text-sm text-white/70">{{ (weather as any).tomorrow.description }}</span>
             <div class="ml-auto flex items-baseline gap-1.5 text-xs shrink-0">
-              <span class="text-white/70 font-medium">{{ (weather as any).tomorrow.tempMax }}°</span>
-              <span class="text-white/30">/ {{ (weather as any).tomorrow.tempMin }}°</span>
+              <span class="text-white/80 font-medium">{{ (weather as any).tomorrow.tempMax }}°</span>
+              <span class="text-white/50">/ {{ (weather as any).tomorrow.tempMin }}°</span>
             </div>
             <div v-if="(weather as any).tomorrow.precip > 0" class="text-[10px] text-blue-300/60 shrink-0">{{ (weather as any).tomorrow.precip }}%</div>
           </div>
         </div>
+        </Transition>
       </div>
 
     </div>
@@ -292,8 +321,21 @@ useHead({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })
       />
     </div>
 
+    <!-- Ghost section panels while config loads -->
+    <div v-if="!sectionOrder.length" class="px-4 md:px-6 pt-6 pb-28 space-y-6">
+      <div v-for="i in 3" :key="i" class="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md animate-pulse">
+        <div class="h-10 border-b border-white/10 px-4 flex items-center gap-2">
+          <div class="h-3 w-24 rounded bg-white/10" />
+        </div>
+        <div class="p-3 flex flex-wrap gap-2">
+          <div v-for="j in 6" :key="j" class="h-16 rounded-lg bg-white/10 flex-1 min-w-[120px]" />
+        </div>
+      </div>
+    </div>
+
     <!-- Unified draggable section list -->
     <VueDraggable
+      v-else
       v-model="sectionOrder"
       :disabled="!editActive"
       handle=".section-handle"
