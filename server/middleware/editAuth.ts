@@ -1,5 +1,7 @@
 import { assertAuth } from '../utils/adminAuth'
 
+// CSRF note: the auth cookie is set with sameSite: 'strict', so cross-site
+// requests will not include it — CSRF is prevented at the cookie level.
 export default defineEventHandler((event) => {
   const path = event.path ?? ''
   const method = event.method

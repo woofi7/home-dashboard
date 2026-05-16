@@ -68,14 +68,6 @@ async function handleLogout() {
   await logout()
 }
 
-function countListChanges(snapItems: unknown[], curItems: unknown[]): number {
-  const len = Math.max(snapItems.length, curItems.length)
-  let n = 0
-  for (let i = 0; i < len; i++) {
-    if (!snapItems[i] || !curItems[i] || JSON.stringify(snapItems[i]) !== JSON.stringify(curItems[i])) n++
-  }
-  return n
-}
 
 const pendingCount = computed(() => {
   if (!editActive.value || !snapshot.value) return 0
@@ -145,7 +137,10 @@ function deleteBookmarkGroup(name: string) {
   dirty.value = true
 }
 
+const saveError = ref('')
+
 async function save() {
+  saveError.value = ''
   const serviceOrder = sectionOrder.value.filter((s) => s.type === 'service').map((s) => s.name)
   const bookmarkOrder = sectionOrder.value.filter((s) => s.type === 'bookmark').map((s) => s.name)
 
@@ -156,13 +151,17 @@ async function save() {
     .map((name) => localConfig.value.bookmarks.find((g) => g.name === name))
     .filter(Boolean) as BookmarkGroup[]
 
-  await Promise.all([
-    $fetch('/api/edit/services', { method: 'POST', body: { action: 'reorderGroups', groups: orderedServices } }),
-    $fetch('/api/edit/bookmarks', { method: 'POST', body: { action: 'reorderGroups', groups: orderedBookmarks } }),
-    $fetch('/api/edit/settings', { method: 'POST', body: { sectionOrder: sectionOrder.value } }),
-  ])
-  await refresh()
-  exit()
+  try {
+    await Promise.all([
+      $fetch('/api/edit/services', { method: 'POST', body: { action: 'reorderGroups', groups: orderedServices } }),
+      $fetch('/api/edit/bookmarks', { method: 'POST', body: { action: 'reorderGroups', groups: orderedBookmarks } }),
+      $fetch('/api/edit/settings', { method: 'POST', body: { sectionOrder: sectionOrder.value } }),
+    ])
+    await refresh()
+    exit()
+  } catch (err: unknown) {
+    saveError.value = (err as { data?: { message?: string } })?.data?.message ?? (err as Error)?.message ?? 'Save failed'
+  }
 }
 
 function handleCancel() {
@@ -338,6 +337,13 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
       </div>
 
     </div>
+
+    <Transition name="fade">
+      <div
+        v-if="saveError"
+        class="fixed bottom-16 md:bottom-20 right-4 md:right-6 z-50 px-4 py-2 rounded-xl bg-[var(--color-danger)]/90 text-white text-xs backdrop-blur-sm max-w-xs text-right"
+      >{{ saveError }}</div>
+    </Transition>
 
     <EditToggle
       :active="editActive"

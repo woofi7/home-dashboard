@@ -18,4 +18,16 @@ export default defineNuxtConfig({
     configDir: process.env.CONFIG_DIR || './config',
     allowedHosts: process.env.ALLOWED_HOSTS || '*',
   },
+
+  routeRules: {
+    '/**': {
+      headers: {
+        'X-Frame-Options': 'DENY',
+        'X-Content-Type-Options': 'nosniff',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        // frame-ancestors 'none' supersedes X-Frame-Options in modern browsers
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http: blob:; connect-src 'self' https: http:; font-src 'self' data:; frame-ancestors 'none';",
+      },
+    },
+  },
 })

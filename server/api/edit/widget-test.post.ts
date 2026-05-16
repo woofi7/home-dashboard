@@ -1,34 +1,40 @@
 import { getWidgetDef } from '../../utils/widget-registry'
-import { buildAuthHeaders, buildAuthQuery } from '../../utils/auth'
+import { fetchWidgetForService } from '../../utils/widgetDispatch'
+import { CRED_FIELDS } from '../../utils/credentialMerge'
+
+const DEDICATED_TYPES = new Set(['unraid', 'portainer', 'duplicati', 'homeassistant', 'pihole', 'qbittorrent', 'audiobookshelf'])
+const ALLOWED_CRED_FIELDS = new Set(CRED_FIELDS)
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ type: string; url: string; [key: string]: string }>(event)
-  const { type, url, ...credentials } = body
+  const { type, url, ...rawCreds } = body
+  const credentials = Object.fromEntries(
+    Object.entries(rawCreds).filter(([k]) => ALLOWED_CRED_FIELDS.has(k))
+  )
 
   if (!type || !url) throw createError({ statusCode: 400, message: 'type and url are required' })
 
-  const def = getWidgetDef(type)
-  if (!def) throw createError({ statusCode: 404, message: `Unknown widget type: ${type}` })
-
-  const firstEndpoint = Object.values(def.endpoints)[0]
-  if (!firstEndpoint) return { ok: false, message: 'No endpoints defined' }
-
-  const authHeaders = buildAuthHeaders(def.auth, credentials)
-  const authQueryParams = buildAuthQuery(def.auth, credentials)
-
-  const targetUrl = new URL(firstEndpoint.path, url)
-  for (const [k, v] of Object.entries(authQueryParams)) {
-    targetUrl.searchParams.set(k, v)
+  // Dedicated widgets: test by actually running the fetcher
+  if (DEDICATED_TYPES.has(type)) {
+    try {
+      const result = await fetchWidgetForService(type, { url, ...credentials })
+      if (result && result.fields.length > 0) return { ok: true, fields: result.fields }
+      return { ok: false, message: 'Connected but returned no data — check credentials' }
+    } catch (err: unknown) {
+      const status = (err as { response?: { response?: { status?: number } } })?.response?.status
+      return { ok: false, status }
+    }
   }
 
+  // YAML-registry widgets: run the full fetch+display pipeline
+  if (!getWidgetDef(type)) throw createError({ statusCode: 404, message: `Unknown widget type: ${type}` })
+
   try {
-    await $fetch(targetUrl.toString(), {
-      method: firstEndpoint.method ?? 'GET',
-      headers: authHeaders,
-    })
-    return { ok: true, url: targetUrl.toString() }
+    const result = await fetchWidgetForService(type, { url, ...credentials })
+    if (result && result.fields.length > 0) return { ok: true, fields: result.fields }
+    return { ok: false, message: 'Connected but returned no data — check credentials or widget YAML' }
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status
-    return { ok: false, status, url: targetUrl.toString() }
+    return { ok: false, status }
   }
 })

@@ -2,6 +2,7 @@ import { fetchDockerStatus, type DockerStatus } from '../utils/docker'
 import { fetchWidgetForService } from '../utils/widgetDispatch'
 import { type WidgetResult } from '../utils/fetchWidget'
 import { loadConfig } from '../utils/config'
+import { CRED_FIELDS } from '../utils/credentialMerge'
 import type { ServiceGroup } from '../types'
 
 type RefreshResponse = {
@@ -41,8 +42,9 @@ async function doRefresh(): Promise<RefreshResponse> {
     Promise.all(urls.map(async url => [url, await pingUrl(url)] as const)),
     Promise.all(
       widgetServices.map(async s => {
+        const passFields = new Set(['url', ...CRED_FIELDS])
         const credentials = Object.fromEntries(
-          Object.entries(s).filter(([, v]) => typeof v === 'string'),
+          Object.entries(s).filter(([k, v]) => passFields.has(k) && typeof v === 'string'),
         ) as Record<string, string>
         const result = await withTimeout(fetchWidgetForService(s.type as string, credentials), WIDGET_TIMEOUT)
         return [s.name, result] as const

@@ -1,5 +1,6 @@
-import { loadConfig, writeConfig } from '../../utils/config'
+import { loadConfig, loadConfigRaw, writeConfig } from '../../utils/config'
 import { applyGroupAction } from '../../utils/groupCrud'
+import { preserveCredentials } from '../../utils/credentialMerge'
 import type { Service, ServiceGroup } from '../../types'
 
 export default defineEventHandler(async (event) => {
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   }>(event)
 
   const groups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
-  const updated = applyGroupAction(groups, 'services', {
+  let updated = applyGroupAction(groups, 'services', {
     action: body.action as Parameters<typeof applyGroupAction>[2]['action'],
     group: body.group,
     item: body.service,
@@ -25,6 +26,13 @@ export default defineEventHandler(async (event) => {
     items: body.services,
     groups: body.groups,
   })
+
+  // For reorderGroups, incoming services lack credentials (stripped by config.get.ts).
+  // Merge them back from the raw YAML so saves don't wipe stored keys/passwords.
+  if (body.action === 'reorderGroups') {
+    const raw = loadConfigRaw<ServiceGroup[]>('services.yaml') ?? []
+    updated = preserveCredentials(raw, updated)
+  }
 
   writeConfig('services.yaml', updated)
   return { ok: true }
