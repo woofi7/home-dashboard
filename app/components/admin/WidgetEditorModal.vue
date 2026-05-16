@@ -5,7 +5,6 @@ const props = defineProps<{
   type?: string
   initialYaml?: string
   isNew?: boolean
-  allowGithubFetch?: boolean
 }>()
 
 const emit = defineEmits<{ save: [type: string, yaml: string]; close: [] }>()
@@ -14,8 +13,6 @@ useScrollLock()
 
 const widgetType = ref(props.type ?? '')
 const yaml = ref(props.initialYaml ?? '')
-const fetchLoading = ref(false)
-const fetchError = ref('')
 const saveLoading = ref(false)
 const saveError = ref('')
 const typeError = ref('')
@@ -24,24 +21,6 @@ const yamlError = ref('')
 useEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'Escape') emit('close')
 })
-
-async function fetchFromGithub() {
-  if (!widgetType.value) { fetchError.value = 'Enter a widget type first'; return }
-  if (yaml.value.trim() && !confirm('This will overwrite your current YAML. Continue?')) return
-  fetchLoading.value = true
-  fetchError.value = ''
-  try {
-    const res = await $fetch<{ yaml: string }>('/api/admin/github-fetch', {
-      method: 'POST',
-      body: { type: widgetType.value.trim().toLowerCase() },
-    })
-    yaml.value = res.yaml
-  } catch (e: unknown) {
-    fetchError.value = (e as { data?: { message?: string } }).data?.message ?? 'Fetch failed'
-  } finally {
-    fetchLoading.value = false
-  }
-}
 
 async function save() {
   typeError.value = widgetType.value.trim() ? '' : 'Widget type is required'
@@ -76,30 +55,20 @@ async function save() {
         </div>
 
         <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-          <!-- Type + GitHub fetch -->
-          <div class="flex gap-2 items-start">
-            <div class="flex-1">
-              <label class="block text-xs text-[var(--color-text-secondary)] mb-1">Widget type</label>
-              <input
-                v-model="widgetType"
-                :disabled="!isNew"
-                type="text"
-                class="w-full rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] transition-colors disabled:opacity-50 font-mono"
-                :class="typeError ? 'border-[var(--color-danger)]' : ''"
-                placeholder="e.g. sonarr"
-                @input="typeError = ''"
-              />
-              <p v-if="typeError" class="text-xs text-[var(--color-danger)] mt-1">{{ typeError }}</p>
-            </div>
-            <div v-if="isNew === false || allowGithubFetch" class="flex flex-col justify-end" style="padding-top: 20px">
-              <button
-                class="cursor-pointer px-3 py-2 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors whitespace-nowrap disabled:opacity-50"
-                :disabled="fetchLoading"
-                @click="fetchFromGithub"
-              >{{ fetchLoading ? 'Fetching…' : '⬇ Fetch from GitHub' }}</button>
-            </div>
+          <!-- Widget type -->
+          <div>
+            <label class="block text-xs text-[var(--color-text-secondary)] mb-1">Widget type</label>
+            <input
+              v-model="widgetType"
+              :disabled="!isNew"
+              type="text"
+              class="w-full rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] transition-colors disabled:opacity-50 font-mono"
+              :class="typeError ? 'border-[var(--color-danger)]' : ''"
+              placeholder="e.g. sonarr"
+              @input="typeError = ''"
+            />
+            <p v-if="typeError" class="text-xs text-[var(--color-danger)] mt-1">{{ typeError }}</p>
           </div>
-          <p v-if="fetchError" class="text-xs text-[var(--color-danger)]">{{ fetchError }}</p>
 
           <!-- YAML editor -->
           <div>
