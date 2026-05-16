@@ -1,0 +1,17 @@
+services:
+  homepage:
+    image: nsignori/homepage-vue:latest
+    container_name: homepage-vue
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - /mnt/user/appdata/homepage:/config
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - CONFIG_DIR=/config
+      - ALLOWED_HOSTS=*
+      # Inject secrets directly — referenced as ${VAR} in YAML files
+      # - SONARR_KEY=your-api-key
+      # - RADARR_KEY=your-api-key

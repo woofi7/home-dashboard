@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Force dark mode always — no light mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-bg-base: #0f1117;
+  --color-bg-surface: #1a1d27;
+  --color-bg-elevated: #22263a;
+  --color-border: #2e3347;
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-danger: #ef4444;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+}
+
+/* Drag & drop — placeholder shown at drop position */
+.drag-ghost {
+  opacity: 0.25;
+  border: 2px dashed var(--color-accent) !important;
+  background: var(--color-bg-elevated) !important;
+  border-radius: 0.75rem;
+}
+
+/* Drag & drop — item being dragged */
+.drag-chosen {
+  opacity: 0.6;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
