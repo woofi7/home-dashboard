@@ -30,28 +30,13 @@ onMounted(() => { if (!props.edit && props.service.type) fetchWidget() })
 watch(refreshKey, () => { if (!props.edit && props.service.type) fetchWidget() })
 watch(() => props.edit, (editing) => { if (!editing && props.service.type) fetchWidget() })
 
-const { dockerStatus } = useDockerStatus()
+const { dockerStatus, pingStatus } = useServiceStatus()
 
 const containerState = computed(() => {
   const target = (props.service.container as string | undefined) ?? props.service.name.toLowerCase().replace(/\s+/g, '')
   const key = Object.keys(dockerStatus.value).find(k => k.toLowerCase().includes(target) || target.includes(k.toLowerCase()))
   return key ? dockerStatus.value[key] : null
 })
-
-// HTTP ping fallback for services with no Docker container match
-const pingUp = ref<boolean | null>(null)
-
-async function doPing() {
-  if (containerState.value || !props.service.url || props.edit) return
-  try {
-    const res = await $fetch<{ up: boolean }>('/api/ping', { params: { url: props.service.url } })
-    pingUp.value = res.up
-  } catch { pingUp.value = false }
-}
-
-onMounted(doPing)
-watch(refreshKey, doPing)
-watch(containerState, (v) => { if (!v) doPing() })
 
 const statusColor = computed(() => {
   if (containerState.value) {
@@ -60,14 +45,16 @@ const statusColor = computed(() => {
     if (state === 'restarting' || state === 'paused') return 'bg-yellow-400'
     return 'bg-red-400'
   }
-  if (pingUp.value === true) return 'bg-green-400'
-  if (pingUp.value === false) return 'bg-red-400'
+  const up = props.service.url ? pingStatus.value[props.service.url] : undefined
+  if (up === true) return 'bg-green-400'
+  if (up === false) return 'bg-red-400'
   return null
 })
 
 const statusTitle = computed(() => {
   if (containerState.value) return containerState.value.status
-  if (pingUp.value !== null) return pingUp.value ? 'Reachable' : 'Unreachable'
+  const up = props.service.url ? pingStatus.value[props.service.url] : undefined
+  if (up !== undefined) return up ? 'Reachable' : 'Unreachable'
   return null
 })
 </script>
