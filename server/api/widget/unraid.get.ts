@@ -1,19 +1,5 @@
 import { getActiveFields } from '../../utils/widget-fields'
-
-function fmtKB(kb: string | number): string {
-  const n = Number(kb)
-  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} TB`
-  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} GB`
-  if (n >= 1024) return `${(n / 1024).toFixed(1)} MB`
-  return `${n} KB`
-}
-
-function fmtBytes(b: number): string {
-  if (b >= 1024 ** 3) return `${(b / 1024 ** 3).toFixed(1)} GB`
-  if (b >= 1024 ** 2) return `${(b / 1024 ** 2).toFixed(1)} MB`
-  if (b >= 1024) return `${(b / 1024).toFixed(1)} KB`
-  return `${b} B`
-}
+import { formatBytes, formatKilobytes } from '../../utils/formatBytes'
 
 export async function fetchUnraid(creds: Record<string, string>) {
   const { url, apiKey } = creds
@@ -46,11 +32,11 @@ export async function fetchUnraid(creds: Record<string, string>) {
 
   const allFields = [
     { label: 'Array',  value: arr.state.charAt(0) + arr.state.slice(1).toLowerCase() },
-    { label: 'Used',   value: `${fmtKB(kb.used)} / ${fmtKB(kb.total)}` },
+    { label: 'Used',   value: `${formatKilobytes(kb.used)} / ${formatKilobytes(kb.total)}` },
     { label: 'Disks',  value: `${arr.capacity.disks.used} / ${arr.capacity.disks.total}` },
     { label: 'Parity', value: `${parity.status.charAt(0) + parity.status.slice(1).toLowerCase()}${parity.progress > 0 ? ` (${parity.progress}%)` : ''}` },
     { label: 'CPU',    value: `${cpu.percentTotal.toFixed(1)}%` },
-    { label: 'Memory', value: `${fmtBytes(memory.total - memory.available)} / ${fmtBytes(memory.total)}` },
+    { label: 'Memory', value: `${formatBytes(memory.total - memory.available)} / ${formatBytes(memory.total)}` },
   ]
 
   const active = getActiveFields('unraid', allFields.map(f => f.label))

@@ -1,16 +1,5 @@
 import { getActiveFields } from '../../utils/widget-fields'
-
-function fmtSize(bytes: number): string {
-  if (bytes >= 1024 ** 4) return `${(bytes / 1024 ** 4).toFixed(1)} TB`
-  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`
-  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`
-  return `${(bytes / 1024).toFixed(1)} KB`
-}
-
-function fmtDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  return h >= 24 ? `${(h / 24).toFixed(1)} days` : `${h} hrs`
-}
+import { formatBytes, formatDuration } from '../../utils/formatBytes'
 
 export async function fetchAudiobookshelf(creds: Record<string, string>) {
   const { url, apiKey } = creds
@@ -33,8 +22,8 @@ export async function fetchAudiobookshelf(creds: Record<string, string>) {
   const allFields = [
     { label: 'Audiobooks', value: stats.reduce((s, r) => s + r.totalItems, 0) },
     { label: 'Authors',    value: stats.reduce((s, r) => s + r.totalAuthors, 0) },
-    { label: 'Duration',   value: fmtDuration(stats.reduce((s, r) => s + r.totalDuration, 0)) },
-    { label: 'Size',       value: fmtSize(stats.reduce((s, r) => s + r.totalSize, 0)) },
+    { label: 'Duration',   value: formatDuration(stats.reduce((s, r) => s + r.totalDuration, 0)) },
+    { label: 'Size',       value: formatBytes(stats.reduce((s, r) => s + r.totalSize, 0)) },
   ]
 
   const active = getActiveFields('audiobookshelf', allFields.map(f => f.label))

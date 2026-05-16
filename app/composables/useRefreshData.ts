@@ -11,9 +11,9 @@ type RefreshData = {
 
 const data = ref<RefreshData>({ docker: {}, ping: {}, widgets: {} })
 
-async function fetchAll() {
+async function fetchAll(force = false) {
   try {
-    data.value = await $fetch<RefreshData>('/api/refresh')
+    data.value = await $fetch<RefreshData>('/api/refresh', force ? { params: { force: '1' } } : {})
   } catch { /* ignore */ }
 }
 
@@ -21,13 +21,20 @@ let consumers = 0
 let scope: ReturnType<typeof effectScope> | null = null
 
 export function useRefreshData() {
-  const { refreshKey } = useWidgetRefresh()
+  const { refreshKey, forceKey } = useWidgetRefresh()
 
   onMounted(() => {
     if (++consumers === 1) {
       fetchAll()
       scope = effectScope(true)
-      scope.run(() => watch(refreshKey, fetchAll))
+      scope.run(() => {
+        let lastForce = forceKey.value
+        watch(refreshKey, () => {
+          const bust = forceKey.value !== lastForce
+          lastForce = forceKey.value
+          fetchAll(bust)
+        })
+      })
     }
   })
 

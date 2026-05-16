@@ -1,12 +1,5 @@
 import { getActiveFields } from '../../utils/widget-fields'
-
-function fmtBytes(n: number): string {
-  if (n >= 1024 ** 4) return `${(n / 1024 ** 4).toFixed(1)} TB`
-  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} GB`
-  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} MB`
-  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB`
-  return `${n} B`
-}
+import { formatBytes } from '../../utils/formatBytes'
 
 export async function fetchDuplicati(creds: Record<string, string>) {
   const { url, password } = creds
@@ -64,8 +57,8 @@ export async function fetchDuplicati(creds: Record<string, string>) {
     { label: 'Last backup', value: lastStr },
     { label: 'Jobs',        value: backups.length },
     { label: 'Active',      value: activeTasks },
-    { label: 'Source',      value: fmtBytes(totalSourceSize) },
-    { label: 'Dest',        value: fmtBytes(totalDestSize) },
+    { label: 'Source',      value: formatBytes(totalSourceSize) },
+    { label: 'Dest',        value: formatBytes(totalDestSize) },
   ]
 
   const active = getActiveFields('duplicati', allFields.map(f => f.label))

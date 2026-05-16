@@ -1,6 +1,7 @@
 import { writeFileSync, mkdirSync, existsSync, unlinkSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { load as parseYaml } from 'js-yaml'
+import { clearWidgetRegistryCache } from '../../utils/widget-registry'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ type: string; yaml: string; delete?: boolean }>(event)
@@ -12,6 +13,7 @@ export default defineEventHandler(async (event) => {
   if (body.delete) {
     const path = join(customDir, `${body.type}.yaml`)
     if (existsSync(path)) unlinkSync(path)
+    clearWidgetRegistryCache()
     return { ok: true }
   }
 
@@ -25,6 +27,7 @@ export default defineEventHandler(async (event) => {
 
   mkdirSync(customDir, { recursive: true })
   writeFileSync(join(customDir, `${body.type}.yaml`), body.yaml, 'utf-8')
+  clearWidgetRegistryCache()
 
   return { ok: true }
 })

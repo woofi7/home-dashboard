@@ -39,12 +39,18 @@ function loadRegistry(): Map<string, WidgetDef> {
 }
 
 let registry: Map<string, WidgetDef> | null = null
+let loadedAt = 0
+const TTL = 5 * 60 * 1000
 
 export function getWidgetDef(type: string): WidgetDef | undefined {
-  registry ??= loadRegistry()
+  if (!registry || Date.now() - loadedAt > TTL) {
+    registry = loadRegistry()
+    loadedAt = Date.now()
+  }
   return registry.get(type)
 }
 
 export function clearWidgetRegistryCache(): void {
   registry = null
+  loadedAt = 0
 }

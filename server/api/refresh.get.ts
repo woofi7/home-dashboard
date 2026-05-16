@@ -10,8 +10,11 @@ type RefreshResponse = {
   widgets: Record<string, WidgetResult | null>
 }
 
-let cache: { data: RefreshResponse; at: number } | null = null
 const TTL = 30_000
+const WIDGET_TIMEOUT = 8_000
+
+let cache: { data: RefreshResponse; at: number } | null = null
+let inflight: Promise<RefreshResponse> | null = null
 
 async function pingUrl(url: string): Promise<boolean> {
   try {
@@ -23,9 +26,11 @@ async function pingUrl(url: string): Promise<boolean> {
   }
 }
 
-export default defineEventHandler(async (): Promise<RefreshResponse> => {
-  if (cache && Date.now() - cache.at < TTL) return cache.data
+function withTimeout<T>(p: Promise<T | null>, ms: number): Promise<T | null> {
+  return Promise.race([p, new Promise<null>(resolve => setTimeout(() => resolve(null), ms))])
+}
 
+async function doRefresh(): Promise<RefreshResponse> {
   const groups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
   const services = groups.flatMap(g => g.services)
   const urls = [...new Set(services.map(s => s.url).filter((u): u is string => !!u))]
@@ -39,7 +44,7 @@ export default defineEventHandler(async (): Promise<RefreshResponse> => {
         const credentials = Object.fromEntries(
           Object.entries(s).filter(([, v]) => typeof v === 'string'),
         ) as Record<string, string>
-        const result = await fetchWidgetForService(s.type as string, credentials)
+        const result = await withTimeout(fetchWidgetForService(s.type as string, credentials), WIDGET_TIMEOUT)
         return [s.name, result] as const
       }),
     ),
@@ -53,4 +58,14 @@ export default defineEventHandler(async (): Promise<RefreshResponse> => {
 
   cache = { data, at: Date.now() }
   return data
+}
+
+export default defineEventHandler(async (event): Promise<RefreshResponse> => {
+  const { force } = getQuery(event) as { force?: string }
+
+  if (!force && cache && Date.now() - cache.at < TTL) return cache.data
+  if (inflight) return inflight
+
+  inflight = doRefresh().finally(() => { inflight = null })
+  return inflight
 })
