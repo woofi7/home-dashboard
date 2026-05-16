@@ -2,6 +2,7 @@ const INTERVAL = 30
 
 const countdown = ref(INTERVAL)
 const refreshKey = ref(0)
+const forceKey = ref(0)
 
 let pollTimer: ReturnType<typeof setInterval> | null = null
 let tickTimer: ReturnType<typeof setInterval> | null = null
@@ -34,6 +35,7 @@ function onVisible() {
 }
 
 function forceRefresh() {
+  forceKey.value++
   refreshKey.value++
   countdown.value = INTERVAL
   stop()
@@ -53,5 +55,5 @@ export function useWidgetRefresh() {
       document.removeEventListener('visibilitychange', onVisible)
     }
   })
-  return { countdown, refreshKey, forceRefresh }
+  return { countdown, refreshKey, forceKey, forceRefresh }
 }
