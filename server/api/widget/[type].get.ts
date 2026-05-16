@@ -2,6 +2,7 @@ import { getWidgetDef } from '../../utils/widget-registry'
 import { buildAuthHeaders, buildAuthQuery } from '../../utils/auth'
 import { resolveJsonPath } from '../../utils/jsonpath'
 import { getActiveFields } from '../../utils/widget-fields'
+import { formatBytes } from '../../utils/formatBytes'
 
 export default defineEventHandler(async (event) => {
   const type = getRouterParam(event, 'type')!
@@ -72,12 +73,7 @@ export default defineEventHandler(async (event) => {
     .map(({ label, value, suffix, format }) => {
       const raw = resolveJsonPath(endpointResults, value)
       if (format === 'bytes' || format === 'bytes/s') {
-        const n = Number(raw) || 0
-        const unit = format === 'bytes/s' ? '/s' : ''
-        if (n >= 1024 ** 3) return { label, value: `${(n / 1024 ** 3).toFixed(2)} GB${unit}` }
-        if (n >= 1024 ** 2) return { label, value: `${(n / 1024 ** 2).toFixed(2)} MB${unit}` }
-        if (n >= 1024) return { label, value: `${(n / 1024).toFixed(1)} KB${unit}` }
-        return { label, value: `${n} B${unit}` }
+        return { label, value: formatBytes(Number(raw) || 0, format === 'bytes/s') }
       }
       return { label, value: raw, suffix }
     })
