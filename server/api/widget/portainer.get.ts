@@ -1,9 +1,8 @@
 import { getActiveFields } from '../../utils/widget-fields'
 
-export default defineEventHandler(async (event) => {
-  const { url, apiKey, endpointId } = getQuery(event) as Record<string, string>
-  if (!url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+export async function fetchPortainer(creds: Record<string, string>) {
+  const { url, apiKey, endpointId } = creds
+  if (!url || !apiKey) return null
 
   const base = url.replace(/\/$/, '')
   const headers = { 'X-API-Key': apiKey }
@@ -22,19 +21,22 @@ export default defineEventHandler(async (event) => {
     $fetch<Array<unknown>>(`${base}/api/endpoints/${epId}/docker/images/json`, { headers }),
   ])
 
-  const running = containers.filter(c => c.State === 'running').length
-  const stopped = containers.filter(c => c.State === 'exited' || c.State === 'stopped').length
-  const total = containers.length
-
   const allFields = [
-    { label: 'Running', value: running },
-    { label: 'Stopped', value: stopped },
-    { label: 'Containers', value: total },
-    { label: 'Stacks', value: stacks.length },
-    { label: 'Volumes', value: (volumesRes.Volumes ?? []).length },
-    { label: 'Images', value: images.length },
+    { label: 'Running',    value: containers.filter(c => c.State === 'running').length },
+    { label: 'Stopped',    value: containers.filter(c => c.State === 'exited' || c.State === 'stopped').length },
+    { label: 'Containers', value: containers.length },
+    { label: 'Stacks',     value: stacks.length },
+    { label: 'Volumes',    value: (volumesRes.Volumes ?? []).length },
+    { label: 'Images',     value: images.length },
   ]
 
   const active = getActiveFields('portainer', allFields.map(f => f.label))
   return { type: 'portainer', fields: allFields.filter(f => active.has(f.label)) }
+}
+
+export default defineEventHandler(async (event) => {
+  const creds = getQuery(event) as Record<string, string>
+  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  return fetchPortainer(creds)
 })
