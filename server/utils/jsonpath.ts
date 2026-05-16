@@ -78,7 +78,11 @@ export function resolveJsonPath(obj: unknown, path: string): unknown {
     }
 
     if (typeof current !== 'object') return null
-    current = (current as Record<string, unknown>)[seg]
+    const next = (current as Record<string, unknown>)[seg]
+    if (next === undefined) {
+      console.warn(`[jsonpath] "${path}": property "${seg}" not found`)
+    }
+    current = next
   }
 
   return current ?? null

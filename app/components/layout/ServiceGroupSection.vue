@@ -158,5 +158,5 @@ function saveService(updated: Service) {
     </div>
   </div>
 
-  <ServiceModal v-if="showModal" :service="editingService" @save="saveService" @close="showModal = false" />
+  <ServiceModal v-if="showModal" :service="editingService" :group="localGroup.name" @save="saveService" @close="showModal = false" />
 </template>

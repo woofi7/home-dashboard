@@ -17,6 +17,7 @@ type ServiceGroup = {
 export default defineEventHandler(async (event) => {
   const query = getQuery(event) as { service: string; path?: string }
   if (!query.service) throw createError({ statusCode: 400, message: 'service is required' })
+  if (query.service.length > 200) throw createError({ statusCode: 400, message: 'Invalid service name' })
 
   const groups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
   let service: ServiceConfig | undefined
@@ -37,6 +38,6 @@ export default defineEventHandler(async (event) => {
     targetUrl.searchParams.set(k, v)
   }
 
-  const data = await $fetch(targetUrl.toString(), { headers: authHeaders })
+  const data = await $fetch(targetUrl.toString(), { headers: authHeaders, timeout: 10_000 })
   return data
 })

@@ -4,7 +4,7 @@ import type { WidgetEntry } from '~/server/api/admin/widgets.get'
 
 type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; [key: string]: unknown }
 
-const props = defineProps<{ service: Service | null }>()
+const props = defineProps<{ service: Service | null; group?: string }>()
 const emit = defineEmits<{ save: [service: Service]; close: [] }>()
 
 const form = reactive<Service>({
@@ -17,6 +17,24 @@ const form = reactive<Service>({
   username: props.service?.username ?? '',
   password: props.service?.password ?? '',
 })
+
+const credsLoading = ref(false)
+
+// For existing services, fetch raw credentials (may contain ${VAR} references)
+const credsError = ref('')
+if (props.service?.name) {
+  credsLoading.value = true
+  $fetch<Record<string, string>>('/api/edit/service-creds', {
+    method: 'POST',
+    body: { name: props.service.name, group: props.group },
+  }).then(creds => {
+    if (creds.apiKey !== undefined) form.apiKey = creds.apiKey
+    if (creds.username !== undefined) form.username = creds.username
+    if (creds.password !== undefined) form.password = creds.password
+  }).catch((e) => {
+    credsError.value = `Could not load credentials: ${e?.data?.message ?? e?.message ?? 'unknown error'}`
+  }).finally(() => { credsLoading.value = false })
+}
 
 useScrollLock()
 const showIconPicker = ref(false)
@@ -57,8 +75,23 @@ const AUTH_COLORS: Record<string, string> = {
 }
 
 // Credential fields based on widget auth type
-const authType = computed(() => selectedWidget.value?.authType ?? (form.type ? 'header' : ''))
+const KNOWN_AUTH: Record<string, string> = {
+  qbittorrent: 'basic', duplicati: 'password', pihole: 'password',
+  portainer: 'bearer', homeassistant: 'bearer', audiobookshelf: 'bearer',
+  unraid: 'header',
+}
+const authType = computed(() => selectedWidget.value?.authType ?? KNOWN_AUTH[form.type ?? ''] ?? (form.type ? 'header' : ''))
 const isBasicAuth = computed(() => authType.value === 'basic')
+const isPasswordOnly = computed(() => authType.value === 'password')
+
+
+const suggestedApiKeyVar = computed(() => form.type ? envVarName(form.type, 'apiKey') : '')
+const suggestedUsernameVar = computed(() => form.type ? envVarName(form.type, 'username') : '')
+const suggestedPasswordVar = computed(() => form.type ? envVarName(form.type, 'password') : '')
+
+const apiKeyEnvRef = computed(() => parseEnvRef(form.apiKey))
+const usernameEnvRef = computed(() => parseEnvRef(form.username))
+const passwordEnvRef = computed(() => parseEnvRef(form.password))
 
 useEventListener('keydown', (e: KeyboardEvent) => {
   if (showIconPicker.value || showDropdown.value) return
@@ -66,7 +99,8 @@ useEventListener('keydown', (e: KeyboardEvent) => {
   if (e.key === 'Enter') submit()
 })
 
-const testResult = ref<{ ok: boolean; status?: number; message?: string } | null>(null)
+type TestResult = { ok: boolean; status?: number; message?: string; fields?: { label: string; value: unknown }[] }
+const testResult = ref<TestResult | null>(null)
 const testing = ref(false)
 const errors = reactive<Record<string, string>>({})
 
@@ -75,7 +109,7 @@ async function test() {
   testing.value = true
   testResult.value = null
   try {
-    const res = await $fetch<{ ok: boolean; status?: number }>('/api/edit/widget-test', {
+    const res = await $fetch<TestResult>('/api/edit/widget-test', {
       method: 'POST',
       body: { type: form.type, url: form.url, apiKey: form.apiKey, username: form.username, password: form.password },
     })
@@ -97,13 +131,13 @@ function submit() {
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div class="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-4 flex flex-col">
-        <div class="px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between">
+      <div class="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
+        <div class="px-6 py-4 border-b border-[var(--color-border)] flex items-center justify-between flex-shrink-0">
           <h2 class="font-semibold text-[var(--color-text-primary)]">{{ service ? 'Edit service' : 'Add service' }}</h2>
           <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" @click="$emit('close')">✕</button>
         </div>
 
-        <div class="px-6 py-4 space-y-4">
+        <div class="px-6 py-4 space-y-4 overflow-y-auto">
           <Field label="Name" required>
             <input v-model="form.name" type="text" class="modal-input" :class="errors.name ? 'border-[var(--color-danger)]' : ''" placeholder="Sonarr" @input="errors.name = ''" />
             <p v-if="errors.name" class="text-xs text-[var(--color-danger)] mt-1">{{ errors.name }}</p>
@@ -191,27 +225,58 @@ function submit() {
             >Not in registry — fetch it from Admin to enable widget data</p>
           </Field>
 
+          <p v-if="credsError" class="text-xs text-[var(--color-danger)]">{{ credsError }}</p>
+
           <!-- Credentials based on auth type -->
-          <template v-if="form.type">
-            <template v-if="isBasicAuth">
+          <template v-if="form.type && authType !== 'none'">
+            <template v-if="isPasswordOnly">
+              <Field label="Password">
+                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+                <div class="mt-1 flex items-center gap-2">
+                  <span v-if="passwordEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 text-[var(--color-success)]">from env: {{ passwordEnvRef }}</span>
+                  <button v-else type="button" class="text-[10px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors" @click="form.password = '${' + suggestedPasswordVar + '}'">use $&#123;{{ suggestedPasswordVar }}&#125;</button>
+                </div>
+              </Field>
+            </template>
+            <template v-else-if="isBasicAuth">
               <Field label="Username">
-                <input v-model="form.username" type="text" class="modal-input" />
+                <input v-model="form.username" type="text" class="modal-input" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+                <div class="mt-1 flex items-center gap-2">
+                  <span v-if="usernameEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 text-[var(--color-success)]">from env: {{ usernameEnvRef }}</span>
+                  <button v-else type="button" class="text-[10px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors" @click="form.username = '${' + suggestedUsernameVar + '}'">use $&#123;{{ suggestedUsernameVar }}&#125;</button>
+                </div>
               </Field>
               <Field label="Password">
-                <input v-model="form.password" type="password" class="modal-input" />
+                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+                <div class="mt-1 flex items-center gap-2">
+                  <span v-if="passwordEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 text-[var(--color-success)]">from env: {{ passwordEnvRef }}</span>
+                  <button v-else type="button" class="text-[10px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors" @click="form.password = '${' + suggestedPasswordVar + '}'">use $&#123;{{ suggestedPasswordVar }}&#125;</button>
+                </div>
               </Field>
             </template>
             <Field v-else label="API key">
-              <input v-model="form.apiKey" type="text" class="modal-input font-mono text-xs" />
+              <input v-model="form.apiKey" type="text" class="modal-input font-mono text-xs" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+              <div class="mt-1 flex items-center gap-2">
+                <span v-if="apiKeyEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-[var(--color-success)]/10 border border-[var(--color-success)]/30 text-[var(--color-success)]">from env: {{ apiKeyEnvRef }}</span>
+                <button v-else type="button" class="text-[10px] font-mono text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors" @click="form.apiKey = '${' + suggestedApiKeyVar + '}'">use $&#123;{{ suggestedApiKeyVar }}&#125;</button>
+              </div>
             </Field>
           </template>
         </div>
 
-        <div v-if="testResult" class="px-6 py-2 text-xs" :class="testResult.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
-          {{ testResult.ok ? '✓ Connected' : `✗ Failed${testResult.status ? ` (${testResult.status})` : ''}${testResult.message ? ` — ${testResult.message}` : ''}` }}
+        <div v-if="testResult" class="px-6 pb-3 space-y-1.5">
+          <p class="text-xs font-medium" :class="testResult.ok ? 'text-[var(--color-success)]' : 'text-[var(--color-danger)]'">
+            {{ testResult.ok ? '✓ Connected' : `✗ Failed${testResult.status ? ` (${testResult.status})` : ''}${testResult.message ? ` — ${testResult.message}` : ''}` }}
+          </p>
+          <div v-if="testResult.ok && testResult.fields?.length" class="rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] px-3 py-2 flex flex-wrap gap-x-4 gap-y-1">
+            <span v-for="f in testResult.fields" :key="f.label" class="text-xs">
+              <span class="text-[var(--color-text-muted)]">{{ f.label }}:</span>
+              <span class="ml-1 text-[var(--color-text-primary)] font-mono">{{ f.value ?? '—' }}</span>
+            </span>
+          </div>
         </div>
 
-        <div class="px-6 py-4 border-t border-[var(--color-border)] flex justify-between gap-2">
+        <div class="px-6 py-4 border-t border-[var(--color-border)] flex justify-between gap-2 flex-shrink-0">
           <button
             v-if="form.type && form.url"
             class="cursor-pointer px-3 py-2 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-xs text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] disabled:opacity-50"
@@ -220,7 +285,7 @@ function submit() {
           >{{ testing ? 'Testing…' : 'Test widget' }}</button>
           <div class="flex gap-2 ml-auto">
             <button class="cursor-pointer px-4 py-2 rounded-lg text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]" @click="$emit('close')">Cancel</button>
-            <button class="cursor-pointer px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)]" @click="submit">Save</button>
+            <button class="cursor-pointer px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent-hover)] disabled:opacity-50 disabled:cursor-not-allowed" :disabled="credsLoading" @click="submit">Save</button>
           </div>
         </div>
       </div>

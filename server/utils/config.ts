@@ -15,7 +15,13 @@ function loadEnv(configDir: string) {
 }
 
 function substituteVars(value: string): string {
-  return value.replace(/\$\{([^}]+)\}/g, (_, key) => process.env[key] ?? '')
+  return value.replace(/\$\{([^}]+)\}/g, (_, key) => {
+    const val = process.env[key]
+    if (val === undefined) {
+      console.warn(`[config] Environment variable "${key}" is not set; substituting empty string`)
+    }
+    return val ?? ''
+  })
 }
 
 function substituteDeep(obj: unknown): unknown {
@@ -49,6 +55,12 @@ export function loadConfig<T>(filename: string): T | null {
   const result = readYaml<T>(join(dir, filename))
   if (result === null) return null
   return substituteDeep(result) as T
+}
+
+export function loadConfigRaw<T>(filename: string): T | null {
+  const dir = getConfigDir()
+  loadEnv(dir)
+  return readYaml<T>(join(dir, filename))
 }
 
 export function writeConfig(filename: string, data: unknown): void {

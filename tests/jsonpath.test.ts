@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { resolveJsonPath } from '../server/utils/jsonpath'
+
+beforeEach(() => { vi.spyOn(console, 'warn').mockImplementation(() => {}) })
 
 const data = {
   a: { b: { c: 42 } },

@@ -31,8 +31,8 @@ function loadRegistry(): Map<string, WidgetDef> {
     try {
       const def = parseYaml(readFileSync(join(customDir, file), 'utf-8')) as WidgetDef
       map.set(type, def)
-    } catch {
-      // skip malformed
+    } catch (err) {
+      console.error(`[widget-registry] Failed to parse ${file}:`, err)
     }
   }
   return map
