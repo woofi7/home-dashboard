@@ -41,16 +41,16 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
   <component
     :is="!edit && service.url ? 'a' : 'div'"
     v-bind="!edit && service.url ? { href: service.url, target: '_blank', rel: 'noopener' } : {}"
-    class="relative group/card rounded-lg bg-black/60 border border-white/10 p-3 flex flex-col gap-2 transition-colors hover:border-white/20"
+    class="relative group/card rounded-lg bg-black/60 border p-3 flex flex-col gap-2 transition-colors"
     :class="[
       !edit && service.url ? 'cursor-pointer' : 'cursor-default',
-      pendingDelete ? 'border-[var(--color-danger)]/60 opacity-50' : pending ? 'border-[var(--color-warning)]/60' : 'border-[var(--color-border)]',
+      pendingDelete ? 'border-[var(--color-danger)]/60 opacity-50' : pending ? 'border-[var(--color-warning)]/60 hover:border-[var(--color-warning)]/80' : 'border-white/10 hover:border-white/20',
     ]"
   >
     <!-- Header row: drag handle + icon + name/desc + edit controls -->
     <div class="flex items-start gap-3">
       <!-- Drag handle -->
-      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-[var(--color-text-muted)] opacity-0 group-hover/card:opacity-100 select-none text-xs">⠿</span>
+      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-[var(--color-text-muted)] select-none text-xs">⠿</span>
 
       <!-- Icon -->
       <img
@@ -75,8 +75,8 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
         <p v-if="service.description" class="text-xs text-[var(--color-text-muted)] truncate mt-0.5">{{ service.description }}</p>
       </div>
 
-      <!-- Edit/delete controls -->
-      <div v-if="edit" class="flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
+      <!-- Edit/delete controls – absolute overlay, no layout impact -->
+      <div v-if="edit" class="absolute top-1/2 -translate-y-1/2 right-2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
       <template v-if="pendingDelete">
         <button
           class="cursor-pointer h-8 px-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-warning)]/40 flex items-center gap-1.5 text-[var(--color-warning)] hover:border-[var(--color-warning)] transition-colors text-xs font-medium"

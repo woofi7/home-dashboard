@@ -7,15 +7,15 @@ type ServiceGroup = { name: string; services: Service[] }
 type Bookmark = { name: string; url: string; icon?: string }
 type BookmarkGroup = { name: string; bookmarks: Bookmark[] }
 
-const { data: config, refresh } = useFetch('/api/config', { lazy: true })
-const { data: background } = useFetch('/api/background', { lazy: true })
-const { data: weather } = useFetch('/api/weather', { lazy: true })
-const { data: calendar } = useFetch('/api/calendar', { lazy: true })
+const { data: config, refresh } = useFetch('/api/config', { lazy: true, server: false })
+const { data: background } = useFetch('/api/background', { lazy: true, server: false })
+const { data: weather } = useFetch('/api/weather', { lazy: true, server: false })
+const { data: calendar } = useFetch('/api/calendar', { lazy: true, server: false })
 
-const now = ref(new Date())
-onMounted(() => { setInterval(() => { now.value = new Date() }, 1000) })
-const timeStr = computed(() => now.value.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }))
-const dateStr = computed(() => now.value.toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))
+const now = ref<Date | null>(null)
+onMounted(() => { now.value = new Date(); setInterval(() => { now.value = new Date() }, 1000) })
+const timeStr = computed(() => now.value?.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) ?? '')
+const dateStr = computed(() => now.value?.toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) ?? '')
 const fullLoaded = ref(false)
 if (import.meta.client) {
   watch(() => (background.value as Record<string, string> | null)?.full, (url) => {
@@ -35,28 +35,65 @@ const localConfig = ref<{
 
 const { active: editActive, dirty, snapshot, enter, exit } = useEditMode()
 const { countdown, forceRefresh } = useWidgetRefresh()
+const { editEnabled, needsLogin, logout } = useAuth()
+const loginVisible = ref(false)
+const leaveConfirmVisible = ref(false)
+const pendingRoute = ref('')
+
+onBeforeRouteLeave((to) => {
+  if (dirty.value) {
+    pendingRoute.value = to.fullPath
+    leaveConfirmVisible.value = true
+    return false
+  }
+  exit()
+})
+
+function confirmLeave() {
+  leaveConfirmVisible.value = false
+  exit()
+  navigateTo(pendingRoute.value)
+}
+
+function handleEdit() {
+  if (needsLogin.value) { loginVisible.value = true; return }
+  enter(localConfig.value)
+}
+function handleLoginSuccess() {
+  loginVisible.value = false
+  enter(localConfig.value)
+}
+async function handleLogout() {
+  exit()
+  await logout()
+}
+
+function countListChanges(snapItems: unknown[], curItems: unknown[]): number {
+  const len = Math.max(snapItems.length, curItems.length)
+  let n = 0
+  for (let i = 0; i < len; i++) {
+    if (!snapItems[i] || !curItems[i] || JSON.stringify(snapItems[i]) !== JSON.stringify(curItems[i])) n++
+  }
+  return n
+}
 
 const pendingCount = computed(() => {
   if (!editActive.value || !snapshot.value) return 0
   let count = 0
   for (const snapGroup of snapshot.value.services as ServiceGroup[]) {
     const curGroup = localConfig.value.services.find(g => g.name === snapGroup.name)
-    if (!curGroup) { count += snapGroup.services.length; continue }
-    const cur = new Map(curGroup.services.map(s => [s.name, JSON.stringify(s)]))
-    const snap = new Map(snapGroup.services.map(s => [s.name, JSON.stringify(s)]))
-    count += curGroup.services.filter(s => !snap.has(s.name) || snap.get(s.name) !== JSON.stringify(s)).length
-    count += snapGroup.services.filter(s => !cur.has(s.name)).length
+    count += curGroup ? countListChanges(snapGroup.services, curGroup.services) : snapGroup.services.length
   }
-  count += localConfig.value.services.filter(g => !(snapshot.value!.services as ServiceGroup[]).find(sg => sg.name === g.name)).reduce((a, g) => a + g.services.length, 0)
+  count += localConfig.value.services
+    .filter(g => !(snapshot.value!.services as ServiceGroup[]).find(sg => sg.name === g.name))
+    .reduce((a, g) => a + g.services.length, 0)
   for (const snapGroup of snapshot.value.bookmarks as BookmarkGroup[]) {
     const curGroup = localConfig.value.bookmarks.find(g => g.name === snapGroup.name)
-    if (!curGroup) { count += snapGroup.bookmarks.length; continue }
-    const cur = new Map(curGroup.bookmarks.map(b => [b.name, JSON.stringify(b)]))
-    const snap = new Map(snapGroup.bookmarks.map(b => [b.name, JSON.stringify(b)]))
-    count += curGroup.bookmarks.filter(b => !snap.has(b.name) || snap.get(b.name) !== JSON.stringify(b)).length
-    count += snapGroup.bookmarks.filter(b => !cur.has(b.name)).length
+    count += curGroup ? countListChanges(snapGroup.bookmarks, curGroup.bookmarks) : snapGroup.bookmarks.length
   }
-  count += localConfig.value.bookmarks.filter(g => !(snapshot.value!.bookmarks as BookmarkGroup[]).find(sg => sg.name === g.name)).reduce((a, g) => a + g.bookmarks.length, 0)
+  count += localConfig.value.bookmarks
+    .filter(g => !(snapshot.value!.bookmarks as BookmarkGroup[]).find(sg => sg.name === g.name))
+    .reduce((a, g) => a + g.bookmarks.length, 0)
   return count
 })
 
@@ -165,7 +202,7 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
       <!-- Left: Today's calendar events -->
       <div class="space-y-1.5 order-2 md:order-1">
         <Transition name="fade" mode="out-in">
-        <div v-if="calendar === null" key="cal-ghost" class="space-y-2 animate-pulse">
+        <div v-if="!calendar" key="cal-ghost" class="space-y-2 animate-pulse">
           <div class="h-2.5 w-8 rounded bg-white/10 mb-3" />
           <div class="h-10 rounded-lg bg-white/10" />
           <div class="h-10 rounded-lg bg-white/10" />
@@ -241,7 +278,7 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
       <!-- Right: Weather card -->
       <div class="order-3">
         <Transition name="fade" mode="out-in">
-        <div v-if="weather === null" key="wx-ghost" class="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-4 animate-pulse space-y-3">
+        <div v-if="!weather" key="wx-ghost" class="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-4 animate-pulse space-y-3">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-full bg-white/10 shrink-0" />
             <div class="flex-1 space-y-2">
@@ -307,10 +344,21 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
       :dirty="dirty"
       :pending-count="pendingCount"
       :countdown="countdown"
-      @edit="enter(localConfig)"
+      :edit-enabled="editEnabled"
+      :locked="needsLogin"
+      @edit="handleEdit"
       @save="save"
       @rollback="handleCancel"
       @refresh="forceRefresh"
+      @logout="handleLogout"
+    />
+
+    <LoginModal v-if="loginVisible" @success="handleLoginSuccess" @close="loginVisible = false" />
+    <ConfirmModal
+      v-if="leaveConfirmVisible"
+      message="You have unsaved changes. Leave and discard them?"
+      @confirm="confirmLeave"
+      @cancel="leaveConfirmVisible = false"
     />
 
     <div v-if="localConfig.widgets?.length" class="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 px-4 md:px-6 pt-4">
