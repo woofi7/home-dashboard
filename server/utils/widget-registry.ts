@@ -38,6 +38,13 @@ function loadRegistry(): Map<string, WidgetDef> {
   return map
 }
 
+let registry: Map<string, WidgetDef> | null = null
+
 export function getWidgetDef(type: string): WidgetDef | undefined {
-  return loadRegistry().get(type)
+  registry ??= loadRegistry()
+  return registry.get(type)
+}
+
+export function clearWidgetRegistryCache(): void {
+  registry = null
 }
