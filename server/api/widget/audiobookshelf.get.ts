@@ -9,42 +9,41 @@ function fmtSize(bytes: number): string {
 
 function fmtDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600)
-  if (h >= 24) return `${(h / 24).toFixed(1)} days`
-  return `${h} hrs`
+  return h >= 24 ? `${(h / 24).toFixed(1)} days` : `${h} hrs`
 }
 
-export default defineEventHandler(async (event) => {
-  const { url, apiKey } = getQuery(event) as Record<string, string>
-  if (!url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+export async function fetchAudiobookshelf(creds: Record<string, string>) {
+  const { url, apiKey } = creds
+  if (!url || !apiKey) return null
 
   const base = url.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${apiKey}` }
 
   const { libraries } = await $fetch<{ libraries: Array<{ id: string; mediaType: string }> }>(`${base}/api/libraries`, { headers })
-
   const bookLibs = libraries.filter(l => l.mediaType === 'book')
 
   const stats = await Promise.all(
     bookLibs.map(l =>
       $fetch<{ totalItems: number; totalAuthors: number; totalSize: number; totalDuration: number }>(
-        `${base}/api/libraries/${l.id}/stats`, { headers }
-      )
-    )
+        `${base}/api/libraries/${l.id}/stats`, { headers },
+      ),
+    ),
   )
 
-  const totalItems = stats.reduce((s, r) => s + r.totalItems, 0)
-  const totalAuthors = stats.reduce((s, r) => s + r.totalAuthors, 0)
-  const totalSize = stats.reduce((s, r) => s + r.totalSize, 0)
-  const totalDuration = stats.reduce((s, r) => s + r.totalDuration, 0)
-
   const allFields = [
-    { label: 'Audiobooks', value: totalItems },
-    { label: 'Authors',    value: totalAuthors },
-    { label: 'Duration',   value: fmtDuration(totalDuration) },
-    { label: 'Size',       value: fmtSize(totalSize) },
+    { label: 'Audiobooks', value: stats.reduce((s, r) => s + r.totalItems, 0) },
+    { label: 'Authors',    value: stats.reduce((s, r) => s + r.totalAuthors, 0) },
+    { label: 'Duration',   value: fmtDuration(stats.reduce((s, r) => s + r.totalDuration, 0)) },
+    { label: 'Size',       value: fmtSize(stats.reduce((s, r) => s + r.totalSize, 0)) },
   ]
 
   const active = getActiveFields('audiobookshelf', allFields.map(f => f.label))
   return { type: 'audiobookshelf', fields: allFields.filter(f => active.has(f.label)) }
+}
+
+export default defineEventHandler(async (event) => {
+  const creds = getQuery(event) as Record<string, string>
+  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  return fetchAudiobookshelf(creds)
 })

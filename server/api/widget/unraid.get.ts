@@ -15,10 +15,9 @@ function fmtBytes(b: number): string {
   return `${b} B`
 }
 
-export default defineEventHandler(async (event) => {
-  const { url, apiKey } = getQuery(event) as Record<string, string>
-  if (!url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+export async function fetchUnraid(creds: Record<string, string>) {
+  const { url, apiKey } = creds
+  if (!url || !apiKey) return null
 
   const gql = `{
     array { state parityCheckStatus { status progress } capacity { kilobytes { free used total } disks { used total } } }
@@ -32,10 +31,7 @@ export default defineEventHandler(async (event) => {
         parityCheckStatus: { status: string; progress: number }
         capacity: { kilobytes: { free: string; used: string; total: string }; disks: { used: string; total: string } }
       }
-      metrics: {
-        cpu: { percentTotal: number }
-        memory: { total: number; available: number }
-      }
+      metrics: { cpu: { percentTotal: number }; memory: { total: number; available: number } }
     }
   }>(new URL('/graphql', url).toString(), {
     method: 'POST',
@@ -45,19 +41,25 @@ export default defineEventHandler(async (event) => {
 
   const arr = data.data.array
   const kb = arr.capacity.kilobytes
-  const disks = arr.capacity.disks
   const parity = arr.parityCheckStatus
   const { cpu, memory } = data.data.metrics
 
   const allFields = [
-    { label: 'Array', value: arr.state.charAt(0) + arr.state.slice(1).toLowerCase() },
-    { label: 'Used', value: `${fmtKB(kb.used)} / ${fmtKB(kb.total)}` },
-    { label: 'Disks', value: `${disks.used} / ${disks.total}` },
+    { label: 'Array',  value: arr.state.charAt(0) + arr.state.slice(1).toLowerCase() },
+    { label: 'Used',   value: `${fmtKB(kb.used)} / ${fmtKB(kb.total)}` },
+    { label: 'Disks',  value: `${arr.capacity.disks.used} / ${arr.capacity.disks.total}` },
     { label: 'Parity', value: `${parity.status.charAt(0) + parity.status.slice(1).toLowerCase()}${parity.progress > 0 ? ` (${parity.progress}%)` : ''}` },
-    { label: 'CPU', value: `${cpu.percentTotal.toFixed(1)}%` },
+    { label: 'CPU',    value: `${cpu.percentTotal.toFixed(1)}%` },
     { label: 'Memory', value: `${fmtBytes(memory.total - memory.available)} / ${fmtBytes(memory.total)}` },
   ]
 
   const active = getActiveFields('unraid', allFields.map(f => f.label))
   return { type: 'unraid', fields: allFields.filter(f => active.has(f.label)) }
+}
+
+export default defineEventHandler(async (event) => {
+  const creds = getQuery(event) as Record<string, string>
+  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  return fetchUnraid(creds)
 })

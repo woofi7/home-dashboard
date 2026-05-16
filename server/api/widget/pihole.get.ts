@@ -11,14 +11,14 @@ async function getSid(base: string, password: string): Promise<string> {
     body: { password },
   })
   const sid = res.session?.sid
-  if (!sid) throw createError({ statusCode: 401, message: 'Pi-hole login failed' })
+  if (!sid) throw new Error('Pi-hole login failed')
   sidCache = { sid, at: Date.now() }
   return sid
 }
 
-export default defineEventHandler(async (event) => {
-  const { url, password } = getQuery(event) as Record<string, string>
-  if (!url) throw createError({ statusCode: 400, message: 'url is required' })
+export async function fetchPihole(creds: Record<string, string>) {
+  const { url, password } = creds
+  if (!url) return null
 
   const base = url.replace(/\/admin\/?$/, '').replace(/\/$/, '')
   const sid = await getSid(base, password ?? '')
@@ -31,14 +31,20 @@ export default defineEventHandler(async (event) => {
 
   const q = summary.queries
   const allFields = [
-    { label: 'Queries', value: q.total },
-    { label: 'Blocked', value: `${q.blocked} (${q.percent_blocked.toFixed(1)}%)` },
-    { label: 'Forwarded', value: q.forwarded },
-    { label: 'Cached', value: q.cached },
-    { label: 'Domains', value: q.unique_domains },
+    { label: 'Queries',        value: q.total },
+    { label: 'Blocked',        value: `${q.blocked} (${q.percent_blocked.toFixed(1)}%)` },
+    { label: 'Forwarded',      value: q.forwarded },
+    { label: 'Cached',         value: q.cached },
+    { label: 'Domains',        value: q.unique_domains },
     { label: 'Recent blocked', value: recentRes.blocked?.[0] ?? '—' },
   ]
 
   const active = getActiveFields('pihole', allFields.map(f => f.label))
   return { type: 'pihole', fields: allFields.filter(f => active.has(f.label)) }
+}
+
+export default defineEventHandler(async (event) => {
+  const creds = getQuery(event) as Record<string, string>
+  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  return fetchPihole(creds)
 })

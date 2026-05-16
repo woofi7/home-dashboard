@@ -1,36 +1,10 @@
 <script setup lang="ts">
-type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; container?: string; [key: string]: unknown }
-type WidgetField = { label: string; value: string | number | null; suffix?: string }
+type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; container?: string; [key: string]: unknown }
+type WidgetField = { label: string; value: unknown; suffix?: string }
 const props = defineProps<{ service: Service; edit: boolean; pending?: boolean; pendingDelete?: boolean }>()
 defineEmits<{ edit: []; delete: []; revert: [] }>()
 
-const widgetFields = ref<WidgetField[] | null>(null)
-const widgetError = ref(false)
-
-async function fetchWidget() {
-  if (!props.service.type || !props.service.url) return
-  try {
-    const params: Record<string, string> = { url: props.service.url as string }
-    const skip = new Set(['name', 'url', 'icon', 'description', 'type', 'container'])
-    for (const [k, v] of Object.entries(props.service)) {
-      if (!skip.has(k) && typeof v === 'string' && v) params[k] = v
-    }
-
-    const res = await $fetch<{ fields: WidgetField[] }>(`/api/widget/${props.service.type}`, { params })
-    widgetFields.value = res.fields
-    widgetError.value = false
-  } catch {
-    widgetError.value = true
-  }
-}
-
-const { refreshKey } = useWidgetRefresh()
-
-onMounted(() => { if (!props.edit && props.service.type) fetchWidget() })
-watch(refreshKey, () => { if (!props.edit && props.service.type) fetchWidget() })
-watch(() => props.edit, (editing) => { if (!editing && props.service.type) fetchWidget() })
-
-const { dockerStatus, pingStatus } = useServiceStatus()
+const { dockerStatus, pingStatus, widgetData } = useRefreshData()
 
 const containerState = computed(() => {
   const target = (props.service.container as string | undefined) ?? props.service.name.toLowerCase().replace(/\s+/g, '')
@@ -57,6 +31,10 @@ const statusTitle = computed(() => {
   if (up !== undefined) return up ? 'Reachable' : 'Unreachable'
   return null
 })
+
+const widgetResult = computed(() => widgetData.value[props.service.name])
+const widgetLoading = computed(() => props.service.type && !(props.service.name in widgetData.value))
+const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] | undefined)
 </script>
 
 <template>
@@ -84,7 +62,7 @@ const statusTitle = computed(() => {
       />
       <div v-else class="w-8 h-8 rounded bg-[var(--color-bg-surface)] flex-shrink-0 mt-0.5" />
 
-      <!-- Docker status dot -->
+      <!-- Status dot -->
       <span
         v-if="statusColor"
         :class="['absolute top-2 right-2 w-2 h-2 rounded-full', statusColor]"
@@ -124,19 +102,19 @@ const statusTitle = computed(() => {
     </div>
     </div><!-- end header row -->
 
-    <!-- Widget data: full width below the header -->
-    <div v-if="!edit && widgetFields && widgetFields.length" class="flex flex-col gap-0.5">
+    <!-- Widget data -->
+    <div v-if="!edit && widgetFields?.length" class="flex flex-col gap-0.5">
       <span
         v-for="f in widgetFields"
         :key="f.label"
         class="text-xs text-[var(--color-text-secondary)]"
       >
         <span class="text-[var(--color-text-muted)]">{{ f.label }}:</span>
-        {{ f.value ?? '—' }}{{ f.suffix ? ' ' + f.suffix : '' }}
+        {{ f.value ?? '—' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
       </span>
     </div>
-    <div v-else-if="!edit && service.type && widgetError" class="text-xs text-[var(--color-danger)]/60">Widget unavailable</div>
-    <div v-else-if="!edit && service.type && !widgetFields" class="flex gap-2">
+    <div v-else-if="!edit && service.type && widgetResult === null" class="text-xs text-[var(--color-danger)]/60">Widget unavailable</div>
+    <div v-else-if="!edit && widgetLoading" class="flex gap-2">
       <span v-for="i in 2" :key="i" class="h-3 w-14 rounded bg-[var(--color-bg-surface)] animate-pulse" />
     </div>
   </component>
