@@ -346,14 +346,12 @@ const AUTH_COLORS: Record<string, string> = {
       :type="editing.type"
       :initial-yaml="editing.yaml"
       :is-new="false"
-      :allow-github-fetch="true"
       @save="onSave"
       @close="editing = null"
     />
     <WidgetEditorModal
       v-if="showAdd"
       :is-new="true"
-      :allow-github-fetch="false"
       @save="onSave"
       @close="showAdd = false"
     />
