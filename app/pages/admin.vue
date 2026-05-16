@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import type { WidgetEntry } from '~/server/api/admin/widgets.get'
 
+const { needsLogin, editEnabled } = useAuth()
+if (import.meta.client && (!editEnabled.value || needsLogin.value)) {
+  await navigateTo('/')
+}
+watch([editEnabled, needsLogin], ([enabled, locked]) => {
+  if (!enabled || locked) navigateTo('/')
+})
+
 // ── Catalog ────────────────────────────────────────────────────────────────
 
 type FieldDef = { label: string; desc: string }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number }>()
-defineEmits<{ edit: []; save: []; rollback: []; refresh: [] }>()
+defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; editEnabled?: boolean; locked?: boolean }>()
+defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
 </script>
 
 <template>
@@ -11,6 +11,15 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: [] }>()
       @click="$emit('refresh')"
     >↻ {{ countdown }}s</button>
     <template v-if="active">
+      <NuxtLink
+        to="/admin"
+        class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-xs md:text-sm hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+      >Admin</NuxtLink>
+      <button
+        class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs md:text-sm hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
+        title="Logout"
+        @click="$emit('logout')"
+      >⎋</button>
       <button
         class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-xs md:text-sm hover:border-[var(--color-danger)] hover:text-[var(--color-danger)] transition-colors"
         @click="$emit('rollback')"
@@ -27,15 +36,18 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: [] }>()
         <span v-if="pendingCount > 0" class="ml-1.5 px-1.5 py-0.5 rounded-md text-xs font-bold bg-[var(--color-warning)] text-[var(--color-bg-base)]">{{ pendingCount }}</span>
       </button>
     </template>
-    <template v-else>
+    <template v-else-if="editEnabled">
       <button
-        class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-xs md:text-sm hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+        v-if="locked"
+        class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-[var(--color-text-muted)] text-xs md:text-sm hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
         @click="$emit('edit')"
       >Edit</button>
-      <NuxtLink
-        to="/admin"
-        class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-xs md:text-sm hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
-      >Admin</NuxtLink>
+      <template v-else>
+        <button
+          class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-[var(--color-bg-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] text-xs md:text-sm hover:border-[var(--color-accent)] hover:text-[var(--color-accent-hover)] transition-colors"
+          @click="$emit('edit')"
+        >Edit</button>
+      </template>
     </template>
   </div>
 </template>
