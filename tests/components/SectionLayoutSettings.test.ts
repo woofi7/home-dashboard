@@ -25,14 +25,13 @@ function mountSettings(modelValue: LayoutSettings = {}) {
 describe('SectionLayoutSettings.vue', () => {
   it('panel is closed initially', () => {
     const wrapper = mountSettings()
-    // The panel div only exists when open=true
-    expect(wrapper.find('.absolute.right-0').exists()).toBe(false)
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(false)
   })
 
   it('clicking the table-columns icon button opens the panel', async () => {
     const wrapper = mountSettings()
     await wrapper.find('button').trigger('click')
-    expect(wrapper.find('.absolute.right-0').exists()).toBe(true)
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(true)
   })
 
   it('clicking again closes the panel', async () => {
@@ -40,7 +39,7 @@ describe('SectionLayoutSettings.vue', () => {
     const btn = wrapper.find('button')
     await btn.trigger('click')
     await btn.trigger('click')
-    expect(wrapper.find('.absolute.right-0').exists()).toBe(false)
+    expect(wrapper.find('.fixed.z-50').exists()).toBe(false)
   })
 
   it('Desktop tab is active by default', async () => {
@@ -54,8 +53,8 @@ describe('SectionLayoutSettings.vue', () => {
   it('clicking Mobile tab switches to mobile view', async () => {
     const wrapper = mountSettings()
     await wrapper.find('button').trigger('click')
+    await wrapper.findAll('.flex.gap-1.mb-3 button')[1].trigger('click')
     const tabs = wrapper.findAll('.flex.gap-1.mb-3 button')
-    await tabs[1].trigger('click')
     expect(tabs[1].classes()).toContain('bg-elevated')
     expect(tabs[0].classes()).not.toContain('bg-elevated')
   })
