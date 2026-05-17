@@ -23,15 +23,11 @@ export default defineEventHandler(async () => {
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')
   const g = settings?.google as Record<string, string> | undefined
 
-  if (!g?.refreshToken)
-    return {
-      authorized: false,
-      todayTimed: [],
-      todayAllDay: [],
-      tomorrow: []
-    }
+  const { clientId, clientSecret, refreshToken } = g ?? {}
+  if (!clientId || !clientSecret || !refreshToken)
+    return { authorized: false, todayTimed: [], todayAllDay: [], tomorrow: [] }
 
-  const accessToken = await getAccessToken(g.clientId, g.clientSecret, g.refreshToken)
+  const accessToken = await getAccessToken(clientId, clientSecret, refreshToken)
 
   const now = new Date()
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()

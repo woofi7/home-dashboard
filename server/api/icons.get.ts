@@ -9,7 +9,7 @@ const TTL = 60 * 60 * 1000
 
 export default defineEventHandler(() =>
   cache.fetch(async () => {
-    // Git Trees API returns ALL files recursively — no 1000-file cap
+    // Git Trees API returns all files recursively
     const { tree } = await $fetch<TreeResponse>(
       'https://api.github.com/repos/walkxcode/dashboard-icons/git/trees/main?recursive=1',
       { headers: { Accept: 'application/vnd.github.v3+json' } }
