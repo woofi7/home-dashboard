@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { resolveContainerState } from '~/utils/dockerLookup'
+
 type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; container?: string; server?: string; [key: string]: unknown }
 type WidgetField = { label: string; value: unknown; suffix?: string }
 const props = defineProps<{ service: Service; edit: boolean; pending?: boolean; pendingDelete?: boolean }>()
@@ -6,23 +8,14 @@ defineEmits<{ edit: []; delete: []; revert: [] }>()
 
 const { dockerStatus, pingStatus, widgetData } = useRefreshData()
 
-const containerState = computed(() => {
-  const target = (props.service.container as string | undefined) ?? props.service.name.toLowerCase().replace(/\s+/g, '')
-  const serverName = props.service.server as string | undefined
-
-  if (serverName) {
-    const serverContainers = dockerStatus.value[serverName] ?? {}
-    const key = Object.keys(serverContainers).find(k => k.toLowerCase().includes(target) || target.includes(k.toLowerCase()))
-    return key ? serverContainers[key] : null
-  }
-
-  for (const serverContainers of Object.values(dockerStatus.value)) {
-    const key = Object.keys(serverContainers).find(k => k.toLowerCase().includes(target) || target.includes(k.toLowerCase()))
-    if (key)
-      return serverContainers[key]
-  }
-  return null
-})
+const containerState = computed(() =>
+  resolveContainerState(
+    dockerStatus.value,
+    props.service.name,
+    props.service.container,
+    props.service.server,
+  ),
+)
 
 const statusColor = computed(() => {
   if (containerState.value) {
