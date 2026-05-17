@@ -1,10 +1,11 @@
 import { createConnection } from 'node:net'
 import { loadConfig } from './config'
+import { createCache } from './cache'
 
 type DockerContainer = { Names: string[]; State: string; Status: string }
 export type DockerStatus = Record<string, { state: string; status: string }>
 
-let cache: { data: DockerStatus; at: number } | null = null
+const cache = createCache<DockerStatus>()
 const TTL = 30_000
 
 function httpOverSocket(socketPath: string, path: string): Promise<unknown> {
@@ -40,15 +41,14 @@ async function fetchContainers(): Promise<DockerContainer[]> {
   return []
 }
 
-export async function fetchDockerStatus(): Promise<DockerStatus> {
-  if (cache && Date.now() - cache.at < TTL) return cache.data
-
-  const containers = await fetchContainers().catch(() => [] as DockerContainer[])
-  const data: DockerStatus = {}
-  for (const c of containers) {
-    const name = c.Names[0]?.replace(/^\//, '') ?? ''
-    if (name) data[name] = { state: c.State, status: c.Status }
-  }
-  cache = { data, at: Date.now() }
-  return data
+export function fetchDockerStatus(): Promise<DockerStatus> {
+  return cache.fetch(TTL, async () => {
+    const containers = await fetchContainers().catch(() => [] as DockerContainer[])
+    const data: DockerStatus = {}
+    for (const c of containers) {
+      const name = c.Names[0]?.replace(/^\//, '') ?? ''
+      if (name) data[name] = { state: c.State, status: c.Status }
+    }
+    return data
+  })
 }

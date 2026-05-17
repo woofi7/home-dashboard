@@ -6,9 +6,9 @@ type WeatherData = {
   laterToday: HourSlot[]
   tomorrow: DayForecast
 }
-type WeatherCache = { data: WeatherData; at: number }
+import { createCache } from '../utils/cache'
 
-let cache: WeatherCache | null = null
+const cache = createCache<WeatherData>()
 const TTL = 30 * 60 * 1000
 
 const WMO: Record<number, { desc: string; icon: string }> = {
@@ -38,7 +38,8 @@ const WMO: Record<number, { desc: string; icon: string }> = {
 function wmo(code: number) { return WMO[code] ?? { desc: 'Unknown', icon: '🌡️' } }
 
 export default defineEventHandler(async () => {
-  if (cache && Date.now() - cache.at < TTL) return cache.data
+  const hit = cache.get(TTL)
+  if (hit) return hit
 
   const geo = await $fetch<{ city: string; regionName: string; lat: number; lon: number }>('http://ip-api.com/json')
 
@@ -132,6 +133,5 @@ export default defineEventHandler(async () => {
     tomorrow: tmr as DayForecast,
   }
 
-  cache = { data, at: Date.now() }
-  return data
+  return cache.set(data)
 })
