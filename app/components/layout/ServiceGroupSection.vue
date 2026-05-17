@@ -22,7 +22,8 @@ const emit = defineEmits<{
 const localGroup = ref<ServiceGroup>(JSON.parse(JSON.stringify(props.group)))
 
 watch(() => props.group, (v) => {
-  if (!props.edit) localGroup.value = JSON.parse(JSON.stringify(v))
+  if (!props.edit)
+    localGroup.value = JSON.parse(JSON.stringify(v))
 }, { deep: true })
 
 const layout = computed({
@@ -101,7 +102,8 @@ function deleteService(s: Service) {
 function saveService(updated: Service) {
   if (editingService.value) {
     const idx = localGroup.value.services.findIndex((s) => s.name === editingService.value!.name)
-    if (idx !== -1) localGroup.value.services[idx] = updated
+    if (idx !== -1)
+      localGroup.value.services[idx] = updated
   } else {
     localGroup.value.services.push(updated)
   }
@@ -117,11 +119,11 @@ function saveService(updated: Service) {
   >
     <!-- Header -->
     <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-      <span v-if="edit" class="section-handle cursor-grab text-[var(--color-text-muted)] select-none">⠿</span>
-      <span class="font-semibold text-sm text-[var(--color-text-secondary)] flex-1">{{ group.name }}</span>
+      <span v-if="edit" class="section-handle cursor-grab text-muted select-none">⠿</span>
+      <span class="font-semibold text-sm text-secondary flex-1">{{ group.name }}</span>
       <template v-if="edit">
         <SectionLayoutSettings v-model="layout" />
-        <button class="text-xs text-[var(--color-danger)] hover:text-red-400" @click="$emit('delete')">Remove</button>
+        <button class="text-xs text-danger hover:text-red-400" @click="$emit('delete')">Remove</button>
       </template>
     </div>
 
@@ -155,7 +157,7 @@ function saveService(updated: Service) {
     <!-- Add item -->
     <div v-if="edit" class="px-3 pb-3">
       <button
-        class="w-full rounded-lg border border-dashed border-[var(--color-border)] hover:border-[var(--color-accent)] text-[var(--color-text-muted)] hover:text-[var(--color-accent-hover)] text-sm py-2 transition-colors"
+        class="w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
         @click="openAdd"
       >+ Add</button>
     </div>

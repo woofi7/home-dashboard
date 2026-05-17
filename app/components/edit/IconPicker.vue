@@ -59,32 +59,32 @@ onMounted(() => nextTick(() => input.value?.focus()))
 <template>
   <Teleport to="body">
     <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm" @click.self="$emit('close')">
-      <div class="bg-[var(--color-bg-surface)] border border-[var(--color-border)] rounded-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[80vh]">
+      <div class="bg-surface border border-border rounded-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[80vh]">
 
         <!-- Header -->
-        <div class="px-5 py-4 border-b border-[var(--color-border)] flex items-center gap-3">
+        <div class="px-5 py-4 border-b border-border flex items-center gap-3">
           <input
             ref="input"
             v-model="search"
             type="text"
             placeholder="Search icons…"
-            class="flex-1 bg-[var(--color-bg-elevated)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] outline-none focus:border-[var(--color-accent)] transition-colors"
+            class="flex-1 bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
           />
-          <button class="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]" @click="$emit('close')">✕</button>
+          <button class="text-muted hover:text-primary" @click="$emit('close')">✕</button>
         </div>
 
         <!-- Grid -->
         <div class="overflow-y-auto p-4">
-          <div v-if="pending" class="text-center text-[var(--color-text-muted)] text-sm py-12">Loading icons…</div>
-          <div v-else-if="!icons.length" class="text-center text-[var(--color-text-muted)] text-sm py-12">No icons found</div>
+          <div v-if="pending" class="text-center text-muted text-sm py-12">Loading icons…</div>
+          <div v-else-if="!icons.length" class="text-center text-muted text-sm py-12">No icons found</div>
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-3">
             <button
               v-for="icon in icons"
               :key="icon.name"
-              class="group flex flex-col items-center gap-2 p-3 rounded-xl border border-transparent hover:border-[var(--color-border)] hover:bg-[var(--color-bg-elevated)] transition-colors"
+              class="group flex flex-col items-center gap-2 p-3 rounded-xl border border-transparent hover:border-border hover:bg-elevated transition-colors"
               @click="$emit('select', icon.url)"
             >
-              <div class="w-16 h-16 rounded-xl bg-[var(--color-bg-elevated)] group-hover:bg-[var(--color-bg-surface)] flex items-center justify-center overflow-hidden transition-colors">
+              <div class="w-16 h-16 rounded-xl bg-elevated group-hover:bg-surface flex items-center justify-center overflow-hidden transition-colors">
                 <img
                   :src="icon.url"
                   :alt="icon.name"
@@ -93,11 +93,11 @@ onMounted(() => nextTick(() => input.value?.focus()))
                   @error="($event.target as HTMLImageElement).style.opacity = '0'"
                 />
               </div>
-              <span class="text-xs text-[var(--color-text-muted)] text-center leading-tight line-clamp-2 w-full" v-html="icon.label" />
+              <span class="text-xs text-muted text-center leading-tight line-clamp-2 w-full" v-html="icon.label" />
             </button>
           </div>
 
-          <p v-if="icons.length === 120" class="text-center text-[var(--color-text-muted)] text-xs mt-4">
+          <p v-if="icons.length === 120" class="text-center text-muted text-xs mt-4">
             Showing 120 of {{ allIcons?.length }} — refine your search to see more
           </p>
         </div>

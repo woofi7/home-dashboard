@@ -50,13 +50,13 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
     class="relative group/card rounded-lg bg-black/60 border p-3 flex flex-col gap-2 transition-colors"
     :class="[
       !edit && service.url ? 'cursor-pointer' : 'cursor-default',
-      pendingDelete ? 'border-[var(--color-danger)]/60 opacity-50' : pending ? 'border-[var(--color-warning)]/60 hover:border-[var(--color-warning)]/80' : 'border-white/10 hover:border-white/20',
+      pendingDelete ? 'border-danger/60 opacity-50' : pending ? 'border-warning/60 hover:border-warning/80' : 'border-white/10 hover:border-white/20',
     ]"
   >
     <!-- Header row: drag handle + icon + name/desc + edit controls -->
     <div class="flex items-start gap-3">
       <!-- Drag handle -->
-      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-[var(--color-text-muted)] select-none text-xs">⠿</span>
+      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-muted select-none text-xs">⠿</span>
 
       <!-- Icon -->
       <img
@@ -66,7 +66,7 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
         class="w-8 h-8 rounded object-contain flex-shrink-0 mt-0.5"
         @error="($event.target as HTMLImageElement).style.display = 'none'"
       />
-      <div v-else class="w-8 h-8 rounded bg-[var(--color-bg-surface)] flex-shrink-0 mt-0.5" />
+      <div v-else class="w-8 h-8 rounded bg-surface flex-shrink-0 mt-0.5" />
 
       <!-- Status dot -->
       <span
@@ -77,31 +77,31 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
 
       <!-- Name + description -->
       <div class="flex-1 min-w-0">
-        <span class="text-sm font-medium text-[var(--color-text-primary)] truncate block" :class="!edit && service.url ? 'hover:text-[var(--color-accent-hover)]' : ''">{{ service.name }}</span>
-        <p v-if="service.description" class="text-xs text-[var(--color-text-muted)] truncate mt-0.5">{{ service.description }}</p>
+        <span class="text-sm font-medium text-primary truncate block" :class="!edit && service.url ? 'hover:text-accent-hover' : ''">{{ service.name }}</span>
+        <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
       </div>
 
       <!-- Edit/delete controls – absolute overlay, no layout impact -->
       <div v-if="edit" class="absolute top-1/2 -translate-y-1/2 right-2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
       <template v-if="pendingDelete">
         <button
-          class="cursor-pointer h-8 px-3 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-warning)]/40 flex items-center gap-1.5 text-[var(--color-warning)] hover:border-[var(--color-warning)] transition-colors text-xs font-medium"
+          class="cursor-pointer h-8 px-3 rounded-lg bg-surface border border-warning/40 flex items-center gap-1.5 text-warning hover:border-warning transition-colors text-xs font-medium"
           @click.prevent="$emit('revert')"
         >↺ Restore</button>
       </template>
       <template v-else>
         <button
           v-if="pending"
-          class="cursor-pointer w-8 h-8 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-warning)]/40 flex items-center justify-center text-[var(--color-warning)] hover:border-[var(--color-warning)] transition-colors text-sm"
+          class="cursor-pointer w-8 h-8 rounded-lg bg-surface border border-warning/40 flex items-center justify-center text-warning hover:border-warning transition-colors text-sm"
           title="Revert changes"
           @click.prevent="$emit('revert')"
         >↺</button>
         <button
-          class="cursor-pointer w-8 h-8 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-accent-hover)] hover:border-[var(--color-accent)] transition-colors"
+          class="cursor-pointer w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-muted hover:text-accent-hover hover:border-accent transition-colors"
           @click.prevent="$emit('edit')"
         >✎</button>
         <button
-          class="cursor-pointer w-8 h-8 rounded-lg bg-[var(--color-bg-surface)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] hover:text-[var(--color-danger)] hover:border-[var(--color-danger)] transition-colors"
+          class="cursor-pointer w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-muted hover:text-danger hover:border-danger transition-colors"
           @click.prevent="$emit('delete')"
         >✕</button>
       </template>
@@ -114,25 +114,25 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
         <span
           v-for="f in widgetFields"
           :key="f.label"
-          class="text-xs text-[var(--color-text-secondary)]"
+          class="text-xs text-secondary"
         >
-          <span class="text-[var(--color-text-muted)]">{{ f.label }}:</span>
+          <span class="text-muted">{{ f.label }}:</span>
           {{ f.value ?? '—' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
         </span>
       </div>
-      <div v-else-if="!edit && service.type && widgetResult === null" key="error" class="text-xs text-[var(--color-danger)]/60">Widget unavailable</div>
+      <div v-else-if="!edit && service.type && widgetResult === null" key="error" class="text-xs text-danger/60">Widget unavailable</div>
       <div v-else-if="!edit && widgetLoading" key="loading" class="flex flex-col gap-1.5 animate-pulse">
         <div class="flex gap-2">
-          <span class="h-2.5 w-16 rounded bg-[var(--color-bg-surface)]" />
-          <span class="h-2.5 w-10 rounded bg-[var(--color-bg-surface)]" />
+          <span class="h-2.5 w-16 rounded bg-surface" />
+          <span class="h-2.5 w-10 rounded bg-surface" />
         </div>
         <div class="flex gap-2">
-          <span class="h-2.5 w-12 rounded bg-[var(--color-bg-surface)]" />
-          <span class="h-2.5 w-14 rounded bg-[var(--color-bg-surface)]" />
+          <span class="h-2.5 w-12 rounded bg-surface" />
+          <span class="h-2.5 w-14 rounded bg-surface" />
         </div>
         <div class="flex gap-2">
-          <span class="h-2.5 w-14 rounded bg-[var(--color-bg-surface)]" />
-          <span class="h-2.5 w-8 rounded bg-[var(--color-bg-surface)]" />
+          <span class="h-2.5 w-14 rounded bg-surface" />
+          <span class="h-2.5 w-8 rounded bg-surface" />
         </div>
       </div>
     </Transition>

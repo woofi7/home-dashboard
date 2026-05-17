@@ -47,7 +47,8 @@ export function fetchDockerStatus(): Promise<DockerStatus> {
     const data: DockerStatus = {}
     for (const c of containers) {
       const name = c.Names[0]?.replace(/^\//, '') ?? ''
-      if (name) data[name] = { state: c.State, status: c.Status }
+      if (name)
+        data[name] = { state: c.State, status: c.Status }
     }
     return data
   }, TTL)

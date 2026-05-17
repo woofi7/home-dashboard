@@ -4,18 +4,50 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg-base: #0f1117;
-  --color-bg-surface: #1a1d27;
-  --color-bg-elevated: #22263a;
+  --color-base: #0f1117;
+  --color-surface: #1a1d27;
+  --color-elevated: #22263a;
   --color-border: #2e3347;
-  --color-text-primary: #e2e8f0;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
+  --color-primary: #e2e8f0;
+  --color-secondary: #94a3b8;
+  --color-muted: #64748b;
   --color-accent: #6366f1;
   --color-accent-hover: #818cf8;
   --color-danger: #ef4444;
   --color-success: #22c55e;
   --color-warning: #f59e0b;
+}
+
+@utility bg-base        { background-color: var(--color-base); }
+@utility bg-surface     { background-color: var(--color-surface); }
+@utility bg-elevated    { background-color: var(--color-elevated); }
+@utility bg-accent      { background-color: var(--color-accent); }
+@utility bg-accent-hover{ background-color: var(--color-accent-hover); }
+@utility bg-danger      { background-color: var(--color-danger); }
+@utility bg-success     { background-color: var(--color-success); }
+@utility bg-warning     { background-color: var(--color-warning); }
+
+@utility text-primary   { color: var(--color-primary); }
+@utility text-secondary { color: var(--color-secondary); }
+@utility text-muted     { color: var(--color-muted); }
+@utility text-accent    { color: var(--color-accent); }
+@utility text-accent-hover { color: var(--color-accent-hover); }
+@utility text-danger    { color: var(--color-danger); }
+@utility text-success   { color: var(--color-success); }
+@utility text-warning   { color: var(--color-warning); }
+
+@utility border-border  { border-color: var(--color-border); }
+@utility border-accent  { border-color: var(--color-accent); }
+@utility border-success { border-color: var(--color-success); }
+@utility border-danger  { border-color: var(--color-danger); }
+@utility border-warning { border-color: var(--color-warning); }
+
+@utility modal-input {
+  @apply w-full rounded-lg border px-3 py-2 text-sm outline-none transition-colors;
+  background-color: var(--color-elevated);
+  border-color: var(--color-border);
+  color: var(--color-primary);
+  &:focus { border-color: var(--color-accent); }
 }
 
 /* Fade transition */
@@ -42,7 +74,7 @@
 .drag-ghost {
   opacity: 0.25;
   border: 2px dashed var(--color-accent) !important;
-  background: var(--color-bg-elevated) !important;
+  background: var(--color-elevated) !important;
   border-radius: 0.75rem;
 }
 

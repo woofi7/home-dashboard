@@ -6,7 +6,8 @@ export function countListChanges(snapItems: unknown[], curItems: unknown[]): num
   const len = Math.max(snapItems.length, curItems.length)
   let n = 0
   for (let i = 0; i < len; i++) {
-    if (!snapItems[i] || !curItems[i] || JSON.stringify(snapItems[i]) !== JSON.stringify(curItems[i])) n++
+    if (!snapItems[i] || !curItems[i] || JSON.stringify(snapItems[i]) !== JSON.stringify(curItems[i]))
+      n++
   }
   return n
 }
