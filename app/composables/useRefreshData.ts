@@ -1,6 +1,7 @@
 import { effectScope } from 'vue'
 
-type DockerStatus = Record<string, { state: string; status: string }>
+type DockerContainerStatus = { state: string; status: string }
+type DockerStatus = Record<string, Record<string, DockerContainerStatus>>
 type WidgetField = { label: string; value: unknown; suffix?: string }
 type WidgetResult = { fields: WidgetField[] }
 type RefreshData = {

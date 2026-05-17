@@ -4,6 +4,10 @@ export type BookmarkGroup = { name: string; bookmarks: Bookmark[]; layout?: unkn
 export type Service = { name: string; url?: string; icon?: string; type?: string; [key: string]: unknown }
 export type ServiceGroup = { name: string; services: Service[]; layout?: unknown }
 
+export type DockerContainerStatus = { state: string; status: string }
+export type DockerServerStatus = Record<string, DockerContainerStatus>
+export type DockerStatus = Record<string, DockerServerStatus>
+
 export type PingStatus = Record<string, boolean>
 
 export type WidgetField = { label: string; value: unknown; suffix?: string }
