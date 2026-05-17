@@ -1,18 +1,25 @@
 export function formatBytes(n: number, perSecond = false): string {
   const s = perSecond ? '/s' : ''
-  if (n >= 1024 ** 4) return `${(n / 1024 ** 4).toFixed(2)} TB${s}`
-  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(2)} GB${s}`
-  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(2)} MB${s}`
-  if (n >= 1024) return `${(n / 1024).toFixed(1)} KB${s}`
+  if (n >= 1024 ** 4)
+    return `${(n / 1024 ** 4).toFixed(2)} TB${s}`
+  if (n >= 1024 ** 3)
+    return `${(n / 1024 ** 3).toFixed(2)} GB${s}`
+  if (n >= 1024 ** 2)
+    return `${(n / 1024 ** 2).toFixed(2)} MB${s}`
+  if (n >= 1024)
+    return `${(n / 1024).toFixed(1)} KB${s}`
   return `${n} B${s}`
 }
 
 /** Format a value that is already in kilobytes. */
 export function formatKilobytes(kb: string | number): string {
   const n = Number(kb)
-  if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(1)} TB`
-  if (n >= 1024 ** 2) return `${(n / 1024 ** 2).toFixed(1)} GB`
-  if (n >= 1024) return `${(n / 1024).toFixed(1)} MB`
+  if (n >= 1024 ** 3)
+    return `${(n / 1024 ** 3).toFixed(1)} TB`
+  if (n >= 1024 ** 2)
+    return `${(n / 1024 ** 2).toFixed(1)} GB`
+  if (n >= 1024)
+    return `${(n / 1024).toFixed(1)} MB`
   return `${n} KB`
 }
 

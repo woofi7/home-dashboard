@@ -12,7 +12,8 @@ export function createCache<T>(): Cache<T> {
 
   return {
     get() {
-      if (entry && Date.now() < entry.expiresAt) return entry.data
+      if (entry && Date.now() < entry.expiresAt)
+        return entry.data
       return null
     },
     set(data, ttl) {
@@ -26,8 +27,10 @@ export function createCache<T>(): Cache<T> {
     fetch(fn, ttl, force = false) {
       if (!force) {
         const hit = this.get()
-        if (hit !== null) return Promise.resolve(hit)
-        if (inflight) return inflight
+        if (hit !== null)
+          return Promise.resolve(hit)
+        if (inflight)
+          return inflight
       }
       inflight = fn()
         .then(data => this.set(data, ttl))

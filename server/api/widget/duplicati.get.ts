@@ -6,7 +6,8 @@ export const meta = { name: 'Duplicati', authType: 'password', displayLabels: ['
 
 export async function fetchDuplicati(creds: ServiceCredentials) {
   const { url, password } = creds
-  if (!url) return null
+  if (!url)
+    return null
 
   const base = url.replace(/\/$/, '')
 
@@ -17,7 +18,8 @@ export async function fetchDuplicati(creds: ServiceCredentials) {
   })
 
   const token = loginRes.AccessToken
-  if (!token) return null
+  if (!token)
+    return null
 
   const authHeaders = { Authorization: `Bearer ${token}` }
 
@@ -71,6 +73,7 @@ export async function fetchDuplicati(creds: ServiceCredentials) {
 export { fetchDuplicati as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
   return fetchDuplicati(creds)
 })

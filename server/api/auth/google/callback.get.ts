@@ -1,11 +1,14 @@
-import { loadConfig, writeConfig } from '../../../utils/config'
+import { loadConfig, writeConfig } from '#server/utils/config'
 
 export default defineEventHandler(async (event) => {
   const { code } = getQuery(event) as Record<string, string>
-  if (!code) throw createError({ statusCode: 400, message: 'Missing code' })
+  if (!code)
+    throw createError({ statusCode: 400, message: 'Missing code' })
 
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')!
-  const { clientId, clientSecret } = settings.google as Record<string, string>
+  const { clientId, clientSecret } = (settings.google ?? {}) as Record<string, string | undefined>
+  if (!clientId || !clientSecret)
+    throw createError({ statusCode: 400, message: 'Google credentials not configured' })
 
   const origin = getRequestURL(event).origin
   const redirectUri = `${origin}/api/auth/google/callback`
@@ -16,7 +19,8 @@ export default defineEventHandler(async (event) => {
     body: new URLSearchParams({ code, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, grant_type: 'authorization_code' }).toString(),
   })
 
-  if (!res.refresh_token) throw createError({ statusCode: 400, message: `Google OAuth error: ${res.error ?? 'no refresh_token'}` })
+  if (!res.refresh_token)
+    throw createError({ statusCode: 400, message: `Google OAuth error: ${res.error ?? 'no refresh_token'}` })
 
   ;(settings.google as Record<string, string>).refreshToken = res.refresh_token
   writeConfig('settings.yaml', settings)

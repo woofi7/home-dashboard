@@ -15,20 +15,26 @@ const containerState = computed(() => {
 const statusColor = computed(() => {
   if (containerState.value) {
     const { state, status } = containerState.value
-    if (state === 'running') return status.includes('(unhealthy)') ? 'bg-yellow-400' : 'bg-green-400'
-    if (state === 'restarting' || state === 'paused') return 'bg-yellow-400'
+    if (state === 'running')
+      return status.includes('(unhealthy)') ? 'bg-yellow-400' : 'bg-green-400'
+    if (state === 'restarting' || state === 'paused')
+      return 'bg-yellow-400'
     return 'bg-red-400'
   }
   const up = props.service.url ? pingStatus.value[props.service.url] : undefined
-  if (up === true) return 'bg-green-400'
-  if (up === false) return 'bg-red-400'
+  if (up === true)
+    return 'bg-green-400'
+  if (up === false)
+    return 'bg-red-400'
   return null
 })
 
 const statusTitle = computed(() => {
-  if (containerState.value) return containerState.value.status
+  if (containerState.value)
+    return containerState.value.status
   const up = props.service.url ? pingStatus.value[props.service.url] : undefined
-  if (up !== undefined) return up ? 'Reachable' : 'Unreachable'
+  if (up !== undefined)
+    return up ? 'Reachable' : 'Unreachable'
   return null
 })
 

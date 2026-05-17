@@ -39,7 +39,8 @@ function wmo(code: number) { return WMO[code] ?? { desc: 'Unknown', icon: 'ðŸŒ¡ï
 
 export default defineEventHandler(async () => {
   const hit = cache.get()
-  if (hit) return hit
+  if (hit)
+    return hit
 
   const geo = await $fetch<{ city: string; regionName: string; lat: number; lon: number }>('http://ip-api.com/json')
 

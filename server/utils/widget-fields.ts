@@ -10,7 +10,8 @@ function filePath() {
 
 export function readFieldConfig(): FieldConfig {
   const p = filePath()
-  if (!existsSync(p)) return {}
+  if (!existsSync(p))
+    return {}
   return (parseYaml(readFileSync(p, 'utf-8')) as FieldConfig) ?? {}
 }
 

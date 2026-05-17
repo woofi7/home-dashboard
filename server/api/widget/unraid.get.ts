@@ -6,7 +6,8 @@ export const meta = { name: 'Unraid', authType: 'header', displayLabels: ['Array
 
 export async function fetchUnraid(creds: ServiceCredentials) {
   const { url, apiKey } = creds
-  if (!url || !apiKey) return null
+  if (!url || !apiKey)
+    return null
 
   const gql = `{
     array { state parityCheckStatus { status progress } capacity { kilobytes { free used total } disks { used total } } }
@@ -49,7 +50,9 @@ export async function fetchUnraid(creds: ServiceCredentials) {
 export { fetchUnraid as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey)
+    throw createError({ statusCode: 400, message: 'apiKey is required' })
   return fetchUnraid(creds)
 })

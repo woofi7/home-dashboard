@@ -11,7 +11,8 @@ function safeEqual(a: string, b: string): boolean {
 export default defineEventHandler(async (event) => {
   const { password } = await readBody<{ password: string }>(event)
   const token = process.env.ADMIN_TOKEN
-  if (!token) throw createError({ statusCode: 400, message: 'ADMIN_TOKEN not configured' })
+  if (!token)
+    throw createError({ statusCode: 400, message: 'ADMIN_TOKEN not configured' })
 
   if (!password || !safeEqual(password, token)) {
     console.warn(`[auth] Failed login attempt from ${getRequestIP(event) ?? 'unknown'}`)

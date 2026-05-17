@@ -37,9 +37,11 @@ function highlight(name: string, indices: number[]): string {
 }
 
 const icons = computed<IconResult[]>(() => {
-  if (!allIcons.value) return []
+  if (!allIcons.value)
+    return []
   const q = search.value.trim()
-  if (!q) return allIcons.value.slice(0, 120).map((i) => ({ ...i, label: i.name }))
+  if (!q)
+    return allIcons.value.slice(0, 120).map((i) => ({ ...i, label: i.name }))
 
   return allIcons.value
     .map((i) => ({ i, result: fuzzy(i.name, q) }))

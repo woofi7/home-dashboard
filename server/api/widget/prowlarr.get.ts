@@ -7,7 +7,8 @@ export const meta = { name: 'Prowlarr', authType: 'query', displayLabels: ['Inde
 
 export async function fetchProwlarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds
-  if (!url || !apiKey) return null
+  if (!url || !apiKey)
+    return null
 
   const base = url.replace(/\/$/, '')
   const key = `apikey=${encodeURIComponent(apiKey)}`
@@ -33,7 +34,9 @@ export async function fetchProwlarr(creds: ServiceCredentials) {
 export { fetchProwlarr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey)
+    throw createError({ statusCode: 400, message: 'apiKey is required' })
   return fetchProwlarr(creds)
 })

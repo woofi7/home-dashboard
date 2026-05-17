@@ -17,7 +17,8 @@ const showIconPicker = ref(false)
 const errors = reactive<Record<string, string>>({})
 
 useEventListener('keydown', (e: KeyboardEvent) => {
-  if (showIconPicker.value) return
+  if (showIconPicker.value)
+    return
   if (e.key === 'Escape') emit('close')
   if (e.key === 'Enter') submit()
 })
@@ -25,7 +26,8 @@ useEventListener('keydown', (e: KeyboardEvent) => {
 function submit() {
   errors.name = form.name ? '' : 'Name is required'
   errors.url = form.url ? '' : 'URL is required'
-  if (errors.name || errors.url) return
+  if (errors.name || errors.url)
+    return
   emit('save', { ...form })
 }
 </script>

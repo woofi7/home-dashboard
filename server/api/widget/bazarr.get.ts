@@ -5,7 +5,8 @@ export const meta = { name: 'Bazarr', authType: 'header', displayLabels: ['Missi
 
 export async function fetchBazarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds
-  if (!url || !apiKey) return null
+  if (!url || !apiKey)
+    return null
 
   const base = url.replace(/\/$/, '')
   const headers = { 'X-API-KEY': apiKey }
@@ -28,7 +29,9 @@ export async function fetchBazarr(creds: ServiceCredentials) {
 export { fetchBazarr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey)
+    throw createError({ statusCode: 400, message: 'apiKey is required' })
   return fetchBazarr(creds)
 })

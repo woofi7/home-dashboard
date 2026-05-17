@@ -130,12 +130,14 @@ const saving = ref<string | null>(null)
 const pendingFields = ref<Record<string, string[]>>({})
 
 function activeLabels(type: string, entry: CatalogEntry): string[] {
-  if (pendingFields.value[type]) return pendingFields.value[type]
+  if (pendingFields.value[type])
+    return pendingFields.value[type]
   return fieldConfig.value?.[type] ?? entry.fields.map(f => f.label)
 }
 
 function initPending(type: string) {
-  if (pendingFields.value[type]) return
+  if (pendingFields.value[type])
+    return
   pendingFields.value[type] = [...activeLabels(type, CATALOG[type]!)]
 }
 
@@ -162,7 +164,8 @@ async function saveFields(type: string) {
 }
 
 function isDirty(type: string): boolean {
-  if (!pendingFields.value[type]) return false
+  if (!pendingFields.value[type])
+    return false
   const current = fieldConfig.value?.[type] ?? CATALOG[type]?.fields.map(f => f.label) ?? []
   const pending = pendingFields.value[type]!
   return JSON.stringify([...current].sort()) !== JSON.stringify([...pending].sort())
