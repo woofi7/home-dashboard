@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useEventListener, onClickOutside } from '@vueuse/core'
+import {onClickOutside, useEventListener} from '@vueuse/core'
 
 type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; [key: string]: unknown }
 
@@ -19,7 +19,6 @@ const form = reactive<Service>({
 
 const credsLoading = ref(false)
 
-// For existing services, fetch raw credentials (may contain ${VAR} references)
 const credsError = ref('')
 if (props.service?.name) {
   credsLoading.value = true
@@ -41,7 +40,6 @@ if (props.service?.name) {
 useScrollLock()
 const showIconPicker = ref(false)
 
-// Widget autocomplete
 const widgetSearch = ref(form.type ?? '')
 const showDropdown = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
@@ -111,11 +109,10 @@ async function test() {
   testing.value = true
   testResult.value = null
   try {
-    const res = await $fetch<TestResult>('/api/edit/widget-test', {
+    testResult.value = await $fetch<TestResult>('/api/edit/widget-test', {
       method: 'POST',
-      body: { type: form.type, url: form.url, apiKey: form.apiKey, username: form.username, password: form.password },
+      body: {type: form.type, url: form.url, apiKey: form.apiKey, username: form.username, password: form.password},
     })
-    testResult.value = res
   } catch {
     testResult.value = { ok: false, message: 'Request failed' }
   } finally {
@@ -135,9 +132,9 @@ function submit() {
   <Teleport to="body">
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div class="bg-surface border border-border rounded-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
-        <div class="px-6 py-4 border-b border-border flex items-center justify-between flex-shrink-0">
+        <div class="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
           <h2 class="font-semibold text-primary">{{ service ? 'Edit service' : 'Add service' }}</h2>
-          <button class="text-muted hover:text-primary" @click="$emit('close')">✕</button>
+          <button class="text-muted hover:text-primary" @click="$emit('close')"><FaIcon icon="xmark" /></button>
         </div>
 
         <div class="px-6 py-4 space-y-4 overflow-y-auto">
@@ -155,23 +152,23 @@ function submit() {
           <!-- Icon field with picker -->
           <Field label="Icon">
             <div class="flex gap-2 items-center">
-              <div class="w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div class="w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center overflow-hidden shrink-0">
                 <img
                   v-if="form.icon"
                   :src="form.icon as string"
+                  alt=""
                   class="w-7 h-7 object-contain"
                   @error="($event.target as HTMLImageElement).style.opacity = '0'"
                 />
               </div>
-              <input v-model="form.icon" type="text" class="modal-input" placeholder="Search or paste URL…" />
+              <input v-model="form.icon" type="text" class="modal-input" placeholder="Search or paste URL..." />
               <button
-                class="flex-shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
+                class="shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
                 @click="showIconPicker = true"
               >Browse</button>
             </div>
           </Field>
 
-          <!-- Widget type with autocomplete -->
           <Field label="Widget type">
             <div ref="dropdownRef" class="relative">
               <input
@@ -182,7 +179,7 @@ function submit() {
                 autocomplete="off"
                 @input="onWidgetInput"
                 @focus="showDropdown = true"
-                @keydown.escape.stop="showDropdown = false"
+                @keydown.esc.stop="showDropdown = false"
                 @keydown.enter.prevent
               />
               <!-- Dropdown -->
@@ -208,7 +205,6 @@ function submit() {
                 No matching widget — go to Admin to fetch it
               </div>
             </div>
-            <!-- Widget info card -->
             <div
               v-if="selectedWidget && !showDropdown"
               class="mt-2 px-3 py-2 rounded-lg bg-elevated border border-border flex items-center gap-3 text-xs text-secondary"
@@ -229,11 +225,10 @@ function submit() {
 
           <p v-if="credsError" class="text-xs text-danger">{{ credsError }}</p>
 
-          <!-- Credentials based on auth type -->
           <template v-if="form.type && authType !== 'none'">
             <template v-if="isPasswordOnly">
               <Field label="Password">
-                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
                 <div class="mt-1 flex items-center gap-2">
                   <span v-if="passwordEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ passwordEnvRef }}</span>
                   <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.password = '${' + suggestedPasswordVar + '}'">use $&#123;{{ suggestedPasswordVar }}&#125;</button>
@@ -242,14 +237,14 @@ function submit() {
             </template>
             <template v-else-if="isBasicAuth">
               <Field label="Username">
-                <input v-model="form.username" type="text" class="modal-input" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+                <input v-model="form.username" type="text" class="modal-input" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
                 <div class="mt-1 flex items-center gap-2">
                   <span v-if="usernameEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ usernameEnvRef }}</span>
                   <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.username = '${' + suggestedUsernameVar + '}'">use $&#123;{{ suggestedUsernameVar }}&#125;</button>
                 </div>
               </Field>
               <Field label="Password">
-                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
                 <div class="mt-1 flex items-center gap-2">
                   <span v-if="passwordEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ passwordEnvRef }}</span>
                   <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.password = '${' + suggestedPasswordVar + '}'">use $&#123;{{ suggestedPasswordVar }}&#125;</button>
@@ -257,7 +252,7 @@ function submit() {
               </Field>
             </template>
             <Field v-else label="API key">
-              <input v-model="form.apiKey" type="text" class="modal-input font-mono text-xs" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading…' : ''" />
+              <input v-model="form.apiKey" type="text" class="modal-input font-mono text-xs" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
               <div class="mt-1 flex items-center gap-2">
                 <span v-if="apiKeyEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ apiKeyEnvRef }}</span>
                 <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.apiKey = '${' + suggestedApiKeyVar + '}'">use $&#123;{{ suggestedApiKeyVar }}&#125;</button>
@@ -267,8 +262,10 @@ function submit() {
         </div>
 
         <div v-if="testResult" class="px-6 pb-3 space-y-1.5">
-          <p class="text-xs font-medium" :class="testResult.ok ? 'text-success' : 'text-danger'">
-            {{ testResult.ok ? '✓ Connected' : `✗ Failed${testResult.status ? ` (${testResult.status})` : ''}${testResult.message ? ` — ${testResult.message}` : ''}` }}
+          <p class="text-xs font-medium flex items-center gap-1.5" :class="testResult.ok ? 'text-success' : 'text-danger'">
+            <FaIcon :icon="testResult.ok ? 'check' : 'xmark'" />
+            <span v-if="testResult.ok">Connected</span>
+            <span v-else>Failed{{ testResult.status ? ` (${testResult.status})` : '' }}{{ testResult.message ? ` - ${testResult.message}` : '' }}</span>
           </p>
           <div v-if="testResult.ok && testResult.fields?.length" class="rounded-lg bg-elevated border border-border px-3 py-2 flex flex-wrap gap-x-4 gap-y-1">
             <span v-for="f in testResult.fields" :key="f.label" class="text-xs">
@@ -278,13 +275,13 @@ function submit() {
           </div>
         </div>
 
-        <div class="px-6 py-4 border-t border-border flex justify-between gap-2 flex-shrink-0">
+        <div class="px-6 py-4 border-t border-border flex justify-between gap-2 shrink-0">
           <button
             v-if="form.type && form.url"
             class="cursor-pointer px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent disabled:opacity-50"
             :disabled="testing"
             @click="test"
-          >{{ testing ? 'Testing…' : 'Test widget' }}</button>
+          >{{ testing ? 'Testing...' : 'Test widget' }}</button>
           <div class="flex gap-2 ml-auto">
             <button class="cursor-pointer px-4 py-2 rounded-lg text-sm text-secondary hover:text-primary" @click="$emit('close')">Cancel</button>
             <button class="cursor-pointer px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed" :disabled="credsLoading" @click="submit">Save</button>

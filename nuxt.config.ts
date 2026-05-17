@@ -33,6 +33,15 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    optimizeDeps: {
+      include: [
+        '@fortawesome/fontawesome-svg-core',
+        '@fortawesome/free-solid-svg-icons',
+        '@fortawesome/vue-fontawesome',
+        '@vueuse/core',
+        'vue-draggable-plus',
+      ],
+    },
   },
 
   components: {

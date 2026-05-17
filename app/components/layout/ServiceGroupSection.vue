@@ -114,12 +114,11 @@ function saveService(updated: Service) {
 
 <template>
   <div
-    class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md transition-[opacity,transform] duration-[400ms] ease-out"
+    class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md transition-[opacity,transform] duration-400 ease-out"
     :class="visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'"
   >
-    <!-- Header -->
     <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-      <span v-if="edit" class="section-handle cursor-grab text-muted select-none">⠿</span>
+      <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
       <span class="font-semibold text-sm text-secondary flex-1">{{ group.name }}</span>
       <template v-if="edit">
         <SectionLayoutSettings v-model="layout" />
@@ -127,7 +126,6 @@ function saveService(updated: Service) {
       </template>
     </div>
 
-    <!-- Services -->
     <VueDraggable
       v-model="localGroup.services"
       :disabled="!edit"
@@ -154,7 +152,6 @@ function saveService(updated: Service) {
       />
     </VueDraggable>
 
-    <!-- Add item -->
     <div v-if="edit" class="px-3 pb-3">
       <button
         class="w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"

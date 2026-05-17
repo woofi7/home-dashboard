@@ -61,7 +61,6 @@
   transform: translateY(6px);
 }
 
-/* Section appear transition (staggered via delay set inline) */
 .section-enter-active {
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
@@ -70,7 +69,6 @@
   transform: translateY(12px);
 }
 
-/* Drag & drop — placeholder shown at drop position */
 .drag-ghost {
   opacity: 0.25;
   border: 2px dashed var(--color-accent) !important;
@@ -78,7 +76,6 @@
   border-radius: 0.75rem;
 }
 
-/* Drag & drop — item being dragged */
 .drag-chosen {
   opacity: 0.6;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);

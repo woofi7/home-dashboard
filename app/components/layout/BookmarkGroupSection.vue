@@ -87,7 +87,7 @@ const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>
 
 async function trackClick(name: string) {
   await $fetch('/api/bookmarks/clicks', { method: 'POST', body: { name } })
-  refreshClicks()
+  await refreshClicks()
 }
 
 const editingBookmark = ref<Bookmark | null>(null)
@@ -144,12 +144,11 @@ function faviconUrl(url: string) {
 
 <template>
   <div
-    class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-4 transition-[opacity,transform] duration-[400ms] ease-out"
+    class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-4 transition-[opacity,transform] duration-400 ease-out"
     :class="visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'"
   >
-    <!-- Header -->
     <div class="flex items-center gap-2 mb-4">
-      <span v-if="edit" class="section-handle cursor-grab text-muted select-none">⠿</span>
+      <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
       <span class="text-xs font-semibold text-secondary uppercase tracking-widest flex-1">{{ group.name }}</span>
       <template v-if="edit">
         <SectionLayoutSettings v-model="layout" />
@@ -157,7 +156,6 @@ function faviconUrl(url: string) {
       </template>
     </div>
 
-    <!-- Bookmark cards -->
     <VueDraggable
       v-model="localGroup.bookmarks"
       :disabled="!edit"
@@ -198,31 +196,31 @@ function faviconUrl(url: string) {
         </div>
         <span class="text-[11px] text-muted text-center leading-tight line-clamp-2 w-full px-0.5">{{ b.name }}</span>
 
-        <span v-if="edit && !pendingDeleteNames.has(b.name)" class="bookmark-handle absolute top-1 left-1 cursor-grab text-muted select-none text-sm z-20 transition-opacity" :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'">⠿</span>
+        <span v-if="edit && !pendingDeleteNames.has(b.name)" class="bookmark-handle absolute top-1 left-1 cursor-grab text-muted select-none text-sm z-20 transition-opacity" :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'"><FaIcon icon="grip-vertical" /></span>
 
         <div v-if="edit" class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-opacity z-10 bg-black/40" :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'">
           <template v-if="pendingDeleteNames.has(b.name)">
             <button
               class="cursor-pointer h-9 px-3 rounded-lg bg-elevated border border-warning/40 flex items-center gap-1.5 text-warning hover:border-warning transition-colors shadow-md shadow-black/30 text-xs font-medium"
               @click="revertBookmark(b.name)"
-            >↺ Restore</button>
+            ><FaIcon icon="rotate-left" /> Restore</button>
           </template>
           <template v-else>
             <div class="flex gap-2">
               <button
                 class="cursor-pointer w-8 h-8 rounded-lg bg-elevated border border-border flex items-center justify-center text-muted hover:text-accent-hover hover:border-accent transition-colors shadow-md shadow-black/30"
                 @click="openEdit(b)"
-              >✎</button>
+              ><FaIcon icon="pencil" /></button>
               <button
                 class="cursor-pointer w-8 h-8 rounded-lg bg-elevated border border-border flex items-center justify-center text-muted hover:text-danger hover:border-danger transition-colors shadow-md shadow-black/30"
                 @click="deleteBookmark(b)"
-              >✕</button>
+              ><FaIcon icon="xmark" /></button>
             </div>
             <button
               v-if="pendingItems.has(b.name)"
               class="cursor-pointer h-6 px-2 rounded-md bg-elevated border border-warning/40 flex items-center gap-1 text-warning hover:border-warning transition-colors shadow-md shadow-black/30 text-xs"
               @click="revertBookmark(b.name)"
-            >↺ Revert</button>
+            ><FaIcon icon="rotate-left" /> Revert</button>
           </template>
         </div>
       </component>

@@ -58,7 +58,7 @@ onMounted(() => nextTick(() => input.value?.focus()))
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm" @click.self="$emit('close')">
+    <div class="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-sm" @click.self="$emit('close')">
       <div class="bg-surface border border-border rounded-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[80vh]">
 
         <!-- Header -->
@@ -67,15 +67,14 @@ onMounted(() => nextTick(() => input.value?.focus()))
             ref="input"
             v-model="search"
             type="text"
-            placeholder="Search icons…"
+            placeholder="Search icons..."
             class="flex-1 bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-primary placeholder-text-muted outline-none focus:border-accent transition-colors"
           />
-          <button class="text-muted hover:text-primary" @click="$emit('close')">✕</button>
+          <button class="text-muted hover:text-primary" @click="$emit('close')"><FaIcon icon="xmark" /></button>
         </div>
 
-        <!-- Grid -->
         <div class="overflow-y-auto p-4">
-          <div v-if="pending" class="text-center text-muted text-sm py-12">Loading icons…</div>
+          <div v-if="pending" class="text-center text-muted text-sm py-12">Loading icons...</div>
           <div v-else-if="!icons.length" class="text-center text-muted text-sm py-12">No icons found</div>
           <div v-else class="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-3">
             <button

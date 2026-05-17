@@ -52,13 +52,12 @@ const JUSTIFY = [
       :class="open ? 'text-accent-hover' : 'text-muted hover:text-secondary'"
       title="Layout settings"
       @click="open = !open"
-    >⊞</button>
+    ><FaIcon icon="table-columns" /></button>
 
     <div
       v-if="open"
       class="absolute right-0 top-full mt-1 z-40 bg-elevated border border-border rounded-xl p-3 w-56 shadow-xl shadow-black/40"
     >
-      <!-- Desktop / Mobile toggle -->
       <div class="flex gap-1 mb-3 p-0.5 bg-surface rounded-lg">
         <button
           class="flex-1 py-1 rounded-md text-xs font-medium transition-colors"
@@ -72,7 +71,6 @@ const JUSTIFY = [
         >Mobile</button>
       </div>
 
-      <!-- Columns -->
       <div class="mb-3">
         <div class="text-[10px] text-muted uppercase tracking-widest mb-1.5">Items per row</div>
         <div class="flex gap-1 flex-wrap">
@@ -91,7 +89,6 @@ const JUSTIFY = [
         </div>
       </div>
 
-      <!-- Gap -->
       <div class="mb-3">
         <div class="text-[10px] text-muted uppercase tracking-widest mb-1.5">Gap</div>
         <div class="flex gap-1">
@@ -105,7 +102,6 @@ const JUSTIFY = [
         </div>
       </div>
 
-      <!-- Justify -->
       <div>
         <div class="text-[10px] text-muted uppercase tracking-widest mb-1.5">Justify</div>
         <div class="flex gap-1">

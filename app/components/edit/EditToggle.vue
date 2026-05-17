@@ -9,7 +9,7 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
       v-if="!active"
       class="fixed bottom-4 md:bottom-6 left-4 md:left-6 cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-muted text-xs md:text-sm hover:border-accent hover:text-accent transition-colors select-none"
       @click="$emit('refresh')"
-    >↻ {{ countdown }}s</button>
+    ><FaIcon icon="rotate-right" /> {{ countdown }}s</button>
     <template v-if="active">
       <NuxtLink
         to="/admin"
@@ -19,7 +19,7 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
         class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-muted text-xs md:text-sm hover:border-danger hover:text-danger transition-colors"
         title="Logout"
         @click="$emit('logout')"
-      >⎋</button>
+      ><FaIcon icon="right-from-bracket" /></button>
       <button
         class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-elevated border border-border text-secondary text-xs md:text-sm hover:border-danger hover:text-danger transition-colors"
         @click="$emit('rollback')"
@@ -33,7 +33,7 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
         @click="$emit('save')"
       >
         Save
-        <span v-if="pendingCount > 0" class="ml-1.5 px-1.5 py-0.5 rounded-md text-xs font-bold bg-warning text-bg-base">{{ pendingCount }}</span>
+        <span v-if="pendingCount > 0" class="ml-1.5 px-1.5 py-0.5 rounded-md text-xs font-bold bg-warning text-base">{{ pendingCount }}</span>
       </button>
     </template>
     <template v-else-if="editEnabled">
