@@ -119,13 +119,15 @@ function getBookmarkGroup(name: string) {
 
 function updateServiceGroup(name: string, updated: ServiceGroup) {
   const idx = localConfig.value.services.findIndex((g) => g.name === name)
-  if (idx !== -1) localConfig.value.services[idx] = updated
+  if (idx !== -1)
+    localConfig.value.services[idx] = updated
   dirty.value = true
 }
 
 function updateBookmarkGroup(name: string, updated: BookmarkGroup) {
   const idx = localConfig.value.bookmarks.findIndex((g) => g.name === name)
-  if (idx !== -1) localConfig.value.bookmarks[idx] = updated
+  if (idx !== -1)
+    localConfig.value.bookmarks[idx] = updated
   dirty.value = true
 }
 
@@ -169,7 +171,8 @@ async function save() {
 }
 
 function handleCancel() {
-  if (config.value) localConfig.value = JSON.parse(JSON.stringify(config.value))
+  if (config.value)
+    localConfig.value = JSON.parse(JSON.stringify(config.value))
   sectionOrder.value = buildDefaultOrder()
   exit()
 }
@@ -178,8 +181,7 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
 </script>
 
 <template>
-  <div class="min-h-screen text-[var(--color-text-primary)] relative">
-    <!-- Background: thumb loads first, full fades in on top -->
+  <div class="min-h-screen text-primary relative">
     <div
       v-if="background?.thumb"
       class="fixed inset-0 -z-10 bg-cover bg-center"
@@ -187,7 +189,7 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
     />
     <div
       v-if="background?.full"
-      class="fixed inset-0 -z-10 bg-cover bg-center transition-opacity duration-[1500ms]"
+      class="fixed inset-0 -z-10 bg-cover bg-center transition-opacity duration-1500"
       :class="fullLoaded ? 'opacity-100' : 'opacity-0'"
       :style="{ backgroundImage: `url(${background.full})` }"
     />
@@ -239,7 +241,7 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
             rel="noopener"
             class="flex items-center gap-2 bg-black/30 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/10 text-left hover:border-white/25 transition-colors no-underline group"
           >
-            <div class="w-1 self-stretch rounded-full bg-[var(--color-accent)] shrink-0" />
+            <div class="w-1 self-stretch rounded-full bg-accent shrink-0" />
             <div class="min-w-0 flex-1">
               <p class="text-xs text-white/80 font-medium truncate">{{ e.summary }}</p>
               <p class="text-[10px] text-white/55">{{ new Date(e.start).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) }} – {{ new Date(e.end).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false }) }}</p>
@@ -345,7 +347,7 @@ useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) |
     <Transition name="fade">
       <div
         v-if="saveError"
-        class="fixed bottom-16 md:bottom-20 right-4 md:right-6 z-50 px-4 py-2 rounded-xl bg-[var(--color-danger)]/90 text-white text-xs backdrop-blur-sm max-w-xs text-right"
+        class="fixed bottom-16 md:bottom-20 right-4 md:right-6 z-50 px-4 py-2 rounded-xl bg-danger/90 text-white text-xs backdrop-blur-sm max-w-xs text-right"
       >{{ saveError }}</div>
     </Transition>
 

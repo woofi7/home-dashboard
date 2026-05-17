@@ -4,11 +4,9 @@ if (import.meta.client && (!editEnabled.value || needsLogin.value)) {
   await navigateTo('/')
 }
 watch([editEnabled, needsLogin], ([enabled, locked]) => {
-  if (!enabled || locked) navigateTo('/')
+  if (!enabled || locked)
+    navigateTo('/')
 })
-
-
-// ── Data ────────────────────────────────────────────────────────────────────
 
 const { data: fieldConfig, refresh: refreshFields } = await useFetch<Record<string, string[]>>('/api/admin/widget-fields')
 
@@ -36,8 +34,10 @@ function toggleField(type: string, label: string) {
   initPending(type)
   const list = pendingFields.value[type]!
   const idx = list.indexOf(label)
-  if (idx === -1) list.push(label)
-  else list.splice(idx, 1)
+  if (idx === -1)
+    list.push(label)
+  else
+    list.splice(idx, 1)
 }
 
 async function saveFields(type: string) {
@@ -75,25 +75,25 @@ const AUTH_COLORS: Record<string, string> = {
   basic:    'var(--color-warning)',
   query:    '#a78bfa',
   password: '#f472b6',
-  none:     'var(--color-text-muted)',
+  none:     'var(--color-muted)',
 }
 </script>
 
 <template>
-  <div class="min-h-screen bg-[var(--color-bg-base)] text-[var(--color-text-primary)]">
+  <div class="min-h-screen bg-base text-primary">
 
     <!-- Top bar -->
-    <div class="flex items-center justify-between px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-bg-surface)]">
+    <div class="flex items-center justify-between px-6 py-4 border-b border-border bg-surface">
       <div class="flex items-center gap-3">
-        <NuxtLink to="/" class="cursor-pointer text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors text-sm">← Dashboard</NuxtLink>
-        <span class="text-[var(--color-border)]">/</span>
+        <NuxtLink to="/" class="cursor-pointer text-muted hover:text-primary transition-colors text-sm">Dashboard</NuxtLink>
+        <span class="text-border">/</span>
         <h1 class="text-sm font-semibold">Widget Registry</h1>
       </div>
       <input
         v-model="search"
         type="text"
         placeholder="Search widgets…"
-        class="w-52 rounded-lg bg-[var(--color-bg-elevated)] border border-[var(--color-border)] px-3 py-1.5 text-sm outline-none focus:border-[var(--color-accent)] transition-colors placeholder:text-[var(--color-text-muted)]"
+        class="w-52 rounded-lg bg-elevated border border-border px-3 py-1.5 text-sm outline-none focus:border-accent transition-colors placeholder:text-muted"
       />
     </div>
 
@@ -102,11 +102,11 @@ const AUTH_COLORS: Record<string, string> = {
       <div
         v-for="[type, entry] in filteredCatalog"
         :key="type"
-        class="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-surface)] flex flex-col"
+        class="rounded-xl border border-border bg-surface flex flex-col"
       >
         <!-- Card header -->
-        <div class="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-[var(--color-border)]">
-          <span class="font-semibold text-[var(--color-text-primary)] flex-1">{{ entry.name }}</span>
+        <div class="flex items-center gap-2 px-4 pt-4 pb-3 border-b border-border">
+          <span class="font-semibold text-primary flex-1">{{ entry.name }}</span>
           <span
             class="px-2 py-0.5 rounded-md text-xs font-medium border"
             :style="{
@@ -119,7 +119,7 @@ const AUTH_COLORS: Record<string, string> = {
 
         <!-- Fields -->
         <div class="px-4 py-3 flex-1">
-          <p class="text-xs text-[var(--color-text-muted)] mb-2 font-medium uppercase tracking-wide">Fields</p>
+          <p class="text-xs text-muted mb-2 font-medium uppercase tracking-wide">Fields</p>
           <div class="flex flex-wrap gap-1.5">
             <button
               v-for="field in entry.fields"
@@ -127,8 +127,8 @@ const AUTH_COLORS: Record<string, string> = {
               :title="field.desc"
               class="cursor-pointer px-2 py-0.5 rounded-md text-xs border transition-colors"
               :class="activeLabels(type).includes(field.label)
-                ? 'bg-[var(--color-accent)]/15 border-[var(--color-accent)]/40 text-[var(--color-accent)]'
-                : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)]'"
+                ? 'bg-accent/15 border-accent/40 text-accent'
+                : 'bg-transparent border-border text-muted'"
               @click="toggleField(type, field.label)"
             >{{ field.label }}</button>
           </div>
@@ -136,15 +136,15 @@ const AUTH_COLORS: Record<string, string> = {
 
         <!-- Actions -->
         <div class="flex items-center justify-between px-4 pb-4 pt-2 gap-2">
-          <p class="text-xs text-[var(--color-text-muted)]">
+          <p class="text-xs text-muted">
             {{ activeLabels(type).filter(l => entry.fields.some(f => f.label === l)).length }} / {{ entry.fields.length }} fields shown
           </p>
           <button
             v-if="isDirty(type)"
-            class="cursor-pointer px-3 py-1.5 rounded-lg bg-[var(--color-accent)] text-white text-xs font-medium hover:bg-[var(--color-accent-hover)] transition-colors disabled:opacity-50"
+            class="cursor-pointer px-3 py-1.5 rounded-lg bg-accent text-white text-xs font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
             :disabled="saving === type"
             @click="saveFields(type)"
-          >{{ saving === type ? 'Saving…' : 'Save' }}</button>
+          >{{ saving === type ? 'Saving...' : 'Save' }}</button>
         </div>
       </div>
     </div>

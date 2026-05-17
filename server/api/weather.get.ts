@@ -92,8 +92,10 @@ export default defineEventHandler(async () => {
     const t = weather.hourly.time[i]!
     if (!t.startsWith(todayStr)) continue
     const h = new Date(t).getHours()
-    if (h <= nowHour) continue
-    if ((h - nowHour) % 3 !== 0 && laterToday.length > 0) continue
+    if (h <= nowHour)
+      continue
+    if ((h - nowHour) % 3 !== 0 && laterToday.length > 0)
+      continue
     const code = weather.hourly.weather_code[i]!
     const { desc: hDesc, icon: hIcon } = wmo(code)
     laterToday.push({
