@@ -28,7 +28,7 @@ async function submit() {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="$emit('close')">
+    <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm" @click.self="$emit('close')">
       <div class="bg-surface border border-border rounded-2xl p-6 w-80 shadow-2xl">
         <h2 class="text-base font-semibold text-primary mb-1">Enter password</h2>
         <p class="text-xs text-muted mb-4">Edit mode is password-protected.</p>
@@ -51,7 +51,7 @@ async function submit() {
               :class="loading || !password
                 ? 'bg-elevated text-muted cursor-not-allowed'
                 : 'bg-accent text-white hover:bg-accent-hover cursor-pointer'"
-            >{{ loading ? '…' : 'Unlock' }}</button>
+            >{{ loading ? '...' : 'Unlock' }}</button>
           </div>
         </form>
       </div>

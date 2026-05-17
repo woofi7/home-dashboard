@@ -40,7 +40,7 @@ function submit() {
       <div class="bg-surface border border-border rounded-2xl w-full max-w-sm mx-4">
         <div class="px-6 py-4 border-b border-border flex items-center justify-between">
           <h2 class="font-semibold text-primary">{{ bookmark ? 'Edit bookmark' : 'Add bookmark' }}</h2>
-          <button class="text-muted hover:text-primary" @click="$emit('close')">✕</button>
+          <button class="text-muted hover:text-primary" @click="$emit('close')"><FaIcon icon="xmark" /></button>
         </div>
         <div class="px-6 py-4 space-y-4">
           <Field label="Name" required>
@@ -53,17 +53,18 @@ function submit() {
           </Field>
           <Field label="Icon">
             <div class="flex gap-2 items-center">
-              <div class="w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center overflow-hidden flex-shrink-0">
+              <div class="w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center overflow-hidden shrink-0">
                 <img
                   v-if="form.icon"
                   :src="form.icon"
+                  alt=""
                   class="w-7 h-7 object-contain"
                   @error="($event.target as HTMLImageElement).style.opacity = '0'"
                 />
               </div>
-              <input v-model="form.icon" type="text" class="modal-input" placeholder="Search or paste URL…" />
+              <input v-model="form.icon" type="text" class="modal-input" placeholder="Search or paste URL..." />
               <button
-                class="flex-shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
+                class="shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
                 @click="showIconPicker = true"
               >Browse</button>
             </div>

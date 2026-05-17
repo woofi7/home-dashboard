@@ -92,7 +92,7 @@ const AUTH_COLORS: Record<string, string> = {
       <input
         v-model="search"
         type="text"
-        placeholder="Search widgets…"
+        placeholder="Search widgets..."
         class="w-52 rounded-lg bg-elevated border border-border px-3 py-1.5 text-sm outline-none focus:border-accent transition-colors placeholder:text-muted"
       />
     </div>

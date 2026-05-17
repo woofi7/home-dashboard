@@ -53,12 +53,9 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
       pendingDelete ? 'border-danger/60 opacity-50' : pending ? 'border-warning/60 hover:border-warning/80' : 'border-white/10 hover:border-white/20',
     ]"
   >
-    <!-- Header row: drag handle + icon + name/desc + edit controls -->
     <div class="flex items-start gap-3">
-      <!-- Drag handle -->
-      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-muted select-none text-xs">⠿</span>
+      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-muted select-none text-xs"><FaIcon icon="grip-vertical" /></span>
 
-      <!-- Icon -->
       <img
         v-if="service.icon"
         :src="service.icon"
@@ -68,26 +65,23 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
       />
       <div v-else class="w-8 h-8 rounded bg-surface flex-shrink-0 mt-0.5" />
 
-      <!-- Status dot -->
       <span
         v-if="statusColor"
         :class="['absolute top-2 right-2 w-2 h-2 rounded-full', statusColor]"
         :title="statusTitle ?? undefined"
       />
 
-      <!-- Name + description -->
       <div class="flex-1 min-w-0">
         <span class="text-sm font-medium text-primary truncate block" :class="!edit && service.url ? 'hover:text-accent-hover' : ''">{{ service.name }}</span>
         <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
       </div>
 
-      <!-- Edit/delete controls – absolute overlay, no layout impact -->
       <div v-if="edit" class="absolute top-1/2 -translate-y-1/2 right-2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
       <template v-if="pendingDelete">
         <button
           class="cursor-pointer h-8 px-3 rounded-lg bg-surface border border-warning/40 flex items-center gap-1.5 text-warning hover:border-warning transition-colors text-xs font-medium"
           @click.prevent="$emit('revert')"
-        >↺ Restore</button>
+        ><FaIcon icon="rotate-left" /> Restore</button>
       </template>
       <template v-else>
         <button
@@ -95,20 +89,19 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
           class="cursor-pointer w-8 h-8 rounded-lg bg-surface border border-warning/40 flex items-center justify-center text-warning hover:border-warning transition-colors text-sm"
           title="Revert changes"
           @click.prevent="$emit('revert')"
-        >↺</button>
+        ><FaIcon icon="rotate-left" /></button>
         <button
           class="cursor-pointer w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-muted hover:text-accent-hover hover:border-accent transition-colors"
           @click.prevent="$emit('edit')"
-        >✎</button>
+        ><FaIcon icon="pencil" /></button>
         <button
           class="cursor-pointer w-8 h-8 rounded-lg bg-surface border border-border flex items-center justify-center text-muted hover:text-danger hover:border-danger transition-colors"
           @click.prevent="$emit('delete')"
-        >✕</button>
+        ><FaIcon icon="xmark" /></button>
       </template>
     </div>
-    </div><!-- end header row -->
+    </div>
 
-    <!-- Widget data -->
     <Transition name="fade" mode="out-in">
       <div v-if="!edit && widgetFields?.length" key="fields" class="flex flex-col gap-0.5">
         <span
@@ -117,7 +110,7 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
           class="text-xs text-secondary"
         >
           <span class="text-muted">{{ f.label }}:</span>
-          {{ f.value ?? '—' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
+          {{ f.value ?? '-' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
         </span>
       </div>
       <div v-else-if="!edit && service.type && widgetResult === null" key="error" class="text-xs text-danger/60">Widget unavailable</div>
