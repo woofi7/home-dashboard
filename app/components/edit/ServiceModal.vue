@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {onClickOutside, useEventListener} from '@vueuse/core'
 
-type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; [key: string]: unknown }
+type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; container?: string; server?: string; [key: string]: unknown }
 
 const props = defineProps<{ service: Service | null; group?: string }>()
 const emit = defineEmits<{ save: [service: Service]; close: [] }>()
@@ -15,6 +15,8 @@ const form = reactive<Service>({
   apiKey: props.service?.apiKey ?? '',
   username: props.service?.username ?? '',
   password: props.service?.password ?? '',
+  container: props.service?.container ?? '',
+  server: props.service?.server ?? '',
 })
 
 const credsLoading = ref(false)
@@ -166,6 +168,19 @@ function submit() {
                 class="shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
                 @click="showIconPicker = true"
               >Browse</button>
+            </div>
+          </Field>
+
+          <Field label="Docker">
+            <div class="flex gap-2">
+              <div class="flex-1">
+                <label class="text-[10px] text-muted mb-1 block">Server</label>
+                <input v-model="form.server" type="text" class="modal-input font-mono text-xs" placeholder="nas" autocomplete="off" />
+              </div>
+              <div class="flex-1">
+                <label class="text-[10px] text-muted mb-1 block">Container</label>
+                <input v-model="form.container" type="text" class="modal-input font-mono text-xs" placeholder="auto" autocomplete="off" />
+              </div>
             </div>
           </Field>
 
