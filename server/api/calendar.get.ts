@@ -1,10 +1,14 @@
 import { loadConfig } from '../utils/config'
+import { createCache } from '../utils/cache'
 
 type CalEvent = { id: string; summary: string; start: string; end: string; allDay: boolean; location?: string; url: string }
-let tokenCache: { accessToken: string; expiresAt: number } | null = null
+
+const tokenCache = createCache<string>()
 
 async function getAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
-  if (tokenCache && Date.now() < tokenCache.expiresAt - 60_000) return tokenCache.accessToken
+  const hit = tokenCache.get()
+  if (hit)
+    return hit
 
   const res = await $fetch<{ access_token: string; expires_in: number }>('https://oauth2.googleapis.com/token', {
     method: 'POST',
@@ -12,15 +16,20 @@ async function getAccessToken(clientId: string, clientSecret: string, refreshTok
     body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: 'refresh_token' }).toString(),
   })
 
-  tokenCache = { accessToken: res.access_token, expiresAt: Date.now() + res.expires_in * 1000 }
-  return tokenCache.accessToken
+  return tokenCache.set(res.access_token, (res.expires_in - 60) * 1000)
 }
 
 export default defineEventHandler(async () => {
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')
   const g = settings?.google as Record<string, string> | undefined
 
-  if (!g?.refreshToken) return { authorized: false, todayTimed: [], todayAllDay: [], tomorrow: [] }
+  if (!g?.refreshToken)
+    return {
+      authorized: false,
+      todayTimed: [],
+      todayAllDay: [],
+      tomorrow: []
+    }
 
   const accessToken = await getAccessToken(g.clientId, g.clientSecret, g.refreshToken)
 

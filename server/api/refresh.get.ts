@@ -63,5 +63,5 @@ async function doRefresh(): Promise<RefreshResponse> {
 
 export default defineEventHandler((event): Promise<RefreshResponse> => {
   const { force } = getQuery(event) as { force?: string }
-  return cache.fetch(TTL, doRefresh, !!force)
+  return cache.fetch(doRefresh, TTL, !!force)
 })

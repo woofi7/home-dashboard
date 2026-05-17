@@ -1,8 +1,8 @@
 export type Cache<T> = {
-  /** Return cached value if within TTL, null otherwise. Pass Infinity to never expire. */
-  get(ttl: number): T | null
-  /** Store a value and return it. */
-  set(data: T): T
+  /** Return cached value if still valid, null if expired or empty. */
+  get(): T | null
+  /** Store a value with a TTL (ms) and return it. */
+  set(data: T, ttl: number): T
   /** Invalidate the cache. */
   clear(): void
   /**
@@ -10,34 +10,34 @@ export type Cache<T> = {
    * Concurrent calls while fn() is in flight share the same promise (thundering-herd guard).
    * Pass force=true to bypass the cache and always re-fetch.
    */
-  fetch(ttl: number, fn: () => Promise<T>, force?: boolean): Promise<T>
+  fetch(fn: () => Promise<T>, ttl: number, force?: boolean): Promise<T>
 }
 
 export function createCache<T>(): Cache<T> {
-  let entry: { data: T; at: number } | null = null
+  let entry: { data: T; expiresAt: number } | null = null
   let inflight: Promise<T> | null = null
 
   return {
-    get(ttl) {
-      if (entry && Date.now() - entry.at < ttl) return entry.data
+    get() {
+      if (entry && Date.now() < entry.expiresAt) return entry.data
       return null
     },
-    set(data) {
-      entry = { data, at: Date.now() }
+    set(data, ttl) {
+      entry = { data, expiresAt: Date.now() + ttl }
       return data
     },
     clear() {
       entry = null
       inflight = null
     },
-    fetch(ttl, fn, force = false) {
+    fetch(fn, ttl, force = false) {
       if (!force) {
-        const hit = this.get(ttl)
+        const hit = this.get()
         if (hit !== null) return Promise.resolve(hit)
         if (inflight) return inflight
       }
       inflight = fn()
-        .then(data => this.set(data))
+        .then(data => this.set(data, ttl))
         .finally(() => { inflight = null })
       return inflight
     },
