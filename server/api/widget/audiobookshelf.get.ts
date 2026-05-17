@@ -1,7 +1,8 @@
+import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatDuration } from '../../utils/formatBytes'
 
-export async function fetchAudiobookshelf(creds: Record<string, string>) {
+export async function fetchAudiobookshelf(creds: ServiceCredentials) {
   const { url, apiKey } = creds
   if (!url || !apiKey) return null
 
@@ -31,7 +32,7 @@ export async function fetchAudiobookshelf(creds: Record<string, string>) {
 }
 
 export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as Record<string, string>
+  const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
   if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
   return fetchAudiobookshelf(creds)
