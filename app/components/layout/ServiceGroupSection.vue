@@ -57,7 +57,8 @@ function onServicesUpdate() {
 }
 
 const pendingItems = computed(() => {
-  if (!props.edit || !editSnapshot.value) return new Set<string>()
+  if (!props.edit || !editSnapshot.value)
+    return new Set<string>()
   const original = new Map(editSnapshot.value.services.map(s => [s.name, JSON.stringify(s)]))
   return new Set(
     localGroup.value.services
@@ -76,9 +77,11 @@ function revertService(name: string) {
     onServicesUpdate()
     return
   }
-  if (!editSnapshot.value) return
+  if (!editSnapshot.value)
+    return
   const idx = localGroup.value.services.findIndex(s => s.name === name)
-  if (idx === -1) return
+  if (idx === -1)
+    return
   const original = editSnapshot.value.services.find(s => s.name === name)
     ?? editSnapshot.value.services[idx]
   if (original) {

@@ -5,7 +5,8 @@ export const meta = { name: 'Home Assistant', authType: 'bearer', displayLabels:
 
 export async function fetchHomeAssistant(creds: ServiceCredentials) {
   const { url, apiKey } = creds
-  if (!url || !apiKey) return null
+  if (!url || !apiKey)
+    return null
 
   const base = url.replace(/\/$/, '')
   const states = await $fetch<Array<{ entity_id: string; state: string }>>(`${base}/api/states`, {
@@ -32,7 +33,9 @@ export async function fetchHomeAssistant(creds: ServiceCredentials) {
 export { fetchHomeAssistant as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey (long-lived token) is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey)
+    throw createError({ statusCode: 400, message: 'apiKey (long-lived token) is required' })
   return fetchHomeAssistant(creds)
 })

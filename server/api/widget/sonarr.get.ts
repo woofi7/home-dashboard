@@ -5,7 +5,8 @@ export const meta = { name: 'Sonarr', authType: 'query', displayLabels: ['Series
 
 export async function fetchSonarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds
-  if (!url || !apiKey) return null
+  if (!url || !apiKey)
+    return null
 
   const base = url.replace(/\/$/, '')
   const key = `apikey=${encodeURIComponent(apiKey)}`
@@ -32,7 +33,9 @@ export async function fetchSonarr(creds: ServiceCredentials) {
 export { fetchSonarr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey)
+    throw createError({ statusCode: 400, message: 'apiKey is required' })
   return fetchSonarr(creds)
 })

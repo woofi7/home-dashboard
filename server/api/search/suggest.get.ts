@@ -7,14 +7,17 @@ const PROVIDER_URLS: Record<string, string> = {
 
 export default defineEventHandler(async (event) => {
   const { q, provider = 'duckduckgo' } = getQuery(event) as { q: string; provider?: string }
-  if (!q) return []
+  if (!q)
+    return []
 
   const baseUrl = PROVIDER_URLS[provider]
-  if (!baseUrl) return []
+  if (!baseUrl)
+    return []
 
   try {
     const data = await $fetch<unknown[]>(baseUrl + encodeURIComponent(q))
-    if (Array.isArray(data) && Array.isArray(data[1])) return data[1]
+    if (Array.isArray(data) && Array.isArray(data[1]))
+      return data[1]
     return []
   } catch {
     return []

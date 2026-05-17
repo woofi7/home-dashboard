@@ -13,7 +13,8 @@ async function getSid(base: string, password: string): Promise<string> {
       body: { password },
     })
     const sid = res.session?.sid
-    if (!sid) throw new Error('Pi-hole login failed')
+    if (!sid)
+      throw new Error('Pi-hole login failed')
     return sid
   }, SID_TTL)
 }
@@ -22,7 +23,8 @@ export const meta = { name: 'Pi-hole', authType: 'password', displayLabels: ['Qu
 
 export async function fetchPihole(creds: ServiceCredentials) {
   const { url, password } = creds
-  if (!url) return null
+  if (!url)
+    return null
 
   const base = url.replace(/\/admin\/?$/, '').replace(/\/$/, '')
   const sid = await getSid(base, password ?? '')
@@ -50,6 +52,7 @@ export async function fetchPihole(creds: ServiceCredentials) {
 export { fetchPihole as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
   return fetchPihole(creds)
 })

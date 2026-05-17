@@ -10,7 +10,8 @@ const input = ref<HTMLInputElement | null>(null)
 onMounted(() => nextTick(() => input.value?.focus()))
 
 async function submit() {
-  if (!password.value) return
+  if (!password.value)
+    return
   loading.value = true
   error.value = ''
   const ok = await login(password.value)

@@ -38,10 +38,12 @@ export function applyGroupAction<T extends { name: string }, G extends AnyGroup>
 
     case 'update':
       return groups.map(g => {
-        if (g.name !== body.group) return g
+        if (g.name !== body.group)
+          return g
         const list = getItems(g)
         const idx = list.findIndex(i => i.name === body.originalName)
-        if (idx === -1) return g
+        if (idx === -1)
+          return g
         const updated = [...list]
         updated[idx] = body.item!
         return setItems(g, updated)

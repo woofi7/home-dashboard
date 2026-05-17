@@ -7,7 +7,8 @@ export const meta = { name: 'Tdarr', authType: 'none', displayLabels: ['Files', 
 
 export async function fetchTdarr(creds: ServiceCredentials) {
   const { url } = creds
-  if (!url) return null
+  if (!url)
+    return null
 
   const base = url.replace(/\/$/, '')
 
@@ -17,7 +18,8 @@ export async function fetchTdarr(creds: ServiceCredentials) {
   })
 
   const s = stats[0]
-  if (!s) return null
+  if (!s)
+    return null
 
   const allFields = [
     { label: 'Files', value: s.totalFileCount },
@@ -32,6 +34,7 @@ export async function fetchTdarr(creds: ServiceCredentials) {
 export { fetchTdarr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
   return fetchTdarr(creds)
 })

@@ -47,7 +47,8 @@ const dropdownRef = ref<HTMLElement | null>(null)
 
 const filteredWidgets = computed(() => {
   const q = widgetSearch.value.trim().toLowerCase()
-  if (!q) return widgetList.value ?? []
+  if (!q)
+    return widgetList.value ?? []
   return (widgetList.value ?? []).filter((w) => w.type.includes(q) || w.name.toLowerCase().includes(q))
 })
 
@@ -94,7 +95,8 @@ const usernameEnvRef = computed(() => parseEnvRef(form.username))
 const passwordEnvRef = computed(() => parseEnvRef(form.password))
 
 useEventListener('keydown', (e: KeyboardEvent) => {
-  if (showIconPicker.value || showDropdown.value) return
+  if (showIconPicker.value || showDropdown.value)
+    return
   if (e.key === 'Escape') emit('close')
   if (e.key === 'Enter') submit()
 })
@@ -105,7 +107,8 @@ const testing = ref(false)
 const errors = reactive<Record<string, string>>({})
 
 async function test() {
-  if (!form.type || !form.url) return
+  if (!form.type || !form.url)
+    return
   testing.value = true
   testResult.value = null
   try {
@@ -123,7 +126,8 @@ async function test() {
 
 function submit() {
   errors.name = form.name ? '' : 'Name is required'
-  if (errors.name) return
+  if (errors.name)
+    return
   emit('save', { ...form })
 }
 </script>

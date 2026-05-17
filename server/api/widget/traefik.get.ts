@@ -7,7 +7,8 @@ export const meta = { name: 'Traefik', authType: 'basic', displayLabels: ['Route
 
 export async function fetchTraefik(creds: ServiceCredentials) {
   const { url, username, password } = creds
-  if (!url) return null
+  if (!url)
+    return null
 
   const base = url.replace(/\/$/, '')
   const headers = username && password
@@ -29,6 +30,7 @@ export async function fetchTraefik(creds: ServiceCredentials) {
 export { fetchTraefik as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
   return fetchTraefik(creds)
 })

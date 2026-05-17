@@ -6,7 +6,8 @@ type ServiceGroup = { name: string; services: Service[] }
 
 export default defineEventHandler(async (event) => {
   const { group, name } = await readBody<{ group?: string; name?: string }>(event)
-  if (!name) throw createError({ statusCode: 400, message: 'name is required' })
+  if (!name)
+    throw createError({ statusCode: 400, message: 'name is required' })
 
   const groups = loadConfigRaw<ServiceGroup[]>('services.yaml') ?? []
 
@@ -20,7 +21,8 @@ export default defineEventHandler(async (event) => {
     service = groups.flatMap(g => g.services).find(s => s.name === name)
   }
 
-  if (!service) throw createError({ statusCode: 404, message: 'Service not found' })
+  if (!service)
+    throw createError({ statusCode: 404, message: 'Service not found' })
 
   const creds: Record<string, string> = {}
   for (const field of CRED_FIELDS) {

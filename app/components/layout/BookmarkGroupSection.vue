@@ -69,7 +69,8 @@ function onUpdate() {
 }
 
 const pendingItems = computed(() => {
-  if (!props.edit || !editSnapshot.value) return new Set<string>()
+  if (!props.edit || !editSnapshot.value)
+    return new Set<string>()
   const original = new Map(editSnapshot.value.bookmarks.map(b => [b.name, JSON.stringify(b)]))
   return new Set(
     localGroup.value.bookmarks
@@ -97,9 +98,11 @@ function revertBookmark(name: string) {
     onUpdate()
     return
   }
-  if (!editSnapshot.value) return
+  if (!editSnapshot.value)
+    return
   const idx = localGroup.value.bookmarks.findIndex(b => b.name === name)
-  if (idx === -1) return
+  if (idx === -1)
+    return
   const original = editSnapshot.value.bookmarks.find(b => b.name === name)
     ?? editSnapshot.value.bookmarks[idx]
   if (original) {

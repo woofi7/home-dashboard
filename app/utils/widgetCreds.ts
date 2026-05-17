@@ -7,7 +7,8 @@ export function envVarName(type: string, field: 'apiKey' | 'username' | 'passwor
 
 /** Returns the variable name if value is a ${VAR} reference, otherwise null. */
 export function parseEnvRef(value: unknown): string | null {
-  if (typeof value !== 'string') return null
+  if (typeof value !== 'string')
+    return null
   const m = value.match(/^\$\{([^}]+)\}$/)
   return m ? m[1] : null
 }

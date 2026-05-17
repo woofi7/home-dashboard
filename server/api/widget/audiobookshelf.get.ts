@@ -6,7 +6,8 @@ export const meta = { name: 'Audiobookshelf', authType: 'bearer', displayLabels:
 
 export async function fetchAudiobookshelf(creds: ServiceCredentials) {
   const { url, apiKey } = creds
-  if (!url || !apiKey) return null
+  if (!url || !apiKey)
+    return null
 
   const base = url.replace(/\/$/, '')
   const headers = { Authorization: `Bearer ${apiKey}` }
@@ -36,7 +37,9 @@ export async function fetchAudiobookshelf(creds: ServiceCredentials) {
 export { fetchAudiobookshelf as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey)
+    throw createError({ statusCode: 400, message: 'apiKey is required' })
   return fetchAudiobookshelf(creds)
 })

@@ -6,7 +6,8 @@ export const meta = { name: 'qBittorrent', authType: 'basic', displayLabels: ['T
 
 export async function fetchQbittorrent(creds: ServiceCredentials) {
   const { url, username, password } = creds
-  if (!url) return null
+  if (!url)
+    return null
 
   const base = url.replace(/\/$/, '')
   const loginRes = await $fetch.raw(`${base}/api/v2/auth/login`, {
@@ -15,7 +16,8 @@ export async function fetchQbittorrent(creds: ServiceCredentials) {
     body: `username=${encodeURIComponent(username ?? '')}&password=${encodeURIComponent(password ?? '')}`,
   })
   const match = (loginRes.headers.get('set-cookie') ?? '').match(/SID=([^;]+)/)
-  if (!match) return null
+  if (!match)
+    return null
 
   const headers = { Cookie: `SID=${match[1]}` }
   const [torrents, transfer] = await Promise.all([
@@ -37,6 +39,7 @@ export async function fetchQbittorrent(creds: ServiceCredentials) {
 export { fetchQbittorrent as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.url)
+    throw createError({ statusCode: 400, message: 'url is required' })
   return fetchQbittorrent(creds)
 })

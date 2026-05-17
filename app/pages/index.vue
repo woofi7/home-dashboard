@@ -19,7 +19,8 @@ const dateStr = computed(() => now.value?.toLocaleDateString('en', { weekday: 'l
 const fullLoaded = ref(false)
 if (import.meta.client) {
   watch(() => (background.value as Record<string, string> | null)?.full, (url) => {
-    if (!url) return
+    if (!url)
+      return
     const img = new Image()
     img.onload = () => { fullLoaded.value = true }
     img.src = url
@@ -70,7 +71,8 @@ async function handleLogout() {
 
 
 const pendingCount = computed(() => {
-  if (!editActive.value || !snapshot.value) return 0
+  if (!editActive.value || !snapshot.value)
+    return 0
   let count = 0
   for (const snapGroup of snapshot.value.services as ServiceGroup[]) {
     const curGroup = localConfig.value.services.find(g => g.name === snapGroup.name)
@@ -92,14 +94,16 @@ const pendingCount = computed(() => {
 const sectionOrder = ref<Array<{ type: 'service' | 'bookmark'; name: string }>>([])
 
 watch(config, (v) => {
-  if (!v || editActive.value) return
+  if (!v || editActive.value)
+    return
   localConfig.value = JSON.parse(JSON.stringify(v))
   sectionOrder.value = buildDefaultOrder()
 }, { immediate: true })
 
 function buildDefaultOrder() {
   const saved = localConfig.value.settings?.sectionOrder as Array<{ type: string; name: string }> | undefined
-  if (saved?.length) return saved as Array<{ type: 'service' | 'bookmark'; name: string }>
+  if (saved?.length)
+    return saved as Array<{ type: 'service' | 'bookmark'; name: string }>
   return [
     ...localConfig.value.services.map((g) => ({ type: 'service' as const, name: g.name })),
     ...localConfig.value.bookmarks.map((g) => ({ type: 'bookmark' as const, name: g.name })),
