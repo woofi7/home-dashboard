@@ -11,8 +11,6 @@ export default defineEventHandler(async (event) => {
 
   const groups = loadConfigRaw<ServiceGroup[]>('services.yaml') ?? []
 
-  // If group is specified, look there first; fall back to scanning all groups
-  // (handles case where group was renamed mid-session)
   let service: Service | undefined
   if (group) {
     service = groups.find(g => g.name === group)?.services.find(s => s.name === name)
