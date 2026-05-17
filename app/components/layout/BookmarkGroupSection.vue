@@ -5,19 +5,11 @@ import type { LayoutSettings } from './SectionLayoutSettings.vue'
 type Bookmark = { name: string; url: string; icon?: string }
 type BookmarkGroup = { name: string; bookmarks: Bookmark[]; layout?: LayoutSettings }
 
-const props = defineProps<{
-  group: BookmarkGroup
-  edit: boolean
-}>()
+const props = defineProps<{ group: BookmarkGroup; edit: boolean }>()
+const emit = defineEmits<{ update: [group: BookmarkGroup]; dirty: []; delete: [] }>()
 
 const visible = ref(false)
 onMounted(() => nextTick(() => { visible.value = true }))
-
-const emit = defineEmits<{
-  update: [group: BookmarkGroup]
-  dirty: []
-  delete: []
-}>()
 
 const localGroup = ref<BookmarkGroup>(JSON.parse(JSON.stringify(props.group)))
 
@@ -36,16 +28,10 @@ const layout = computed({
 
 const { containerStyle, itemStyle: baseItemStyle, effective } = useLayoutSettings(layout)
 
-const bookmarkContainerStyle = computed(() => ({
-  ...containerStyle.value,
-  alignItems: 'flex-start',
-}))
-
+const bookmarkContainerStyle = computed(() => ({ ...containerStyle.value, alignItems: 'flex-start' }))
 const bookmarkItemStyle = computed(() => ({
   ...baseItemStyle.value,
-  flex: effective.value.columns
-    ? baseItemStyle.value.flex
-    : '0 0 80px',
+  flex: effective.value.columns ? baseItemStyle.value.flex : '0 0 80px',
 }))
 
 const editSnapshot = ref<BookmarkGroup | null>(null)
@@ -82,7 +68,6 @@ const pendingItems = computed(() => {
 })
 
 const dragging = ref(false)
-
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
 
 async function trackClick(name: string) {
@@ -122,7 +107,7 @@ function deleteBookmark(b: Bookmark) {
 }
 function save(updated: Bookmark) {
   if (editingBookmark.value) {
-    const idx = localGroup.value.bookmarks.findIndex((b) => b.name === editingBookmark.value!.name)
+    const idx = localGroup.value.bookmarks.findIndex(b => b.name === editingBookmark.value!.name)
     if (idx !== -1)
       localGroup.value.bookmarks[idx] = updated
   } else {
@@ -130,15 +115,6 @@ function save(updated: Bookmark) {
   }
   onUpdate()
   showModal.value = false
-}
-
-function faviconUrl(url: string) {
-  try {
-    const { hostname } = new URL(url)
-    return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
-  } catch {
-    return null
-  }
 }
 </script>
 
@@ -169,61 +145,21 @@ function faviconUrl(url: string) {
       @start="dragging = true"
       @end="dragging = false; onUpdate()"
     >
-      <component
+      <BookmarkItem
         v-for="b in localGroup.bookmarks"
-        :is="edit ? 'div' : 'a'"
         :key="b.name"
         :style="bookmarkItemStyle"
-        v-bind="edit ? {} : { href: b.url, target: '_blank', rel: 'noopener' }"
-        class="group/bm relative flex flex-col items-center gap-1.5 transition-opacity"
-        @click="!edit && trackClick(b.name)"
-        :class="[
-          edit ? 'cursor-default' : 'cursor-pointer',
-          pendingDeleteNames.has(b.name) ? 'opacity-40' : '',
-        ]"
-      >
-        <div
-          class="aspect-square w-full rounded-xl bg-black/60 border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors overflow-hidden relative"
-          :class="pendingDeleteNames.has(b.name) ? 'border-danger/70' : pendingItems.has(b.name) ? 'border-warning/60' : 'border-border'"
-        >
-          <img
-            :src="b.icon || faviconUrl(b.url) || ''"
-            :alt="b.name"
-            class="w-3/5 h-3/5 object-contain"
-            @error="($event.target as HTMLImageElement).style.display = 'none'"
-          />
-          <span v-if="clicks?.[b.name]" class="absolute top-1 right-1.5 text-[9px] text-white/40 tabular-nums leading-none">{{ clicks[b.name] }}</span>
-        </div>
-        <span class="text-[11px] text-muted text-center leading-tight line-clamp-2 w-full px-0.5">{{ b.name }}</span>
-
-        <span v-if="edit && !pendingDeleteNames.has(b.name)" class="bookmark-handle absolute top-1 left-1 cursor-grab text-muted select-none text-sm z-20 transition-opacity" :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'"><FaIcon icon="grip-vertical" /></span>
-
-        <div v-if="edit" class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-opacity z-10 bg-black/40" :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'">
-          <template v-if="pendingDeleteNames.has(b.name)">
-            <button
-              class="cursor-pointer h-9 px-3 rounded-lg bg-elevated border border-warning/40 flex items-center gap-1.5 text-warning hover:border-warning transition-colors shadow-md shadow-black/30 text-xs font-medium"
-              @click="revertBookmark(b.name)"
-            ><FaIcon icon="rotate-left" /> Restore</button>
-          </template>
-          <template v-else>
-            <div class="flex gap-2">
-              <button
-                class="cursor-pointer w-8 h-8 rounded-lg bg-elevated border border-border flex items-center justify-center text-muted hover:text-accent-hover hover:border-accent transition-colors shadow-md shadow-black/30"
-                @click="openEdit(b)"
-              ><FaIcon icon="pencil" /></button>
-              <button
-                class="cursor-pointer w-8 h-8 rounded-lg bg-elevated border border-border flex items-center justify-center text-muted hover:text-danger hover:border-danger transition-colors shadow-md shadow-black/30"
-                @click="deleteBookmark(b)"
-              ><FaIcon icon="xmark" /></button>
-            </div>
-            <button
-              v-if="pendingItems.has(b.name)"
-              class="cursor-pointer h-6 px-2 rounded-md bg-elevated border border-warning/40 flex items-center gap-1 text-warning hover:border-warning transition-colors shadow-md shadow-black/30 text-xs"
-              @click="revertBookmark(b.name)"
-            ><FaIcon icon="rotate-left" /> Revert</button>
-          </template>
-        </div>
-      </component>
+        :bookmark="b"
+        :edit="edit"
+        :pending="pendingItems.has(b.name)"
+        :pending-delete="pendingDeleteNames.has(b.name)"
+        :dragging="dragging"
+        :click-count="clicks?.[b.name]"
+        @click="trackClick(b.name)"
+        @edit="openEdit(b)"
+        @delete="deleteBookmark(b)"
+        @restore="revertBookmark(b.name)"
+      />
     </VueDraggable>
 
     <button

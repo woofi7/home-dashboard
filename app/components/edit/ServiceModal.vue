@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import {onClickOutside, useEventListener} from '@vueuse/core'
+import { useEventListener } from '@vueuse/core'
 
 type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; container?: string; server?: string; [key: string]: unknown }
+type TestResult = { ok: boolean; status?: number; message?: string; fields?: { label: string; value: unknown }[] }
 
 const props = defineProps<{ service: Service | null; group?: string }>()
 const emit = defineEmits<{ save: [service: Service]; close: [] }>()
@@ -20,7 +21,6 @@ const form = reactive<Service>({
 })
 
 const credsLoading = ref(false)
-
 const credsError = ref('')
 if (props.service?.name) {
   credsLoading.value = true
@@ -42,57 +42,14 @@ if (props.service?.name) {
 useScrollLock()
 const showIconPicker = ref(false)
 
-const widgetSearch = ref(form.type ?? '')
-const showDropdown = ref(false)
-const dropdownRef = ref<HTMLElement | null>(null)
-
 const widgetEntries = Object.entries(widgetDefinitions).map(([type, def]) => ({ type, ...def }))
-
-const filteredWidgets = computed(() => {
-  const q = widgetSearch.value.trim().toLowerCase()
-  if (!q)
-    return widgetEntries
-  return widgetEntries.filter(w => w.type.includes(q) || w.name.toLowerCase().includes(q))
+const authType = computed(() => {
+  const def = widgetEntries.find(w => w.type === form.type)
+  return def?.authType ?? (form.type ? 'header' : '')
 })
 
-const selectedWidget = computed(() => widgetEntries.find(w => w.type === form.type) ?? null)
-
-onClickOutside(dropdownRef, () => { showDropdown.value = false })
-
-function selectWidget(w: typeof widgetEntries[number]) {
-  form.type = w.type
-  widgetSearch.value = w.type
-  showDropdown.value = false
-}
-
-function onWidgetInput() {
-  form.type = widgetSearch.value.trim().toLowerCase()
-  showDropdown.value = true
-}
-
-const AUTH_COLORS: Record<string, string> = {
-  header: 'var(--color-accent)',
-  bearer: 'var(--color-success)',
-  basic: 'var(--color-warning)',
-  query: '#a78bfa',
-  none: 'var(--color-muted)',
-}
-
-const authType = computed(() => selectedWidget.value?.authType ?? (form.type ? 'header' : ''))
-const isBasicAuth = computed(() => authType.value === 'basic')
-const isPasswordOnly = computed(() => authType.value === 'password')
-
-
-const suggestedApiKeyVar = computed(() => form.type ? envVarName(form.type, 'apiKey') : '')
-const suggestedUsernameVar = computed(() => form.type ? envVarName(form.type, 'username') : '')
-const suggestedPasswordVar = computed(() => form.type ? envVarName(form.type, 'password') : '')
-
-const apiKeyEnvRef = computed(() => parseEnvRef(form.apiKey))
-const usernameEnvRef = computed(() => parseEnvRef(form.username))
-const passwordEnvRef = computed(() => parseEnvRef(form.password))
-
 useEventListener('keydown', (e: KeyboardEvent) => {
-  if (showIconPicker.value || showDropdown.value)
+  if (showIconPicker.value)
     return
   if (e.key === 'Escape')
     emit('close')
@@ -100,7 +57,6 @@ useEventListener('keydown', (e: KeyboardEvent) => {
     submit()
 })
 
-type TestResult = { ok: boolean; status?: number; message?: string; fields?: { label: string; value: unknown }[] }
 const testResult = ref<TestResult | null>(null)
 const testing = ref(false)
 const errors = reactive<Record<string, string>>({})
@@ -113,7 +69,7 @@ async function test() {
   try {
     testResult.value = await $fetch<TestResult>('/api/edit/widget-test', {
       method: 'POST',
-      body: {type: form.type, url: form.url, apiKey: form.apiKey, username: form.username, password: form.password},
+      body: { type: form.type, url: form.url, apiKey: form.apiKey, username: form.username, password: form.password },
     })
   } catch {
     testResult.value = { ok: false, message: 'Request failed' }
@@ -150,145 +106,24 @@ function submit() {
           <Field label="Description">
             <input v-model="form.description" type="text" class="modal-input" />
           </Field>
-
-          <!-- Icon field with picker -->
-          <Field label="Icon">
-            <div class="flex gap-2 items-center">
-              <div class="w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center overflow-hidden shrink-0">
-                <img
-                  v-if="form.icon"
-                  :src="form.icon as string"
-                  alt=""
-                  class="w-7 h-7 object-contain"
-                  @error="($event.target as HTMLImageElement).style.opacity = '0'"
-                />
-              </div>
-              <input v-model="form.icon" type="text" class="modal-input" placeholder="Search or paste URL..." />
-              <button
-                class="shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
-                @click="showIconPicker = true"
-              >Browse</button>
-            </div>
-          </Field>
-
-          <Field label="Docker">
-            <div class="flex gap-2">
-              <div class="flex-1">
-                <label class="text-[10px] text-muted mb-1 block">Server</label>
-                <input v-model="form.server" type="text" class="modal-input font-mono text-xs" placeholder="nas" autocomplete="off" />
-              </div>
-              <div class="flex-1">
-                <label class="text-[10px] text-muted mb-1 block">Container</label>
-                <input v-model="form.container" type="text" class="modal-input font-mono text-xs" placeholder="auto" autocomplete="off" />
-              </div>
-            </div>
-          </Field>
-
-          <Field label="Widget type">
-            <div ref="dropdownRef" class="relative">
-              <input
-                v-model="widgetSearch"
-                type="text"
-                class="modal-input font-mono"
-                placeholder="-"
-                autocomplete="off"
-                @input="onWidgetInput"
-                @focus="showDropdown = true"
-                @keydown.esc.stop="showDropdown = false"
-                @keydown.enter.prevent
-              />
-              <!-- Dropdown -->
-              <div
-                v-if="showDropdown && filteredWidgets.length"
-                class="absolute z-10 mt-1 w-full rounded-lg border border-border bg-elevated shadow-lg overflow-hidden max-h-48 overflow-y-auto"
-              >
-                <button
-                  v-for="w in filteredWidgets"
-                  :key="w.type"
-                  class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-surface transition-colors text-left"
-                  :class="form.type === w.type ? 'bg-accent/10' : ''"
-                  @mousedown.prevent="selectWidget(w)"
-                >
-                  <span class="font-mono text-primary">{{ w.type }}</span>
-                  <span class="text-xs text-muted">{{ w.authType }}</span>
-                </button>
-              </div>
-              <div
-                v-else-if="showDropdown && widgetSearch && !filteredWidgets.length"
-                class="absolute z-10 mt-1 w-full rounded-lg border border-border bg-elevated px-3 py-2 text-xs text-muted"
-              >
-                No matching widget — go to Admin to fetch it
-              </div>
-            </div>
-            <div
-              v-if="selectedWidget && !showDropdown"
-              class="mt-2 px-3 py-2 rounded-lg bg-elevated border border-border flex items-center gap-3 text-xs text-secondary"
-            >
-              <span class="px-1.5 py-0.5 rounded border font-medium"
-                :style="{
-                  color: AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none,
-                  borderColor: (AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none) + '40',
-                  background: (AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none) + '15',
-                }">{{ selectedWidget.authType }}</span>
-              <span>{{ selectedWidget.fields.length }} field{{ selectedWidget.fields.length !== 1 ? 's' : '' }}</span>
-            </div>
-            <p
-              v-else-if="form.type && !selectedWidget && !showDropdown"
-              class="mt-1.5 text-xs text-warning"
-            >Not in registry — fetch it from Admin to enable widget data</p>
-          </Field>
-
+          <IconField v-model="form.icon as string" @browse="showIconPicker = true" />
+          <DockerField v-model:server="form.server as string" v-model:container="form.container as string" />
+          <WidgetTypeField v-model="form.type as string" />
           <p v-if="credsError" class="text-xs text-danger">{{ credsError }}</p>
-
-          <template v-if="form.type && authType !== 'none'">
-            <template v-if="isPasswordOnly">
-              <Field label="Password">
-                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
-                <div class="mt-1 flex items-center gap-2">
-                  <span v-if="passwordEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ passwordEnvRef }}</span>
-                  <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.password = '${' + suggestedPasswordVar + '}'">use $&#123;{{ suggestedPasswordVar }}&#125;</button>
-                </div>
-              </Field>
-            </template>
-            <template v-else-if="isBasicAuth">
-              <Field label="Username">
-                <input v-model="form.username" type="text" class="modal-input" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
-                <div class="mt-1 flex items-center gap-2">
-                  <span v-if="usernameEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ usernameEnvRef }}</span>
-                  <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.username = '${' + suggestedUsernameVar + '}'">use $&#123;{{ suggestedUsernameVar }}&#125;</button>
-                </div>
-              </Field>
-              <Field label="Password">
-                <input v-model="form.password" :type="passwordEnvRef ? 'text' : 'password'" class="modal-input" autocomplete="new-password" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
-                <div class="mt-1 flex items-center gap-2">
-                  <span v-if="passwordEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ passwordEnvRef }}</span>
-                  <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.password = '${' + suggestedPasswordVar + '}'">use $&#123;{{ suggestedPasswordVar }}&#125;</button>
-                </div>
-              </Field>
-            </template>
-            <Field v-else label="API key">
-              <input v-model="form.apiKey" type="text" class="modal-input font-mono text-xs" autocomplete="off" :disabled="credsLoading" :placeholder="credsLoading ? 'Loading...' : ''" />
-              <div class="mt-1 flex items-center gap-2">
-                <span v-if="apiKeyEnvRef" class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ apiKeyEnvRef }}</span>
-                <button v-else type="button" class="text-[10px] font-mono text-muted hover:text-accent transition-colors" @click="form.apiKey = '${' + suggestedApiKeyVar + '}'">use $&#123;{{ suggestedApiKeyVar }}&#125;</button>
-              </div>
-            </Field>
-          </template>
+          <CredentialFields
+            :auth-type="authType"
+            :creds-loading="credsLoading"
+            :api-key="form.apiKey as string"
+            :username="form.username as string"
+            :password="form.password as string"
+            :widget-type="form.type as string"
+            @update:api-key="form.apiKey = $event"
+            @update:username="form.username = $event"
+            @update:password="form.password = $event"
+          />
         </div>
 
-        <div v-if="testResult" class="px-6 pb-3 space-y-1.5">
-          <p class="text-xs font-medium flex items-center gap-1.5" :class="testResult.ok ? 'text-success' : 'text-danger'">
-            <FaIcon :icon="testResult.ok ? 'check' : 'xmark'" />
-            <span v-if="testResult.ok">Connected</span>
-            <span v-else>Failed{{ testResult.status ? ` (${testResult.status})` : '' }}{{ testResult.message ? ` - ${testResult.message}` : '' }}</span>
-          </p>
-          <div v-if="testResult.ok && testResult.fields?.length" class="rounded-lg bg-elevated border border-border px-3 py-2 flex flex-wrap gap-x-4 gap-y-1">
-            <span v-for="f in testResult.fields" :key="f.label" class="text-xs">
-              <span class="text-muted">{{ f.label }}:</span>
-              <span class="ml-1 text-primary font-mono">{{ f.value ?? '—' }}</span>
-            </span>
-          </div>
-        </div>
+        <WidgetTestResult :result="testResult" />
 
         <div class="px-6 py-4 border-t border-border flex justify-between gap-2 shrink-0">
           <button
