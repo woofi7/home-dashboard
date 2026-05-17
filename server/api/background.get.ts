@@ -1,12 +1,14 @@
 import { loadConfig } from '../utils/config'
 import { createCache } from '../utils/cache'
 
-type CachedBg = { day: string; thumb: string; full: string; author: string; authorLink: string }
+type CachedBg = { thumb: string; full: string; author: string; authorLink: string }
 
 const cache = createCache<CachedBg>()
 
-function today() {
-  return new Date().toISOString().slice(0, 10)
+function msUntilMidnight(): number {
+  const now = new Date()
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  return midnight.getTime() - now.getTime()
 }
 
 export default defineEventHandler(async () => {
@@ -18,8 +20,8 @@ export default defineEventHandler(async () => {
   const apiKey = bg.unsplashApiKey
   if (!apiKey) throw createError({ statusCode: 400, message: 'unsplashApiKey not set in settings.yaml' })
 
-  const hit = cache.get(Infinity)
-  if (hit && hit.day === today()) return hit
+  const hit = cache.get()
+  if (hit) return hit
 
   const query = bg.query || 'nature landscape'
   const data = await $fetch<{ urls: { full: string; regular: string }; user: { name: string }; links: { html: string } }>(
@@ -28,10 +30,9 @@ export default defineEventHandler(async () => {
   )
 
   return cache.set({
-    day: today(),
     thumb: data.urls.regular,
     full: data.urls.full,
     author: data.user.name,
     authorLink: data.links.html,
-  })
+  }, msUntilMidnight())
 })

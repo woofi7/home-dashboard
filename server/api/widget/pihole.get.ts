@@ -5,7 +5,7 @@ const sidCache = createCache<string>()
 const SID_TTL = 4 * 60 * 1000
 
 async function getSid(base: string, password: string): Promise<string> {
-  return sidCache.fetch(SID_TTL, async () => {
+  return sidCache.fetch(async () => {
     const res = await $fetch<{ session: { sid: string } }>(`${base}/api/auth`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -14,7 +14,7 @@ async function getSid(base: string, password: string): Promise<string> {
     const sid = res.session?.sid
     if (!sid) throw new Error('Pi-hole login failed')
     return sid
-  })
+  }, SID_TTL)
 }
 
 export async function fetchPihole(creds: Record<string, string>) {

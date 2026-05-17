@@ -43,7 +43,7 @@ const cache = createCache<Map<string, WidgetDef>>()
 const TTL = 5 * 60 * 1000
 
 export function getWidgetDef(type: string): WidgetDef | undefined {
-  const registry = cache.get(TTL) ?? cache.set(loadRegistry())
+  const registry = cache.get() ?? cache.set(loadRegistry(), TTL)
   return registry.get(type)
 }
 

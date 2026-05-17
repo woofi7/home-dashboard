@@ -9,7 +9,7 @@ const groupsCache = createCache<ServiceGroup[]>()
 const TTL = 10_000
 
 function getServiceGroups(): ServiceGroup[] {
-  return groupsCache.get(TTL) ?? groupsCache.set(loadConfig<ServiceGroup[]>('services.yaml') ?? [])
+  return groupsCache.get() ?? groupsCache.set(loadConfig<ServiceGroup[]>('services.yaml') ?? [], TTL)
 }
 
 export default defineEventHandler(async (event) => {

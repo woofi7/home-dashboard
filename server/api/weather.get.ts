@@ -38,7 +38,7 @@ const WMO: Record<number, { desc: string; icon: string }> = {
 function wmo(code: number) { return WMO[code] ?? { desc: 'Unknown', icon: '🌡️' } }
 
 export default defineEventHandler(async () => {
-  const hit = cache.get(TTL)
+  const hit = cache.get()
   if (hit) return hit
 
   const geo = await $fetch<{ city: string; regionName: string; lat: number; lon: number }>('http://ip-api.com/json')
@@ -133,5 +133,5 @@ export default defineEventHandler(async () => {
     tomorrow: tmr as DayForecast,
   }
 
-  return cache.set(data)
+  return cache.set(data, TTL)
 })

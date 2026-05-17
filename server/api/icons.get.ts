@@ -8,7 +8,7 @@ const cache = createCache<IconEntry[]>()
 const TTL = 60 * 60 * 1000
 
 export default defineEventHandler(() =>
-  cache.fetch(TTL, async () => {
+  cache.fetch(async () => {
     // Git Trees API returns ALL files recursively — no 1000-file cap
     const { tree } = await $fetch<TreeResponse>(
       'https://api.github.com/repos/walkxcode/dashboard-icons/git/trees/main?recursive=1',
@@ -21,5 +21,5 @@ export default defineEventHandler(() =>
         return { name: slug, url: `https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/webp/${slug}.webp` }
       })
       .sort((a, b) => a.name.localeCompare(b.name))
-  })
+  }, TTL)
 )

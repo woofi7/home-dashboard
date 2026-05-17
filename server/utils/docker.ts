@@ -42,7 +42,7 @@ async function fetchContainers(): Promise<DockerContainer[]> {
 }
 
 export function fetchDockerStatus(): Promise<DockerStatus> {
-  return cache.fetch(TTL, async () => {
+  return cache.fetch(async () => {
     const containers = await fetchContainers().catch(() => [] as DockerContainer[])
     const data: DockerStatus = {}
     for (const c of containers) {
@@ -50,5 +50,5 @@ export function fetchDockerStatus(): Promise<DockerStatus> {
       if (name) data[name] = { state: c.State, status: c.Status }
     }
     return data
-  })
+  }, TTL)
 }
