@@ -1,9 +1,11 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
+import definition from '#shared/widgetDefinitions/plex'
+export const meta = definition
+
 type PlexContainer = { MediaContainer: { size: number } }
 
-export const meta = { name: 'Plex', authType: 'query', displayLabels: ['Movies', 'Shows', 'Streams'] } as const
 
 export async function fetchPlex(creds: ServiceCredentials) {
   const { url, apiKey } = creds

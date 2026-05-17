@@ -1,7 +1,9 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
-export const meta = { name: 'Radarr', authType: 'query', displayLabels: ['Movies', 'Downloaded', 'Queued', 'Missing'] } as const
+import definition from '#shared/widgetDefinitions/radarr'
+export const meta = definition
+
 
 export async function fetchRadarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds

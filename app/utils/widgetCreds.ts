@@ -10,5 +10,5 @@ export function parseEnvRef(value: unknown): string | null {
   if (typeof value !== 'string')
     return null
   const m = value.match(/^\$\{([^}]+)\}$/)
-  return m ? m[1] : null
+  return m?.[1] ?? null
 }

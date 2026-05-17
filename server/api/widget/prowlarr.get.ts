@@ -1,9 +1,11 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
+import definition from '#shared/widgetDefinitions/prowlarr'
+export const meta = definition
+
 type IndexerStats = { numberOfGrabs: number; numberOfQueries: number; numberOfFailedQueries: number }
 
-export const meta = { name: 'Prowlarr', authType: 'query', displayLabels: ['Indexers', 'Grabs', 'Queries', 'Failures'] } as const
 
 export async function fetchProwlarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds

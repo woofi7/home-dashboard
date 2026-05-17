@@ -1,7 +1,9 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
-export const meta = { name: 'Bazarr', authType: 'header', displayLabels: ['Missing episodes', 'Missing movies', 'Providers'] } as const
+import definition from '#shared/widgetDefinitions/bazarr'
+export const meta = definition
+
 
 export async function fetchBazarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds

@@ -1,7 +1,9 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
-export const meta = { name: 'Readarr', authType: 'query', displayLabels: ['Books', 'Missing', 'Authors', 'Queue'] } as const
+import definition from '#shared/widgetDefinitions/readarr'
+export const meta = definition
+
 
 export async function fetchReadarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds

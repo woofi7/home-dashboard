@@ -1,8 +1,9 @@
 import type { WidgetResult } from '../types'
 import type { ServiceCredentials } from './auth'
+import type { WidgetDefinition } from '#shared/widgetDefinitions/types'
 import { WIDGETS } from './widgetRegistry'
 
-export type WidgetMeta = { name: string; authType: string; displayLabels: readonly string[] }
+export type { WidgetDefinition }
 
 type Fetcher = (creds: ServiceCredentials) => Promise<WidgetResult | null>
 

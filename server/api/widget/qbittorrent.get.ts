@@ -2,7 +2,9 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatSpeed } from '../../utils/formatBytes'
 
-export const meta = { name: 'qBittorrent', authType: 'basic', displayLabels: ['Total', 'Active', 'DL Speed', 'UL Speed'] } as const
+import definition from '#shared/widgetDefinitions/qbittorrent'
+export const meta = definition
+
 
 export async function fetchQbittorrent(creds: ServiceCredentials) {
   const { url, username, password } = creds

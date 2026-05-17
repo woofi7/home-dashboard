@@ -1,9 +1,11 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
+import definition from '#shared/widgetDefinitions/traefik'
+export const meta = definition
+
 type TraefikOverview = { http: { routers: { total: number }; services: { total: number }; middlewares: { total: number } } }
 
-export const meta = { name: 'Traefik', authType: 'basic', displayLabels: ['Routers', 'Services', 'Middlewares'] } as const
 
 export async function fetchTraefik(creds: ServiceCredentials) {
   const { url, username, password } = creds

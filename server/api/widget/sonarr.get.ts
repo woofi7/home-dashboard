@@ -1,7 +1,9 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
-export const meta = { name: 'Sonarr', authType: 'query', displayLabels: ['Series', 'Monitored', 'Queued', 'Wanted', 'Cutoff unmet'] } as const
+import definition from '#shared/widgetDefinitions/sonarr'
+export const meta = definition
+
 
 export async function fetchSonarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds
