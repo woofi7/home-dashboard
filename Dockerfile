@@ -1,7 +1,7 @@
-FROM node:26-slim AS builder
+FROM node:24-slim AS builder
 
 WORKDIR /app
-RUN npm install -g pnpm
+RUN npm install -g pnpm@9
 
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
@@ -11,7 +11,7 @@ RUN pnpm run build
 
 # ---
 
-FROM node:26-alpine AS runtime
+FROM node:24-alpine AS runtime
 
 WORKDIR /app
 

@@ -7,7 +7,7 @@ const VALID_AUTH_TYPES: AuthType[] = ['header', 'bearer', 'basic', 'query', 'pas
 
 const definitionDir = resolve('./shared/widgetDefinitions')
 const definitionFiles = readdirSync(definitionDir)
-  .filter(f => f.endsWith('.ts') && f !== 'types.ts')
+  .filter(f => f.endsWith('.ts') && f !== 'types.ts' && f !== 'index.ts')
   .sort()
 
 const WIDGET_SLUGS = definitionFiles.map(f => f.slice(0, -3))

@@ -5,7 +5,7 @@ import { resolve } from 'node:path'
 function generateWidgetRegistry() {
   const widgetDir = resolve('./server/api/widget')
   const names = readdirSync(resolve('./shared/widgetDefinitions'))
-    .filter(f => f.endsWith('.ts') && f !== 'types.ts')
+    .filter(f => f.endsWith('.ts') && f !== 'types.ts' && f !== 'index.ts')
     .map(f => f.slice(0, -3))
     .sort()
 

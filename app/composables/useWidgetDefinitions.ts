@@ -1,7 +1,7 @@
 import type { WidgetDefinition } from '#shared/widgetDefinitions/types'
 
 const modules = import.meta.glob(
-  ['../../shared/widgetDefinitions/*.ts', '!../../shared/widgetDefinitions/types.ts'],
+  ['../../shared/widgetDefinitions/*.ts', '!../../shared/widgetDefinitions/types.ts', '!../../shared/widgetDefinitions/index.ts'],
   { eager: true, import: 'default' },
 )
 
