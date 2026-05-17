@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { onClickOutside } from '@vueuse/core'
+
 export type LayoutSettings = {
   columns?: number
   gap?: 'tight' | 'normal' | 'loose'
@@ -15,6 +17,26 @@ const emit = defineEmits<{ 'update:modelValue': [v: LayoutSettings] }>()
 
 const open = ref(false)
 const view = ref<'desktop' | 'mobile'>('desktop')
+const buttonRef = ref<HTMLElement | null>(null)
+const panelRef = ref<HTMLElement | null>(null)
+const panelStyle = ref<Record<string, string>>({})
+
+function toggleOpen() {
+  if (!open.value && buttonRef.value) {
+    const rect = buttonRef.value.getBoundingClientRect()
+    panelStyle.value = {
+      top: `${rect.bottom + 4}px`,
+      right: `${window.innerWidth - rect.right}px`,
+    }
+  }
+  open.value = !open.value
+}
+
+onClickOutside(panelRef, (e) => {
+  if (buttonRef.value?.contains(e.target as Node))
+    return
+  open.value = false
+})
 
 const active = computed(() =>
   view.value === 'mobile' ? (props.modelValue.mobile ?? {}) : props.modelValue
@@ -46,17 +68,21 @@ const JUSTIFY = [
 </script>
 
 <template>
-  <div class="relative">
+  <div>
     <button
+      ref="buttonRef"
       class="text-xs px-1 transition-colors"
       :class="open ? 'text-accent-hover' : 'text-muted hover:text-secondary'"
       title="Layout settings"
-      @click="open = !open"
+      @click="toggleOpen"
     ><FaIcon icon="table-columns" /></button>
 
+    <Teleport to="body">
     <div
       v-if="open"
-      class="absolute right-0 top-full mt-1 z-40 bg-elevated border border-border rounded-xl p-3 w-56 shadow-xl shadow-black/40"
+      ref="panelRef"
+      class="fixed z-50 bg-elevated border border-border rounded-xl p-3 w-56 shadow-xl shadow-black/40"
+      :style="panelStyle"
     >
       <div class="flex gap-1 mb-3 p-0.5 bg-surface rounded-lg">
         <button
@@ -115,5 +141,6 @@ const JUSTIFY = [
         </div>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
