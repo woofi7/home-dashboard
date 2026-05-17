@@ -7,7 +7,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
-RUN pnpm run build
+RUN rm -rf node_modules/.cache/nuxt && pnpm run build
 
 # ---
 
@@ -23,7 +23,6 @@ ENV HOSTNAME=::
 ENV CONFIG_DIR=/config
 
 COPY --from=builder /app/.output ./.output
-COPY --from=builder /app/widget-registry ./widget-registry
 
 COPY docker-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
