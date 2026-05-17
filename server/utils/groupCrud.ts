@@ -13,10 +13,6 @@ export type CrudBody<T, G = { name: string }> = {
 
 type AnyGroup = { name: string; [key: string]: unknown }
 
-/**
- * Applies a CRUD operation to an array of named groups where each group holds
- * a named-items array under `itemsKey`. Returns a new array; never mutates inputs.
- */
 export function applyGroupAction<T extends { name: string }, G extends AnyGroup>(
   groups: G[],
   itemsKey: string,

@@ -6,7 +6,9 @@ import { config as loadDotenv } from 'dotenv'
 let envLoaded = false
 
 function loadEnv(configDir: string) {
-  if (envLoaded) return
+  if (envLoaded)
+    return
+
   const envPath = join(configDir, '.env')
   if (existsSync(envPath)) {
     loadDotenv({ path: envPath, override: false })
@@ -15,7 +17,7 @@ function loadEnv(configDir: string) {
 }
 
 function substituteVars(value: string): string {
-  return value.replace(/\$\{([^}]+)\}/g, (_, key) => {
+  return value.replace(/\$\{([^}]+)}/g, (_, key) => {
     const val = process.env[key]
     if (val === undefined) {
       console.warn(`[config] Environment variable "${key}" is not set; substituting empty string`)
@@ -25,18 +27,25 @@ function substituteVars(value: string): string {
 }
 
 function substituteDeep(obj: unknown): unknown {
-  if (typeof obj === 'string') return substituteVars(obj)
-  if (Array.isArray(obj)) return obj.map(substituteDeep)
+  if (typeof obj === 'string')
+    return substituteVars(obj)
+
+  if (Array.isArray(obj))
+    return obj.map(substituteDeep)
+
   if (obj && typeof obj === 'object') {
     return Object.fromEntries(
       Object.entries(obj as Record<string, unknown>).map(([k, v]) => [k, substituteDeep(v)])
     )
   }
+
   return obj
 }
 
 function readYaml<T>(filePath: string): T | null {
-  if (!existsSync(filePath)) return null
+  if (!existsSync(filePath))
+    return null
+
   try {
     const raw = readFileSync(filePath, 'utf-8')
     return parseYaml(raw) as T
@@ -53,7 +62,9 @@ export function loadConfig<T>(filename: string): T | null {
   const dir = getConfigDir()
   loadEnv(dir)
   const result = readYaml<T>(join(dir, filename))
-  if (result === null) return null
+  if (result === null)
+    return null
+
   return substituteDeep(result) as T
 }
 

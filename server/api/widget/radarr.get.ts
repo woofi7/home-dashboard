@@ -1,0 +1,33 @@
+import { getActiveFields } from '../../utils/widget-fields'
+import type { ServiceCredentials } from '../../utils/auth'
+
+export async function fetchRadarr(creds: ServiceCredentials) {
+  const { url, apiKey } = creds
+  if (!url || !apiKey) return null
+
+  const base = url.replace(/\/$/, '')
+  const key = `apikey=${encodeURIComponent(apiKey)}`
+
+  const [movies, queueStatus, wanted] = await Promise.all([
+    $fetch<Array<{ hasFile: boolean }>>(`${base}/api/v3/movie?${key}`),
+    $fetch<{ totalCount: number }>(`${base}/api/v3/queue/status?${key}`),
+    $fetch<{ totalRecords: number }>(`${base}/api/v3/wanted/missing?${key}`),
+  ])
+
+  const allFields = [
+    { label: 'Movies',     value: movies.length },
+    { label: 'Downloaded', value: movies.filter(m => m.hasFile).length },
+    { label: 'Queued',     value: queueStatus.totalCount },
+    { label: 'Missing',    value: wanted.totalRecords },
+  ]
+
+  const active = getActiveFields('radarr', allFields.map(f => f.label))
+  return { type: 'radarr', fields: allFields.filter(f => active.has(f.label)) }
+}
+
+export default defineEventHandler(async (event) => {
+  const creds = getQuery(event) as ServiceCredentials
+  if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
+  if (!creds.apiKey) throw createError({ statusCode: 400, message: 'apiKey is required' })
+  return fetchRadarr(creds)
+})
