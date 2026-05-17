@@ -1,3 +1,4 @@
+import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { createCache } from '../../utils/cache'
 
@@ -17,7 +18,7 @@ async function getSid(base: string, password: string): Promise<string> {
   }, SID_TTL)
 }
 
-export async function fetchPihole(creds: Record<string, string>) {
+export async function fetchPihole(creds: ServiceCredentials) {
   const { url, password } = creds
   if (!url) return null
 
@@ -45,7 +46,7 @@ export async function fetchPihole(creds: Record<string, string>) {
 }
 
 export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as Record<string, string>
+  const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
   return fetchPihole(creds)
 })

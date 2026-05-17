@@ -216,8 +216,7 @@ function submit() {
                   borderColor: (AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none) + '40',
                   background: (AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none) + '15',
                 }">{{ selectedWidget.authType }}</span>
-              <span>{{ selectedWidget.endpointCount }} endpoint{{ selectedWidget.endpointCount !== 1 ? 's' : '' }}</span>
-              <span>{{ selectedWidget.displayCount }} field{{ selectedWidget.displayCount !== 1 ? 's' : '' }}</span>
+              <span>{{ selectedWidget.displayLabels.length }} field{{ selectedWidget.displayLabels.length !== 1 ? 's' : '' }}</span>
             </div>
             <p
               v-else-if="form.type && !selectedWidget && !showDropdown"
