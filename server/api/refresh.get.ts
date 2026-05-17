@@ -3,6 +3,7 @@ import { fetchWidgetForService } from '../utils/widgetDispatch'
 import { type WidgetResult } from '../utils/fetchWidget'
 import { loadConfig } from '../utils/config'
 import { CRED_FIELDS } from '../utils/credentialMerge'
+import { createCache } from '../utils/cache'
 import type { ServiceGroup } from '../types'
 
 type RefreshResponse = {
@@ -14,8 +15,7 @@ type RefreshResponse = {
 const TTL = 30_000
 const WIDGET_TIMEOUT = 8_000
 
-let cache: { data: RefreshResponse; at: number } | null = null
-let inflight: Promise<RefreshResponse> | null = null
+const cache = createCache<RefreshResponse>()
 
 async function pingUrl(url: string): Promise<boolean> {
   try {
@@ -58,16 +58,10 @@ async function doRefresh(): Promise<RefreshResponse> {
     widgets: Object.fromEntries(widgetEntries),
   }
 
-  cache = { data, at: Date.now() }
   return data
 }
 
-export default defineEventHandler(async (event): Promise<RefreshResponse> => {
+export default defineEventHandler((event): Promise<RefreshResponse> => {
   const { force } = getQuery(event) as { force?: string }
-
-  if (!force && cache && Date.now() - cache.at < TTL) return cache.data
-  if (inflight) return inflight
-
-  inflight = doRefresh().finally(() => { inflight = null })
-  return inflight
+  return cache.fetch(TTL, doRefresh, !!force)
 })

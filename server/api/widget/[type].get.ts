@@ -2,20 +2,14 @@ import { getWidgetDef } from '../../utils/widget-registry'
 import { fetchWidget } from '../../utils/fetchWidget'
 import { loadConfig } from '../../utils/config'
 import { CRED_FIELDS } from '../../utils/credentialMerge'
+import { createCache } from '../../utils/cache'
 import type { ServiceGroup } from '../../types'
 
-// Short-lived cache so repeated widget calls in the same refresh cycle
-// don't each re-read services.yaml from disk
+const groupsCache = createCache<ServiceGroup[]>()
 const TTL = 10_000
-let cachedGroups: ServiceGroup[] | null = null
-let cachedAt = 0
 
 function getServiceGroups(): ServiceGroup[] {
-  if (!cachedGroups || Date.now() - cachedAt > TTL) {
-    cachedGroups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
-    cachedAt = Date.now()
-  }
-  return cachedGroups
+  return groupsCache.get(TTL) ?? groupsCache.set(loadConfig<ServiceGroup[]>('services.yaml') ?? [])
 }
 
 export default defineEventHandler(async (event) => {

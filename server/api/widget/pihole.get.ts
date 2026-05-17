@@ -1,19 +1,20 @@
 import { getActiveFields } from '../../utils/widget-fields'
+import { createCache } from '../../utils/cache'
 
-let sidCache: { sid: string; at: number } | null = null
+const sidCache = createCache<string>()
 const SID_TTL = 4 * 60 * 1000
 
 async function getSid(base: string, password: string): Promise<string> {
-  if (sidCache && Date.now() - sidCache.at < SID_TTL) return sidCache.sid
-  const res = await $fetch<{ session: { sid: string } }>(`${base}/api/auth`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: { password },
+  return sidCache.fetch(SID_TTL, async () => {
+    const res = await $fetch<{ session: { sid: string } }>(`${base}/api/auth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: { password },
+    })
+    const sid = res.session?.sid
+    if (!sid) throw new Error('Pi-hole login failed')
+    return sid
   })
-  const sid = res.session?.sid
-  if (!sid) throw new Error('Pi-hole login failed')
-  sidCache = { sid, at: Date.now() }
-  return sid
 }
 
 export async function fetchPihole(creds: Record<string, string>) {
