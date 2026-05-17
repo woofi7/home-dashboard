@@ -7,119 +7,6 @@ watch([editEnabled, needsLogin], ([enabled, locked]) => {
   if (!enabled || locked) navigateTo('/')
 })
 
-// ── Catalog ────────────────────────────────────────────────────────────────
-
-type FieldDef = { label: string; desc: string }
-type CatalogEntry = { name: string; authType: string; fields: FieldDef[] }
-
-const CATALOG: Record<string, CatalogEntry> = {
-  audiobookshelf: { name: 'Audiobookshelf',  authType: 'bearer',   fields: [
-    { label: 'Audiobooks', desc: 'Total audiobooks across all book libraries' },
-    { label: 'Authors',    desc: 'Total unique authors' },
-    { label: 'Duration',   desc: 'Total listening duration' },
-    { label: 'Size',       desc: 'Total library size' },
-  ]},
-  bazarr:         { name: 'Bazarr',          authType: 'header',   fields: [
-    { label: 'Missing episodes', desc: 'Episodes missing subtitles' },
-    { label: 'Missing movies',   desc: 'Movies missing subtitles' },
-    { label: 'Providers',        desc: 'Active subtitle providers' },
-  ]},
-  duplicati:      { name: 'Duplicati',       authType: 'password', fields: [
-    { label: 'Last backup',  desc: 'Most recent backup date & status' },
-    { label: 'Jobs',         desc: 'Total backup jobs' },
-    { label: 'Active',       desc: 'Active tasks' },
-    { label: 'Source',       desc: 'Total source size' },
-    { label: 'Dest',         desc: 'Total destination size' },
-  ]},
-  homeassistant:  { name: 'Home Assistant',  authType: 'bearer',   fields: [
-    { label: 'Entities',      desc: 'Total entities' },
-    { label: 'Automations',   desc: 'Automations' },
-    { label: 'Lights',        desc: 'Light entities' },
-    { label: 'Switches',      desc: 'Switch entities' },
-    { label: 'Sensors',       desc: 'Sensor count' },
-    { label: 'Climate',       desc: 'Climate entities' },
-    { label: 'Media players', desc: 'Media player entities' },
-    { label: 'Scenes',        desc: 'Scene count' },
-  ]},
-  overseerr:      { name: 'Overseerr',       authType: 'header',   fields: [
-    { label: 'Requests',   desc: 'Total requests' },
-    { label: 'Pending',    desc: 'Pending requests' },
-    { label: 'Approved',   desc: 'Approved requests' },
-    { label: 'Available',  desc: 'Available / fulfilled' },
-    { label: 'Processing', desc: 'Currently processing' },
-    { label: 'Media',      desc: 'Total media items' },
-  ]},
-  pihole:         { name: 'Pi-hole',         authType: 'password', fields: [
-    { label: 'Queries',        desc: 'Total DNS queries' },
-    { label: 'Blocked',        desc: 'Blocked queries + %' },
-    { label: 'Forwarded',      desc: 'Forwarded queries' },
-    { label: 'Cached',         desc: 'Cached responses' },
-    { label: 'Domains',        desc: 'Unique domains seen' },
-    { label: 'Recent blocked', desc: 'Last blocked domain' },
-  ]},
-  plex:           { name: 'Plex',            authType: 'query',    fields: [
-    { label: 'Movies',  desc: 'Movie library count' },
-    { label: 'Shows',   desc: 'TV show library count' },
-    { label: 'Streams', desc: 'Active streams' },
-  ]},
-  portainer:      { name: 'Portainer',       authType: 'bearer',   fields: [
-    { label: 'Running',    desc: 'Running containers' },
-    { label: 'Stopped',    desc: 'Stopped / exited containers' },
-    { label: 'Containers', desc: 'Total containers' },
-    { label: 'Stacks',     desc: 'Stack count' },
-    { label: 'Volumes',    desc: 'Volume count' },
-    { label: 'Images',     desc: 'Image count' },
-  ]},
-  prowlarr:       { name: 'Prowlarr',        authType: 'query',    fields: [
-    { label: 'Indexers', desc: 'Total indexers' },
-    { label: 'Grabs',    desc: 'Total grabs' },
-    { label: 'Queries',  desc: 'Total queries' },
-    { label: 'Failures', desc: 'Failed queries' },
-  ]},
-  qbittorrent:    { name: 'qBittorrent',     authType: 'basic',    fields: [
-    { label: 'DL Speed', desc: 'Download speed' },
-    { label: 'UL Speed', desc: 'Upload speed' },
-    { label: 'Active',   desc: 'Active torrents' },
-    { label: 'Total',    desc: 'Total torrents' },
-  ]},
-  radarr:         { name: 'Radarr',          authType: 'query',    fields: [
-    { label: 'Movies',     desc: 'Total movies' },
-    { label: 'Downloaded', desc: 'Movies with files' },
-    { label: 'Queued',     desc: 'Download queue' },
-    { label: 'Missing',    desc: 'Missing monitored movies' },
-  ]},
-  readarr:        { name: 'Readarr',         authType: 'query',    fields: [
-    { label: 'Books',   desc: 'Total books' },
-    { label: 'Missing', desc: 'Missing books' },
-    { label: 'Authors', desc: 'Author count' },
-    { label: 'Queue',   desc: 'Download queue' },
-  ]},
-  sonarr:         { name: 'Sonarr',          authType: 'query',    fields: [
-    { label: 'Series',       desc: 'Series count' },
-    { label: 'Monitored',    desc: 'Monitored series' },
-    { label: 'Queued',       desc: 'Download queue' },
-    { label: 'Wanted',       desc: 'Missing episodes' },
-    { label: 'Cutoff unmet', desc: 'Cutoff unmet episodes' },
-  ]},
-  tdarr:          { name: 'Tdarr',           authType: 'none',     fields: [
-    { label: 'Files', desc: 'Total files processed' },
-    { label: 'Done',  desc: 'Completed files' },
-    { label: 'Score', desc: 'Tdarr score %' },
-  ]},
-  traefik:        { name: 'Traefik',         authType: 'basic',    fields: [
-    { label: 'Routers',     desc: 'HTTP routers' },
-    { label: 'Services',    desc: 'HTTP services' },
-    { label: 'Middlewares', desc: 'HTTP middlewares' },
-  ]},
-  unraid:         { name: 'Unraid',          authType: 'header',   fields: [
-    { label: 'Array',  desc: 'Array state (Started / Stopped)' },
-    { label: 'Used',   desc: 'Storage used / total' },
-    { label: 'Disks',  desc: 'Disk slots used / total' },
-    { label: 'Parity', desc: 'Last parity check status & progress' },
-    { label: 'CPU',    desc: 'CPU usage %' },
-    { label: 'Memory', desc: 'RAM used / total' },
-  ]},
-}
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
@@ -129,16 +16,20 @@ const search = ref('')
 const saving = ref<string | null>(null)
 const pendingFields = ref<Record<string, string[]>>({})
 
-function activeLabels(type: string, entry: CatalogEntry): string[] {
+function defaultLabels(type: string): string[] {
+  return widgetDefinitions[type]?.fields.map(f => f.label) ?? []
+}
+
+function activeLabels(type: string): string[] {
   if (pendingFields.value[type])
     return pendingFields.value[type]
-  return fieldConfig.value?.[type] ?? entry.fields.map(f => f.label)
+  return fieldConfig.value?.[type] ?? defaultLabels(type)
 }
 
 function initPending(type: string) {
   if (pendingFields.value[type])
     return
-  pendingFields.value[type] = [...activeLabels(type, CATALOG[type]!)]
+  pendingFields.value[type] = [...activeLabels(type)]
 }
 
 function toggleField(type: string, label: string) {
@@ -166,15 +57,15 @@ async function saveFields(type: string) {
 function isDirty(type: string): boolean {
   if (!pendingFields.value[type])
     return false
-  const current = fieldConfig.value?.[type] ?? CATALOG[type]?.fields.map(f => f.label) ?? []
+  const current = fieldConfig.value?.[type] ?? defaultLabels(type)
   const pending = pendingFields.value[type]!
   return JSON.stringify([...current].sort()) !== JSON.stringify([...pending].sort())
 }
 
 const filteredCatalog = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return Object.entries(CATALOG).filter(([type, entry]) =>
-    !q || type.includes(q) || entry.name.toLowerCase().includes(q)
+  return Object.entries(widgetDefinitions).filter(([type, def]) =>
+    !q || type.includes(q) || def.name.toLowerCase().includes(q)
   )
 })
 
@@ -235,7 +126,7 @@ const AUTH_COLORS: Record<string, string> = {
               :key="field.label"
               :title="field.desc"
               class="cursor-pointer px-2 py-0.5 rounded-md text-xs border transition-colors"
-              :class="activeLabels(type, entry).includes(field.label)
+              :class="activeLabels(type).includes(field.label)
                 ? 'bg-[var(--color-accent)]/15 border-[var(--color-accent)]/40 text-[var(--color-accent)]'
                 : 'bg-transparent border-[var(--color-border)] text-[var(--color-text-muted)]'"
               @click="toggleField(type, field.label)"
@@ -246,7 +137,7 @@ const AUTH_COLORS: Record<string, string> = {
         <!-- Actions -->
         <div class="flex items-center justify-between px-4 pb-4 pt-2 gap-2">
           <p class="text-xs text-[var(--color-text-muted)]">
-            {{ activeLabels(type, entry).filter(l => entry.fields.some(f => f.label === l)).length }} / {{ entry.fields.length }} fields shown
+            {{ activeLabels(type).filter(l => entry.fields.some(f => f.label === l)).length }} / {{ entry.fields.length }} fields shown
           </p>
           <button
             v-if="isDirty(type)"

@@ -2,7 +2,9 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatBytes } from '../../utils/formatBytes'
 
-export const meta = { name: 'Duplicati', authType: 'password', displayLabels: ['Last backup', 'Jobs', 'Active', 'Source', 'Dest'] } as const
+import definition from '#shared/widgetDefinitions/duplicati'
+export const meta = definition
+
 
 export async function fetchDuplicati(creds: ServiceCredentials) {
   const { url, password } = creds

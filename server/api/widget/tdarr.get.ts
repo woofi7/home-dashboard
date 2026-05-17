@@ -1,9 +1,11 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
+import definition from '#shared/widgetDefinitions/tdarr'
+export const meta = definition
+
 type TdarrStats = { totalFileCount: number; table2Count: number; tdarrScore: number }
 
-export const meta = { name: 'Tdarr', authType: 'none', displayLabels: ['Files', 'Done', 'Score'] } as const
 
 export async function fetchTdarr(creds: ServiceCredentials) {
   const { url } = creds

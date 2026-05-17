@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useEventListener, onClickOutside } from '@vueuse/core'
-import type { WidgetEntry } from '~/server/api/admin/widgets.get'
 
 type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; [key: string]: unknown }
 
@@ -40,23 +39,24 @@ useScrollLock()
 const showIconPicker = ref(false)
 
 // Widget autocomplete
-const { data: widgetList } = await useFetch<WidgetEntry[]>('/api/admin/widgets')
 const widgetSearch = ref(form.type ?? '')
 const showDropdown = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 
+const widgetEntries = Object.entries(widgetDefinitions).map(([type, def]) => ({ type, ...def }))
+
 const filteredWidgets = computed(() => {
   const q = widgetSearch.value.trim().toLowerCase()
   if (!q)
-    return widgetList.value ?? []
-  return (widgetList.value ?? []).filter((w) => w.type.includes(q) || w.name.toLowerCase().includes(q))
+    return widgetEntries
+  return widgetEntries.filter(w => w.type.includes(q) || w.name.toLowerCase().includes(q))
 })
 
-const selectedWidget = computed(() => (widgetList.value ?? []).find((w) => w.type === form.type) ?? null)
+const selectedWidget = computed(() => widgetEntries.find(w => w.type === form.type) ?? null)
 
 onClickOutside(dropdownRef, () => { showDropdown.value = false })
 
-function selectWidget(w: WidgetEntry) {
+function selectWidget(w: typeof widgetEntries[number]) {
   form.type = w.type
   widgetSearch.value = w.type
   showDropdown.value = false
@@ -75,13 +75,7 @@ const AUTH_COLORS: Record<string, string> = {
   none: 'var(--color-text-muted)',
 }
 
-// Credential fields based on widget auth type
-const KNOWN_AUTH: Record<string, string> = {
-  qbittorrent: 'basic', duplicati: 'password', pihole: 'password',
-  portainer: 'bearer', homeassistant: 'bearer', audiobookshelf: 'bearer',
-  unraid: 'header',
-}
-const authType = computed(() => selectedWidget.value?.authType ?? KNOWN_AUTH[form.type ?? ''] ?? (form.type ? 'header' : ''))
+const authType = computed(() => selectedWidget.value?.authType ?? (form.type ? 'header' : ''))
 const isBasicAuth = computed(() => authType.value === 'basic')
 const isPasswordOnly = computed(() => authType.value === 'password')
 
@@ -220,7 +214,7 @@ function submit() {
                   borderColor: (AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none) + '40',
                   background: (AUTH_COLORS[selectedWidget.authType] ?? AUTH_COLORS.none) + '15',
                 }">{{ selectedWidget.authType }}</span>
-              <span>{{ selectedWidget.displayLabels.length }} field{{ selectedWidget.displayLabels.length !== 1 ? 's' : '' }}</span>
+              <span>{{ selectedWidget.fields.length }} field{{ selectedWidget.fields.length !== 1 ? 's' : '' }}</span>
             </div>
             <p
               v-else-if="form.type && !selectedWidget && !showDropdown"

@@ -2,7 +2,9 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatKilobytes } from '../../utils/formatBytes'
 
-export const meta = { name: 'Unraid', authType: 'header', displayLabels: ['Array', 'Used', 'Disks', 'Parity', 'CPU', 'Memory'] } as const
+import definition from '#shared/widgetDefinitions/unraid'
+export const meta = definition
+
 
 export async function fetchUnraid(creds: ServiceCredentials) {
   const { url, apiKey } = creds

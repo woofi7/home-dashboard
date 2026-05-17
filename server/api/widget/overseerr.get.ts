@@ -1,9 +1,11 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
+import definition from '#shared/widgetDefinitions/overseerr'
+export const meta = definition
+
 type PageResult = { pageInfo: { results: number } }
 
-export const meta = { name: 'Overseerr', authType: 'header', displayLabels: ['Requests', 'Pending', 'Approved', 'Available', 'Processing', 'Media'] } as const
 
 export async function fetchOverseerr(creds: ServiceCredentials) {
   const { url, apiKey } = creds

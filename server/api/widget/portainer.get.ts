@@ -1,7 +1,9 @@
 import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 
-export const meta = { name: 'Portainer', authType: 'bearer', displayLabels: ['Running', 'Stopped', 'Containers', 'Stacks', 'Volumes', 'Images'] } as const
+import definition from '#shared/widgetDefinitions/portainer'
+export const meta = definition
+
 
 export async function fetchPortainer(creds: ServiceCredentials) {
   const { url, apiKey, endpointId } = creds

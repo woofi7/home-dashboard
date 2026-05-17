@@ -2,7 +2,9 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatDuration } from '../../utils/formatBytes'
 
-export const meta = { name: 'Audiobookshelf', authType: 'bearer', displayLabels: ['Audiobooks', 'Authors', 'Duration', 'Size'] } as const
+import definition from '#shared/widgetDefinitions/audiobookshelf'
+export const meta = definition
+
 
 export async function fetchAudiobookshelf(creds: ServiceCredentials) {
   const { url, apiKey } = creds

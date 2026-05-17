@@ -2,6 +2,9 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { createCache } from '../../utils/cache'
 
+import definition from '#shared/widgetDefinitions/pihole'
+export const meta = definition
+
 const sidCache = createCache<string>()
 const SID_TTL = 4 * 60 * 1000
 
@@ -19,7 +22,6 @@ async function getSid(base: string, password: string): Promise<string> {
   }, SID_TTL)
 }
 
-export const meta = { name: 'Pi-hole', authType: 'password', displayLabels: ['Queries', 'Blocked', 'Forwarded', 'Cached', 'Domains', 'Recent blocked'] } as const
 
 export async function fetchPihole(creds: ServiceCredentials) {
   const { url, password } = creds
