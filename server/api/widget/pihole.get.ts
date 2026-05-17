@@ -18,6 +18,8 @@ async function getSid(base: string, password: string): Promise<string> {
   }, SID_TTL)
 }
 
+export const meta = { name: 'Pi-hole', authType: 'password', displayLabels: ['Queries', 'Blocked', 'Forwarded', 'Cached', 'Domains', 'Recent blocked'] } as const
+
 export async function fetchPihole(creds: ServiceCredentials) {
   const { url, password } = creds
   if (!url) return null
@@ -45,6 +47,7 @@ export async function fetchPihole(creds: ServiceCredentials) {
   return { type: 'pihole', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchPihole as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

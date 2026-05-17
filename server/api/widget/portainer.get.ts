@@ -1,6 +1,8 @@
 import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 
+export const meta = { name: 'Portainer', authType: 'bearer', displayLabels: ['Running', 'Stopped', 'Containers', 'Stacks', 'Volumes', 'Images'] } as const
+
 export async function fetchPortainer(creds: ServiceCredentials) {
   const { url, apiKey, endpointId } = creds
   if (!url || !apiKey) return null
@@ -35,6 +37,7 @@ export async function fetchPortainer(creds: ServiceCredentials) {
   return { type: 'portainer', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchPortainer as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

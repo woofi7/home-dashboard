@@ -2,6 +2,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatBytes } from '../../utils/formatBytes'
 
+export const meta = { name: 'Duplicati', authType: 'password', displayLabels: ['Last backup', 'Jobs', 'Active', 'Source', 'Dest'] } as const
+
 export async function fetchDuplicati(creds: ServiceCredentials) {
   const { url, password } = creds
   if (!url) return null
@@ -66,6 +68,7 @@ export async function fetchDuplicati(creds: ServiceCredentials) {
   return { type: 'duplicati', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchDuplicati as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

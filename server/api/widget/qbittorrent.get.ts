@@ -2,6 +2,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatSpeed } from '../../utils/formatBytes'
 
+export const meta = { name: 'qBittorrent', authType: 'basic', displayLabels: ['Total', 'Active', 'DL Speed', 'UL Speed'] } as const
+
 export async function fetchQbittorrent(creds: ServiceCredentials) {
   const { url, username, password } = creds
   if (!url) return null
@@ -32,6 +34,7 @@ export async function fetchQbittorrent(creds: ServiceCredentials) {
   return { type: 'qbittorrent', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchQbittorrent as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

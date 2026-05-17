@@ -1,4 +1,5 @@
-import { fetchWidgetForService, WIDGETS } from '../../utils/widgetDispatch'
+import { fetchWidgetForService } from '../../utils/widgetDispatch'
+import { WIDGETS } from '../../utils/widgetRegistry'
 import { CRED_FIELDS } from '../../utils/credentialMerge'
 
 const ALLOWED_CRED_FIELDS = new Set(CRED_FIELDS)
@@ -8,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const { type, url, ...rawCreds } = body
 
   if (!type || !url) throw createError({ statusCode: 400, message: 'type and url are required' })
-  if (!WIDGETS[type]) throw createError({ statusCode: 404, message: `Unknown widget type: ${type}` })
+  if (!(WIDGETS as Record<string, unknown>)[type]) throw createError({ statusCode: 404, message: `Unknown widget type: ${type}` })
 
   const credentials = Object.fromEntries(
     Object.entries(rawCreds).filter(([k]) => ALLOWED_CRED_FIELDS.has(k))

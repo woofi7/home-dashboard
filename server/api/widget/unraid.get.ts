@@ -2,6 +2,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatKilobytes } from '../../utils/formatBytes'
 
+export const meta = { name: 'Unraid', authType: 'header', displayLabels: ['Array', 'Used', 'Disks', 'Parity', 'CPU', 'Memory'] } as const
+
 export async function fetchUnraid(creds: ServiceCredentials) {
   const { url, apiKey } = creds
   if (!url || !apiKey) return null
@@ -44,6 +46,7 @@ export async function fetchUnraid(creds: ServiceCredentials) {
   return { type: 'unraid', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchUnraid as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

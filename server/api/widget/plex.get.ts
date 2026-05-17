@@ -3,6 +3,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 
 type PlexContainer = { MediaContainer: { size: number } }
 
+export const meta = { name: 'Plex', authType: 'query', displayLabels: ['Movies', 'Shows', 'Streams'] } as const
+
 export async function fetchPlex(creds: ServiceCredentials) {
   const { url, apiKey } = creds
   if (!url || !apiKey) return null
@@ -27,6 +29,7 @@ export async function fetchPlex(creds: ServiceCredentials) {
   return { type: 'plex', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchPlex as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

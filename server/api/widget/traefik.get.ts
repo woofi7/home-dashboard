@@ -3,6 +3,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 
 type TraefikOverview = { http: { routers: { total: number }; services: { total: number }; middlewares: { total: number } } }
 
+export const meta = { name: 'Traefik', authType: 'basic', displayLabels: ['Routers', 'Services', 'Middlewares'] } as const
+
 export async function fetchTraefik(creds: ServiceCredentials) {
   const { url, username, password } = creds
   if (!url) return null
@@ -24,6 +26,7 @@ export async function fetchTraefik(creds: ServiceCredentials) {
   return { type: 'traefik', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchTraefik as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
