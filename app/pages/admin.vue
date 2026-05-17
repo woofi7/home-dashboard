@@ -1,4 +1,6 @@
 <script setup lang="ts">
+definePageMeta({ ssr: false })
+
 const { needsLogin, editEnabled } = useAuth()
 if (import.meta.client && (!editEnabled.value || needsLogin.value)) {
   await navigateTo('/')

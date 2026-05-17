@@ -17,7 +17,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -42,7 +42,7 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/homepage-vue
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/home-dashboard
           tags: |
             # :latest always tracks the highest version tag
             type=raw,value=latest
