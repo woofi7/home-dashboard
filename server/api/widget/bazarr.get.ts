@@ -1,6 +1,8 @@
 import { getActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
+export const meta = { name: 'Bazarr', authType: 'header', displayLabels: ['Missing episodes', 'Missing movies', 'Providers'] } as const
+
 export async function fetchBazarr(creds: ServiceCredentials) {
   const { url, apiKey } = creds
   if (!url || !apiKey) return null
@@ -23,6 +25,7 @@ export async function fetchBazarr(creds: ServiceCredentials) {
   return { type: 'bazarr', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchBazarr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

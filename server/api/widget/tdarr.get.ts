@@ -3,6 +3,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 
 type TdarrStats = { totalFileCount: number; table2Count: number; tdarrScore: number }
 
+export const meta = { name: 'Tdarr', authType: 'none', displayLabels: ['Files', 'Done', 'Score'] } as const
+
 export async function fetchTdarr(creds: ServiceCredentials) {
   const { url } = creds
   if (!url) return null
@@ -27,6 +29,7 @@ export async function fetchTdarr(creds: ServiceCredentials) {
   return { type: 'tdarr', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchTdarr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })

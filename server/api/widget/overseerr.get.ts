@@ -3,6 +3,8 @@ import type { ServiceCredentials } from '../../utils/auth'
 
 type PageResult = { pageInfo: { results: number } }
 
+export const meta = { name: 'Overseerr', authType: 'header', displayLabels: ['Requests', 'Pending', 'Approved', 'Available', 'Processing', 'Media'] } as const
+
 export async function fetchOverseerr(creds: ServiceCredentials) {
   const { url, apiKey } = creds
   if (!url || !apiKey) return null
@@ -32,6 +34,7 @@ export async function fetchOverseerr(creds: ServiceCredentials) {
   return { type: 'overseerr', fields: allFields.filter(f => active.has(f.label)) }
 }
 
+export { fetchOverseerr as fetch }
 export default defineEventHandler(async (event) => {
   const creds = getQuery(event) as ServiceCredentials
   if (!creds.url) throw createError({ statusCode: 400, message: 'url is required' })
