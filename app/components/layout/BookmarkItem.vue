@@ -47,7 +47,7 @@ function faviconUrl(url: string) {
       />
       <span v-if="clickCount" class="absolute top-1 right-1.5 text-[9px] text-white/40 tabular-nums leading-none">{{ clickCount }}</span>
     </div>
-    <span class="text-[11px] text-muted text-center leading-tight line-clamp-2 w-full px-0.5">{{ bookmark.name }}</span>
+    <span class="text-[11px] text-white/70 text-center leading-tight line-clamp-2 w-full px-0.5">{{ bookmark.name }}</span>
 
     <span
       v-if="edit && !pendingDelete"

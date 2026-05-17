@@ -14,7 +14,7 @@ export function resolveContainerState(
     const key = Object.keys(serverContainers).find(
       k => k.toLowerCase().includes(target) || target.includes(k.toLowerCase()),
     )
-    return key ? serverContainers[key] : null
+    return key ? (serverContainers[key] ?? null) : null
   }
 
   for (const serverContainers of Object.values(dockerStatus)) {
@@ -22,7 +22,7 @@ export function resolveContainerState(
       k => k.toLowerCase().includes(target) || target.includes(k.toLowerCase()),
     )
     if (key)
-      return serverContainers[key]
+      return serverContainers[key] ?? null
   }
   return null
 }
