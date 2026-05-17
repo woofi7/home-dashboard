@@ -88,35 +88,36 @@ export default defineEventHandler(async () => {
   const todayStr = c.time.slice(0, 10)
   const laterToday: HourSlot[] = []
   for (let i = 0; i < weather.hourly.time.length && laterToday.length < 4; i++) {
-    const t = weather.hourly.time[i]
+    const t = weather.hourly.time[i]!
     if (!t.startsWith(todayStr)) continue
     const h = new Date(t).getHours()
     if (h <= nowHour) continue
     if ((h - nowHour) % 3 !== 0 && laterToday.length > 0) continue
-    const { desc: hDesc, icon: hIcon } = wmo(weather.hourly.weather_code[i])
+    const code = weather.hourly.weather_code[i]!
+    const { desc: hDesc, icon: hIcon } = wmo(code)
     laterToday.push({
       time: `${String(h).padStart(2, '0')}:00`,
-      temp: Math.round(weather.hourly.temperature_2m[i]),
-      feels: Math.round(weather.hourly.apparent_temperature[i]),
-      code: weather.hourly.weather_code[i],
+      temp: Math.round(weather.hourly.temperature_2m[i]!),
+      feels: Math.round(weather.hourly.apparent_temperature[i]!),
+      code,
       description: hDesc,
       icon: hIcon,
-      precip: weather.hourly.precipitation_probability[i],
-      wind: Math.round(weather.hourly.wind_speed_10m[i]),
+      precip: weather.hourly.precipitation_probability[i]!,
+      wind: Math.round(weather.hourly.wind_speed_10m[i]!),
     })
   }
 
   // Tomorrow: index 1 in daily
   const tmrIdx = weather.daily.time.findIndex(d => d !== todayStr)
   const tmr = tmrIdx >= 0 ? {
-    date: weather.daily.time[tmrIdx],
-    tempMin: Math.round(weather.daily.temperature_2m_min[tmrIdx]),
-    tempMax: Math.round(weather.daily.temperature_2m_max[tmrIdx]),
-    code: weather.daily.weather_code[tmrIdx],
-    description: wmo(weather.daily.weather_code[tmrIdx]).desc,
-    icon: wmo(weather.daily.weather_code[tmrIdx]).icon,
-    precip: weather.daily.precipitation_probability_max[tmrIdx],
-    wind: Math.round(weather.daily.wind_speed_10m_max[tmrIdx]),
+    date: weather.daily.time[tmrIdx]!,
+    tempMin: Math.round(weather.daily.temperature_2m_min[tmrIdx]!),
+    tempMax: Math.round(weather.daily.temperature_2m_max[tmrIdx]!),
+    code: weather.daily.weather_code[tmrIdx]!,
+    description: wmo(weather.daily.weather_code[tmrIdx]!).desc,
+    icon: wmo(weather.daily.weather_code[tmrIdx]!).icon,
+    precip: weather.daily.precipitation_probability_max[tmrIdx]!,
+    wind: Math.round(weather.daily.wind_speed_10m_max[tmrIdx]!),
   } : null
 
   const data: WeatherData = {

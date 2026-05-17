@@ -1,15 +1,14 @@
-import { fetchDockerStatus, type DockerStatus } from '../utils/docker'
-import { fetchWidgetForService } from '../utils/widgetDispatch'
-import { type WidgetResult } from '../utils/fetchWidget'
-import { loadConfig } from '../utils/config'
-import { CRED_FIELDS } from '../utils/credentialMerge'
-import { createCache } from '../utils/cache'
-import type { ServiceGroup } from '../types'
+import {type DockerStatus, fetchDockerStatus} from '../utils/docker'
+import {fetchWidgetForService} from '../utils/widgetDispatch'
+import {loadConfig} from '../utils/config'
+import {CRED_FIELDS} from '../utils/credentialMerge'
+import {createCache} from '../utils/cache'
+import type {PingStatus, ServiceGroup, WidgetStatusMap} from '../types'
 
 type RefreshResponse = {
   docker: DockerStatus
-  ping: Record<string, boolean>
-  widgets: Record<string, WidgetResult | null>
+  ping: PingStatus
+  widgets: WidgetStatusMap
 }
 
 const TTL = 30_000
@@ -52,13 +51,11 @@ async function doRefresh(): Promise<RefreshResponse> {
     ),
   ])
 
-  const data: RefreshResponse = {
+  return {
     docker,
     ping: Object.fromEntries(pingEntries),
     widgets: Object.fromEntries(widgetEntries),
   }
-
-  return data
 }
 
 export default defineEventHandler((event): Promise<RefreshResponse> => {

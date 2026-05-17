@@ -15,13 +15,16 @@ export default defineEventHandler(async () => {
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')
   const bg = settings?.background as Record<string, string> | undefined
 
-  if (!bg || bg.provider !== 'unsplash') return null
+  if (!bg || bg.provider !== 'unsplash')
+    return null
 
   const apiKey = bg.unsplashApiKey
-  if (!apiKey) throw createError({ statusCode: 400, message: 'unsplashApiKey not set in settings.yaml' })
+  if (!apiKey)
+    throw createError({ statusCode: 400, message: 'unsplashApiKey not set in settings.yaml' })
 
   const hit = cache.get()
-  if (hit) return hit
+  if (hit)
+    return hit
 
   const query = bg.query || 'nature landscape'
   const data = await $fetch<{ urls: { full: string; regular: string }; user: { name: string }; links: { html: string } }>(
