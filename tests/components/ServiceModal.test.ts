@@ -14,6 +14,11 @@ vi.stubGlobal('envVarName', (type: string, field: string) => `${type.toUpperCase
 vi.stubGlobal('parseEnvRef', () => null)
 
 import ServiceModal from '~/components/edit/ServiceModal.vue'
+import IconField from '~/components/edit/modal/IconField.vue'
+import DockerField from '~/components/edit/modal/DockerField.vue'
+import WidgetTypeField from '~/components/edit/modal/WidgetTypeField.vue'
+import CredentialFields from '~/components/edit/modal/CredentialFields.vue'
+import WidgetTestResult from '~/components/edit/modal/WidgetTestResult.vue'
 
 type Service = {
   name: string
@@ -37,7 +42,10 @@ const stubs = {
 function mountModal(service: Service | null = null, group = 'Media') {
   return mount(ServiceModal, {
     props: { service, group },
-    global: { stubs },
+    global: {
+      stubs,
+      components: { IconField, DockerField, WidgetTypeField, CredentialFields, WidgetTestResult },
+    },
   })
 }
 
@@ -135,25 +143,11 @@ describe('ServiceModal.vue', () => {
       return monoPart.exists() && monoPart.text() === 'sonarr'
     })
     expect(dropdownBtns.length).toBeGreaterThan(0)
-    // The widget input should now be bound to widgetSearch; set value via setValue
-    // which triggers the v-model update equivalent
-    // Simulate selecting by setting widgetSearch directly via widget input setValue+input event
-    await widgetInput!.setValue('sonarr')
-    // trigger input event to call onWidgetInput which sets form.type
-    await widgetInput!.trigger('input')
-    await wrapper.vm.$nextTick()
-    expect(widgetInput!.element.value).toBe('sonarr')
-    // Verify form.type was set (via the dropdown option select behavior)
-    // The showDropdown is still true after typing — click the option
-    const updatedBtns = wrapper.findAll('button').filter(b => {
-      const monoPart = b.find('span.font-mono')
-      return monoPart.exists() && monoPart.text() === 'sonarr'
-    })
-    expect(updatedBtns.length).toBeGreaterThan(0)
-    await updatedBtns[0].trigger('mousedown')
-    await wrapper.vm.$nextTick()
-    // After selectWidget, widgetSearch = form.type = 'sonarr' and dropdown closes
-    expect(widgetInput!.element.value).toBe('sonarr')
+    // Click the sonarr option directly (mousedown.prevent calls selectWidget)
+    await dropdownBtns[0].trigger('mousedown')
+    await flushPromises()
+    // After selecting sonarr, the dropdown closes and the auth badge shows 'apiKey'
+    expect(wrapper.text()).toContain('apiKey')
   })
 
   it('no credential fields when type is empty', () => {
