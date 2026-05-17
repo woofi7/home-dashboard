@@ -5,4 +5,7 @@ export type Service = { name: string; url?: string; icon?: string; type?: string
 export type ServiceGroup = { name: string; services: Service[]; layout?: unknown }
 
 export type PingStatus = Record<string, boolean>
-export type WidgetStatusMap = Record<string, import('./utils/fetchWidget').WidgetResult | null>
+
+export type WidgetField = { label: string; value: unknown; suffix?: string }
+export type WidgetResult = { type?: string; fields: WidgetField[] }
+export type WidgetStatusMap = Record<string, WidgetResult | null>

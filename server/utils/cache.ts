@@ -1,15 +1,8 @@
 export type Cache<T> = {
-  /** Return cached value if still valid, null if expired or empty. */
   get(): T | null
-  /** Store a value with a TTL (ms) and return it. */
   set(data: T, ttl: number): T
-  /** Invalidate the cache. */
   clear(): void
-  /**
-   * Return the cached value if still valid, otherwise call fn() and cache the result.
-   * Concurrent calls while fn() is in flight share the same promise (thundering-herd guard).
-   * Pass force=true to bypass the cache and always re-fetch.
-   */
+  // Return the cached value if still valid, otherwise call fn() and cache the result
   fetch(fn: () => Promise<T>, ttl: number, force?: boolean): Promise<T>
 }
 

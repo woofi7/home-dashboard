@@ -5,7 +5,9 @@ const COOKIE = 'hm_auth'
 
 function sessionToken(): string {
   const secret = process.env.ADMIN_TOKEN
-  if (!secret) return ''
+  if (!secret)
+    return ''
+
   return createHash('sha256').update(secret + ':hm_session').digest('hex')
 }
 
@@ -14,7 +16,9 @@ export function editEnabled(): boolean {
 }
 
 export function isAuthenticated(event: H3Event): boolean {
-  if (!editEnabled()) return false
+  if (!editEnabled())
+    return false
+
   return getCookie(event, COOKIE) === sessionToken()
 }
 

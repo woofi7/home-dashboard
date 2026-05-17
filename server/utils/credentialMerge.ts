@@ -14,13 +14,17 @@ export function preserveCredentials(rawGroups: ServiceGroup[], incoming: Service
   const rawByName = new Map(rawGroups.map(g => [g.name, g]))
   return incoming.map(group => {
     const raw = rawByName.get(group.name)
-    if (!raw) return group
+    if (!raw)
+      return group
+
     const rawByService = new Map(raw.services.map(s => [s.name, s]))
     return {
       ...group,
       services: group.services.map(s => {
         const rawSvc = rawByService.get(s.name)
-        if (!rawSvc) return s
+        if (!rawSvc)
+          return s
+
         const merged: Service = { ...s }
         for (const field of CRED_FIELDS) {
           const inVal = s[field]
