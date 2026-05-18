@@ -189,11 +189,11 @@ describe('ServiceCard.vue — Widget data', () => {
     widgetData.value = {}
   })
 
-  it('shows widget loading skeleton when service has type but widgetData has no entry yet', () => {
-    // widgetData doesn't have 'Sonarr' key
+  it('shows nothing when service has type but widgetData has no entry yet', () => {
     widgetData.value = {}
     const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
-    expect(wrapper.find('.animate-pulse').exists()).toBe(true)
+    expect(wrapper.find('.animate-pulse').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Widget unavailable')
   })
 
   it('renders widget fields when available', () => {

@@ -107,32 +107,16 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
     </div>
     </div>
 
-    <Transition name="fade" mode="out-in">
-      <div v-if="!edit && widgetFields?.length" key="fields" class="flex flex-col gap-0.5">
-        <span
-          v-for="f in widgetFields"
-          :key="f.label"
-          class="text-xs text-secondary"
-        >
-          <span class="text-muted">{{ f.label }}:</span>
-          {{ f.value ?? '-' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
-        </span>
-      </div>
-      <div v-else-if="!edit && service.type && widgetResult === null" key="error" class="text-xs text-danger/60">Widget unavailable</div>
-      <div v-else-if="!edit && widgetLoading" key="loading" class="flex flex-col gap-1.5 animate-pulse">
-        <div class="flex gap-2">
-          <span class="h-2.5 w-16 rounded bg-surface" />
-          <span class="h-2.5 w-10 rounded bg-surface" />
-        </div>
-        <div class="flex gap-2">
-          <span class="h-2.5 w-12 rounded bg-surface" />
-          <span class="h-2.5 w-14 rounded bg-surface" />
-        </div>
-        <div class="flex gap-2">
-          <span class="h-2.5 w-14 rounded bg-surface" />
-          <span class="h-2.5 w-8 rounded bg-surface" />
-        </div>
-      </div>
-    </Transition>
+    <div v-if="!edit && widgetFields?.length" class="flex flex-col gap-0.5">
+      <span
+        v-for="f in widgetFields"
+        :key="f.label"
+        class="text-xs text-secondary"
+      >
+        <span class="text-muted">{{ f.label }}:</span>
+        {{ f.value ?? '-' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
+      </span>
+    </div>
+    <div v-else-if="!edit && service.type && widgetResult === null" class="text-xs text-danger/60">Widget unavailable</div>
   </component>
 </template>

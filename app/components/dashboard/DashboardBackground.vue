@@ -3,11 +3,19 @@ const props = defineProps<{
   background?: { thumb?: string; full?: string; author?: string; authorLink?: string } | null
 }>()
 
+const thumbLoaded = ref(false)
 const fullLoaded = ref(false)
+
 if (import.meta.client) {
+  watch(() => props.background?.thumb, (url) => {
+    if (!url) return
+    const img = new Image()
+    img.onload = () => { thumbLoaded.value = true }
+    img.src = url
+  }, { immediate: true })
+
   watch(() => props.background?.full, (url) => {
-    if (!url)
-      return
+    if (!url) return
     const img = new Image()
     img.onload = () => { fullLoaded.value = true }
     img.src = url
@@ -17,7 +25,11 @@ if (import.meta.client) {
 
 <template>
   <template v-if="background?.thumb">
-    <div class="fixed inset-0 -z-10 bg-cover bg-center" :style="{ backgroundImage: `url(${background.thumb})` }" />
+    <div
+      class="fixed inset-0 -z-10 bg-cover bg-center transition-opacity duration-1000"
+      :class="thumbLoaded ? 'opacity-100' : 'opacity-0'"
+      :style="{ backgroundImage: `url(${background.thumb})` }"
+    />
     <div
       v-if="background.full"
       class="fixed inset-0 -z-10 bg-cover bg-center transition-opacity duration-1500"

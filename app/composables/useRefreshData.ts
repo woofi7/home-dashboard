@@ -1,4 +1,5 @@
-import { effectScope } from 'vue'
+import { shallowRef, watch, onMounted, onUnmounted, effectScope } from 'vue'
+import { useWidgetRefresh } from './useWidgetRefresh'
 
 type DockerContainerStatus = { state: string; status: string }
 type DockerStatus = Record<string, Record<string, DockerContainerStatus>>
@@ -10,11 +11,16 @@ type RefreshData = {
   widgets: Record<string, WidgetResult | null>
 }
 
-const data = ref<RefreshData>({ docker: {}, ping: {}, widgets: {} })
+const dockerStatus = shallowRef<DockerStatus>({})
+const pingStatus = shallowRef<Record<string, boolean>>({})
+const widgetData = shallowRef<Record<string, WidgetResult | null>>({})
 
 async function fetchAll(force = false) {
   try {
-    data.value = await $fetch<RefreshData>('/api/refresh', force ? { params: { force: '1' } } : {})
+    const result = await $fetch<RefreshData>('/api/refresh', force ? { params: { force: '1' } } : {})
+    dockerStatus.value = result.docker
+    pingStatus.value = result.ping
+    widgetData.value = result.widgets
   } catch { /* ignore */ }
 }
 
@@ -46,9 +52,5 @@ export function useRefreshData() {
     }
   })
 
-  return {
-    dockerStatus: computed(() => data.value.docker),
-    pingStatus: computed(() => data.value.ping),
-    widgetData: computed(() => data.value.widgets),
-  }
+  return { dockerStatus, pingStatus, widgetData }
 }
