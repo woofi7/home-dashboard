@@ -13,8 +13,8 @@ defineProps<{ weather?: WeatherData | null }>()
 
 <template>
   <div class="order-3">
-    <Transition name="fade" mode="out-in">
-      <div v-if="!weather" key="wx-ghost" class="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-4 animate-pulse space-y-3">
+    <div>
+      <div v-if="!weather" class="bg-white/5 backdrop-blur-md rounded-xl border border-white/10 p-4 animate-pulse space-y-3">
         <div class="flex items-center gap-3">
           <div class="w-9 h-9 rounded-full bg-white/10 shrink-0" />
           <div class="flex-1 space-y-2">
@@ -26,7 +26,7 @@ defineProps<{ weather?: WeatherData | null }>()
           <div v-for="i in 4" :key="i" class="flex-1 h-16 rounded-lg bg-white/10" />
         </div>
       </div>
-      <div v-else key="wx-real" class="bg-black/30 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
+      <div v-else class="bg-black/30 backdrop-blur-md rounded-xl border border-white/10 overflow-hidden">
         <a :href="weather.url" target="_blank" rel="noopener" class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors no-underline group">
           <span class="text-3xl leading-none">{{ weather.icon }}</span>
           <div class="flex-1 min-w-0">
@@ -62,6 +62,6 @@ defineProps<{ weather?: WeatherData | null }>()
           <div v-if="weather.tomorrow.precip > 0" class="text-[10px] text-blue-300/60 shrink-0">{{ weather.tomorrow.precip }}%</div>
         </div>
       </div>
-    </Transition>
+    </div>
   </div>
 </template>

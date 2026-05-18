@@ -11,14 +11,14 @@ function formatTime(d: string) {
 
 <template>
   <div class="space-y-1.5 order-2 md:order-1">
-    <Transition name="fade" mode="out-in">
-      <div v-if="!calendar" key="cal-ghost" class="space-y-2 animate-pulse">
+    <div>
+      <div v-if="!calendar" class="space-y-2 animate-pulse">
         <div class="h-2.5 w-8 rounded bg-white/10 mb-3" />
         <div class="h-10 rounded-lg bg-white/10" />
         <div class="h-10 rounded-lg bg-white/10" />
         <div class="h-10 rounded-lg bg-white/10" />
       </div>
-      <div v-else key="cal-real">
+      <div v-else>
         <template v-if="calendar.authorized">
           <p class="text-[10px] text-white/50 uppercase tracking-widest mb-2">Today</p>
           <a
@@ -73,6 +73,6 @@ function formatTime(d: string) {
         </template>
         <a v-else-if="calendar.authorized === false" href="/api/auth/google" class="text-xs text-white/30 hover:text-white/60 transition-colors">Connect Google Calendar →</a>
       </div>
-    </Transition>
+    </div>
   </div>
 </template>
