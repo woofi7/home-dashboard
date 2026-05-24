@@ -71,7 +71,7 @@ function formatTime(d: string) {
             </a>
           </template>
         </template>
-        <a v-else-if="calendar.authorized === false" href="/api/auth/google" class="text-xs text-white/30 hover:text-white/60 transition-colors">Connect Google Calendar →</a>
+        <NuxtLink v-else-if="calendar.authorized === false" to="/admin/calendar" class="text-xs text-white/30 hover:text-white/60 transition-colors">Set up Google Calendar →</NuxtLink>
       </div>
     </div>
   </div>

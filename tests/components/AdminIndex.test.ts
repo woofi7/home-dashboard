@@ -59,8 +59,22 @@ describe('admin/index.vue', () => {
     expect(icons.some(i => i.attributes('data-icon') === 'image')).toBe(true)
   })
 
-  it('renders exactly 2 setting cards', () => {
+  it('renders a Google Calendar card linking to /admin/calendar', () => {
     const wrapper = mountPage()
-    expect(wrapper.findAll('a').length).toBe(2)
+    const links = wrapper.findAll('a')
+    const calCard = links.find(l => l.attributes('href') === '/admin/calendar')
+    expect(calCard).toBeTruthy()
+    expect(calCard!.text()).toContain('Google Calendar')
+  })
+
+  it('uses calendar-days icon for the Google Calendar card', () => {
+    const wrapper = mountPage()
+    const icons = wrapper.findAll('.fa-icon')
+    expect(icons.some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
+  })
+
+  it('renders exactly 3 setting cards', () => {
+    const wrapper = mountPage()
+    expect(wrapper.findAll('a').length).toBe(3)
   })
 })

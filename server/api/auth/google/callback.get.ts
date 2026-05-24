@@ -25,5 +25,5 @@ export default defineEventHandler(async (event) => {
   ;(settings.google as Record<string, string>).refreshToken = res.refresh_token
   writeConfig('settings.yaml', settings)
 
-  return sendRedirect(event, '/')
+  return sendRedirect(event, '/admin/calendar?connected=1')
 })
