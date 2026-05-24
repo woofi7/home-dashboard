@@ -69,8 +69,12 @@ const pendingItems = computed(() => {
 
 const dragging = ref(false)
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
+const { data: config } = useFetch<{ settings?: { bookmarkCounterEnabled?: boolean } }>('/api/config')
+const counterEnabled = computed(() => config.value?.settings?.bookmarkCounterEnabled !== false)
 
 async function trackClick(name: string) {
+  if (!counterEnabled.value)
+    return
   await $fetch('/api/bookmarks/clicks', { method: 'POST', body: { name } })
   await refreshClicks()
 }
@@ -154,7 +158,7 @@ function save(updated: Bookmark) {
         :pending="pendingItems.has(b.name)"
         :pending-delete="pendingDeleteNames.has(b.name)"
         :dragging="dragging"
-        :click-count="clicks?.[b.name]"
+        :click-count="counterEnabled ? clicks?.[b.name] : undefined"
         @click="trackClick(b.name)"
         @edit="openEdit(b)"
         @delete="deleteBookmark(b)"
