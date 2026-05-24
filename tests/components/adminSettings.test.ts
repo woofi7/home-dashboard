@@ -9,15 +9,26 @@ vi.stubGlobal('definePageMeta', vi.fn())
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-function makeUseFetch(overrides: { title?: string } = {}) {
-  const data = ref({ title: overrides.title ?? 'My Dashboard' })
+type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean }
+
+function makeUseFetch(settings: SettingsData = {}, clicks: Record<string, number> = {}) {
+  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, ...settings })
+  const clicksData = ref<Record<string, number>>(clicks)
   const refresh = vi.fn().mockImplementation(() => {
     const lastPost = [...mockFetch.mock.calls].reverse()
       .find((c) => (c[1] as { method?: string })?.method === 'POST')
     if (lastPost)
-      data.value = (lastPost[1] as { body: Record<string, unknown> }).body as { title: string }
+      settingsData.value = (lastPost[1] as { body: SettingsData }).body
   })
-  return vi.fn(() => ({ data, refresh }))
+  const refreshClicks = vi.fn().mockImplementation(() => {
+    clicksData.value = {}
+  })
+
+  return vi.fn((url: string) => {
+    if (url === '/api/bookmarks/clicks')
+      return { data: clicksData, refresh: refreshClicks }
+    return { data: settingsData, refresh }
+  })
 }
 
 vi.stubGlobal('useFetch', makeUseFetch())
@@ -25,8 +36,8 @@ vi.stubGlobal('useFetch', makeUseFetch())
 import { defineComponent } from 'vue'
 import AdminSettings from '~/pages/admin/settings.vue'
 
-async function mountPage(overrides: { title?: string } = {}) {
-  vi.stubGlobal('useFetch', makeUseFetch(overrides))
+async function mountPage(settings: SettingsData = {}, clicks: Record<string, number> = {}) {
+  vi.stubGlobal('useFetch', makeUseFetch(settings, clicks))
   const App = defineComponent({
     components: { AdminSettings },
     template: '<Suspense><AdminSettings /></Suspense>',
@@ -104,5 +115,71 @@ describe('admin/settings.vue', () => {
     await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
     await flushPromises()
     expect(w.text()).toContain('Unauthorized')
+  })
+
+  describe('bookmark counter section', () => {
+    it('renders the Bookmark Counter heading', async () => {
+      const w = await mountPage()
+      expect(w.text()).toContain('Bookmark Counter')
+    })
+
+    it('toggle switch is on when bookmarkCounterEnabled is true', async () => {
+      const w = await mountPage({ bookmarkCounterEnabled: true })
+      const toggle = w.find('[role="switch"]')
+      expect(toggle.attributes('aria-checked')).toBe('true')
+    })
+
+    it('toggle switch is off when bookmarkCounterEnabled is false', async () => {
+      const w = await mountPage({ bookmarkCounterEnabled: false })
+      const toggle = w.find('[role="switch"]')
+      expect(toggle.attributes('aria-checked')).toBe('false')
+    })
+
+    it('clicking toggle marks form dirty', async () => {
+      const w = await mountPage({ bookmarkCounterEnabled: true })
+      await w.find('[role="switch"]').trigger('click')
+      expect(w.text()).toContain('Unsaved changes')
+    })
+
+    it('Cancel restores the toggle state', async () => {
+      const w = await mountPage({ bookmarkCounterEnabled: true })
+      await w.find('[role="switch"]').trigger('click')
+      expect(w.find('[role="switch"]').attributes('aria-checked')).toBe('false')
+      await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
+      expect(w.find('[role="switch"]').attributes('aria-checked')).toBe('true')
+    })
+
+    it('shows total click count', async () => {
+      const w = await mountPage({}, { GitHub: 5, Jira: 3 })
+      expect(w.text()).toContain('8 click')
+    })
+
+    it('Reset button is disabled when no clicks recorded', async () => {
+      const w = await mountPage({}, {})
+      const resetBtn = w.findAll('button').find(b => b.text() === 'Reset')!
+      expect(resetBtn.attributes('disabled')).toBeDefined()
+    })
+
+    it('Reset button is enabled when clicks exist', async () => {
+      const w = await mountPage({}, { GitHub: 3 })
+      const resetBtn = w.findAll('button').find(b => b.text() === 'Reset')!
+      expect(resetBtn.attributes('disabled')).toBeUndefined()
+    })
+
+    it('clicking Reset calls DELETE /api/admin/bookmark-clicks', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPage({}, { GitHub: 3 })
+      await w.findAll('button').find(b => b.text() === 'Reset')!.trigger('click')
+      await flushPromises()
+      expect(mockFetch).toHaveBeenCalledWith('/api/admin/bookmark-clicks', expect.objectContaining({ method: 'DELETE' }))
+    })
+
+    it('shows Counts cleared after successful reset', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPage({}, { GitHub: 3 })
+      await w.findAll('button').find(b => b.text() === 'Reset')!.trigger('click')
+      await flushPromises()
+      expect(w.text()).toContain('Counts cleared')
+    })
   })
 })
