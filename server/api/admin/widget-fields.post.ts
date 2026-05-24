@@ -1,4 +1,5 @@
 import { readFieldConfig, writeFieldConfig } from '../../utils/widget-fields'
+import { refreshCache } from '../refresh.get'
 
 export default defineEventHandler(async (event) => {
   const { type, fields } = await readBody(event) as { type: string; fields: string[] }
@@ -8,5 +9,6 @@ export default defineEventHandler(async (event) => {
   const config = readFieldConfig()
   config[type] = fields
   writeFieldConfig(config)
+  refreshCache.clear()
   return { ok: true }
 })

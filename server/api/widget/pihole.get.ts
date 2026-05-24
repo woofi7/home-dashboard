@@ -1,5 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { createCache } from '../../utils/cache'
 
 import definition from '#shared/widgetDefinitions/pihole'
@@ -47,8 +47,7 @@ export async function fetchPihole(creds: ServiceCredentials) {
     { label: 'Recent blocked', value: recentRes.blocked?.[0] ?? '—' },
   ]
 
-  const active = getActiveFields('pihole', allFields.map(f => f.label))
-  return { type: 'pihole', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'pihole', fields: getOrderedActiveFields('pihole', allFields) }
 }
 
 export { fetchPihole as fetch }

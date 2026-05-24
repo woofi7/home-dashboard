@@ -1,5 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatBytes } from '../../utils/formatBytes'
 
 import definition from '#shared/widgetDefinitions/duplicati'
@@ -68,8 +68,7 @@ export async function fetchDuplicati(creds: ServiceCredentials) {
     { label: 'Dest',        value: formatBytes(totalDestSize) },
   ]
 
-  const active = getActiveFields('duplicati', allFields.map(f => f.label))
-  return { type: 'duplicati', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'duplicati', fields: getOrderedActiveFields('duplicati', allFields) }
 }
 
 export { fetchDuplicati as fetch }

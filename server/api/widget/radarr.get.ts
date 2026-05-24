@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/radarr'
@@ -26,8 +26,7 @@ export async function fetchRadarr(creds: ServiceCredentials) {
     { label: 'Missing',    value: wanted.totalRecords },
   ]
 
-  const active = getActiveFields('radarr', allFields.map(f => f.label))
-  return { type: 'radarr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'radarr', fields: getOrderedActiveFields('radarr', allFields) }
 }
 
 export { fetchRadarr as fetch }

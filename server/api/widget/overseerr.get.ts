@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/overseerr'
@@ -33,8 +33,7 @@ export async function fetchOverseerr(creds: ServiceCredentials) {
     { label: 'Media',      value: media.pageInfo.results },
   ]
 
-  const active = getActiveFields('overseerr', allFields.map(f => f.label))
-  return { type: 'overseerr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'overseerr', fields: getOrderedActiveFields('overseerr', allFields) }
 }
 
 export { fetchOverseerr as fetch }

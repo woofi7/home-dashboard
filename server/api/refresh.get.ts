@@ -14,7 +14,7 @@ type RefreshResponse = {
 const TTL = 30_000
 const WIDGET_TIMEOUT = 8_000
 
-const cache = createCache<RefreshResponse>()
+export const refreshCache = createCache<RefreshResponse>()
 
 async function pingUrl(url: string): Promise<boolean> {
   try {
@@ -60,5 +60,5 @@ async function doRefresh(): Promise<RefreshResponse> {
 
 export default defineEventHandler((event): Promise<RefreshResponse> => {
   const { force } = getQuery(event) as { force?: string }
-  return cache.fetch(doRefresh, TTL, !!force)
+  return refreshCache.fetch(doRefresh, TTL, !!force)
 })

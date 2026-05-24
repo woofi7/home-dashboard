@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/sonarr'
@@ -28,8 +28,7 @@ export async function fetchSonarr(creds: ServiceCredentials) {
     { label: 'Cutoff unmet', value: wantedCutoff.totalRecords },
   ]
 
-  const active = getActiveFields('sonarr', allFields.map(f => f.label))
-  return { type: 'sonarr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'sonarr', fields: getOrderedActiveFields('sonarr', allFields) }
 }
 
 export { fetchSonarr as fetch }

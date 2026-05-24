@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/tdarr'
@@ -29,8 +29,7 @@ export async function fetchTdarr(creds: ServiceCredentials) {
     { label: 'Score', value: s.tdarrScore, suffix: '%' },
   ]
 
-  const active = getActiveFields('tdarr', allFields.map(f => f.label))
-  return { type: 'tdarr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'tdarr', fields: getOrderedActiveFields('tdarr', allFields) }
 }
 
 export { fetchTdarr as fetch }

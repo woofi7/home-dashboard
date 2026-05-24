@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/plex'
@@ -28,8 +28,7 @@ export async function fetchPlex(creds: ServiceCredentials) {
     { label: 'Streams', value: streams.MediaContainer.size },
   ]
 
-  const active = getActiveFields('plex', allFields.map(f => f.label))
-  return { type: 'plex', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'plex', fields: getOrderedActiveFields('plex', allFields) }
 }
 
 export { fetchPlex as fetch }

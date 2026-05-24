@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/readarr'
@@ -27,8 +27,7 @@ export async function fetchReadarr(creds: ServiceCredentials) {
     { label: 'Queue',   value: queue.totalRecords },
   ]
 
-  const active = getActiveFields('readarr', allFields.map(f => f.label))
-  return { type: 'readarr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'readarr', fields: getOrderedActiveFields('readarr', allFields) }
 }
 
 export { fetchReadarr as fetch }

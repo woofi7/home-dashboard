@@ -9,9 +9,10 @@ import { fetchReadarr } from '../server/api/widget/readarr.get'
 import { fetchTdarr } from '../server/api/widget/tdarr.get'
 import { fetchTraefik } from '../server/api/widget/traefik.get'
 
-// getActiveFields returns all labels by default in tests
+// getOrderedActiveFields returns all fields in original order by default in tests
 vi.mock('../server/utils/widget-fields', () => ({
   getActiveFields: (_type: string, labels: string[]) => new Set(labels),
+  getOrderedActiveFields: <T>(_type: string, allFields: T[]) => allFields,
 }))
 
 const fetch = vi.fn()
