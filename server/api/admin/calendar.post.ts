@@ -1,14 +1,32 @@
 import { loadConfigRaw, writeConfig } from '../../utils/config'
 import { assertAuth } from '../../utils/adminAuth'
 
+type Body = {
+  clientId?: string
+  clientSecret?: string
+  showEvents?: boolean
+  showTasks?: boolean
+  daysAhead?: number
+}
+
 export default defineEventHandler(async (event) => {
   assertAuth(event)
-  const { clientId, clientSecret } = await readBody<{ clientId: string; clientSecret: string }>(event)
+  const body = await readBody<Body>(event)
 
   const settings = (loadConfigRaw<Record<string, unknown>>('settings.yaml') ?? {}) as Record<string, unknown>
   const g = ((settings.google ?? {}) as Record<string, unknown>)
-  g.clientId = clientId ?? ''
-  g.clientSecret = clientSecret ?? ''
+
+  if (body.clientId !== undefined) g.clientId = body.clientId
+  if (body.clientSecret !== undefined) g.clientSecret = body.clientSecret
+
+  if (body.showEvents !== undefined || body.showTasks !== undefined || body.daysAhead !== undefined) {
+    const cal = ((g.calendar ?? {}) as Record<string, unknown>)
+    if (body.showEvents !== undefined) cal.showEvents = body.showEvents
+    if (body.showTasks !== undefined) cal.showTasks = body.showTasks
+    if (body.daysAhead !== undefined) cal.daysAhead = body.daysAhead
+    g.calendar = cal
+  }
+
   settings.google = g
   writeConfig('settings.yaml', settings)
 

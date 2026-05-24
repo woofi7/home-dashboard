@@ -7,7 +7,14 @@ import { globalStubs } from './helpers'
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-type Config = { clientId: string; clientSecret: string; hasRefreshToken: boolean }
+type Config = {
+  clientId: string
+  clientSecret: string
+  hasRefreshToken: boolean
+  showEvents: boolean
+  showTasks: boolean
+  daysAhead: number
+}
 
 let lastAdminRefresh = vi.fn()
 
@@ -16,8 +23,11 @@ function makeUseFetch(config: Partial<Config> = {}) {
     clientId:        config.clientId        ?? '',
     clientSecret:    config.clientSecret    ?? '',
     hasRefreshToken: config.hasRefreshToken ?? false,
+    showEvents:      config.showEvents      ?? true,
+    showTasks:       config.showTasks       ?? false,
+    daysAhead:       config.daysAhead       ?? 2,
   })
-  const calendarData = ref({ authorized: false, todayTimed: [], todayAllDay: [], tomorrow: [] })
+  const calendarData = ref({ authorized: false, days: [], tasks: [] })
   const refresh = vi.fn().mockImplementation(() => {
     const last = [...mockFetch.mock.calls].reverse()
       .find((c) => (c[1] as { method?: string })?.method === 'POST')
@@ -140,15 +150,15 @@ describe('GoogleCalendarPanel.vue', () => {
 
     it('Save button appears only when dirty', async () => {
       const w = await mountPanel({ clientId: 'x', clientSecret: 'y' })
-      expect(w.findAll('button').some(b => b.text() === 'Save')).toBe(false)
+      expect(w.findAll('button').some(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)).toBe(false)
       await w.find('input[placeholder="Client ID"]').setValue('changed')
-      expect(w.findAll('button').some(b => b.text() === 'Save')).toBe(true)
+      expect(w.findAll('button').some(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)).toBe(true)
     })
 
     it('Cancel button appears when dirty and resets form', async () => {
       const w = await mountPanel({ clientId: 'saved' })
       await w.find('input[placeholder="Client ID"]').setValue('changed')
-      const cancelBtn = w.findAll('button').find(b => b.text() === 'Cancel')
+      const cancelBtn = w.findAll('button').find(b => b.text() === 'Cancel' && !(b.element as HTMLButtonElement).disabled)
       expect(cancelBtn).toBeTruthy()
       await cancelBtn!.trigger('click')
       expect((w.find('input[placeholder="Client ID"]').element as HTMLInputElement).value).toBe('saved')
@@ -158,7 +168,7 @@ describe('GoogleCalendarPanel.vue', () => {
       mockFetch.mockResolvedValueOnce({ ok: true })
       const w = await mountPanel()
       await w.find('input[placeholder="Client ID"]').setValue('new-id')
-      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)!.trigger('click')
       await flushPromises()
       expect(mockFetch).toHaveBeenCalledWith('/api/admin/calendar', expect.objectContaining({ method: 'POST' }))
     })
@@ -167,7 +177,7 @@ describe('GoogleCalendarPanel.vue', () => {
       mockFetch.mockResolvedValueOnce({ ok: true })
       const w = await mountPanel()
       await w.find('input[placeholder="Client ID"]').setValue('new-id')
-      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)!.trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Saved')
     })
@@ -176,7 +186,7 @@ describe('GoogleCalendarPanel.vue', () => {
       mockFetch.mockRejectedValueOnce({ data: { message: 'Forbidden' } })
       const w = await mountPanel()
       await w.find('input[placeholder="Client ID"]').setValue('x')
-      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)!.trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Forbidden')
     })
@@ -189,14 +199,34 @@ describe('GoogleCalendarPanel.vue', () => {
       expect(w.find('a[href="/api/auth/google"]').text()).toContain('Connect Google Account')
     })
 
-    it('shows Disconnect button when connected', async () => {
+    it('collapses steps when connected', async () => {
       const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      expect(w.text()).not.toContain('Create a Google Cloud project')
+    })
+
+    it('shows Connected to Google label when connected', async () => {
+      const w = await mountPanel({ hasRefreshToken: true })
+      expect(w.text()).toContain('Connected to Google')
+    })
+
+    it('expands steps when header is clicked', async () => {
+      const w = await mountPanel({ hasRefreshToken: true })
+      await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
+      expect(w.text()).toContain('Create a Google Cloud project')
+    })
+
+    it('shows Disconnect button when connected and steps expanded', async () => {
+      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
+      await w.vm.$nextTick()
       expect(w.findAll('button').some(b => b.text() === 'Disconnect account')).toBe(true)
     })
 
     it('calls disconnect endpoint on click', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true })
       const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
+      await w.vm.$nextTick()
       await w.findAll('button').find(b => b.text() === 'Disconnect account')!.trigger('click')
       await flushPromises()
       expect(mockFetch).toHaveBeenCalledWith('/api/admin/calendar/disconnect', expect.objectContaining({ method: 'POST' }))
@@ -205,6 +235,8 @@ describe('GoogleCalendarPanel.vue', () => {
     it('shows disconnect error on failure', async () => {
       mockFetch.mockRejectedValueOnce({ data: { message: 'Network error' } })
       const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
+      await w.vm.$nextTick()
       await w.findAll('button').find(b => b.text() === 'Disconnect account')!.trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Network error')
@@ -220,6 +252,80 @@ describe('GoogleCalendarPanel.vue', () => {
     it('renders the CalendarPanel widget in the preview', async () => {
       const w = await mountPanel()
       expect(w.find('.calendar-panel-stub').exists()).toBe(true)
+    })
+  })
+
+  describe('display settings', () => {
+    it('renders the Display section', async () => {
+      const w = await mountPanel()
+      expect(w.text()).toContain('Display')
+    })
+
+    it('Show events toggle reflects saved state (on)', async () => {
+      const w = await mountPanel({ showEvents: true })
+      const switches = w.findAll('[role="switch"]')
+      expect(switches[0].attributes('aria-checked')).toBe('true')
+    })
+
+    it('Show events toggle reflects saved state (off)', async () => {
+      const w = await mountPanel({ showEvents: false })
+      const switches = w.findAll('[role="switch"]')
+      expect(switches[0].attributes('aria-checked')).toBe('false')
+    })
+
+    it('Show tasks toggle reflects saved state', async () => {
+      const w = await mountPanel({ showTasks: true })
+      const switches = w.findAll('[role="switch"]')
+      expect(switches[1].attributes('aria-checked')).toBe('true')
+    })
+
+    it('toggling Show events makes display dirty', async () => {
+      const w = await mountPanel({ showEvents: true })
+      await w.findAll('[role="switch"]')[0].trigger('click')
+      expect(w.text()).toContain('Save')
+    })
+
+    it('days ahead buttons render all options', async () => {
+      const w = await mountPanel()
+      for (const n of [1, 2, 3, 5, 7, 14, 30]) {
+        expect(w.text()).toContain(String(n))
+      }
+    })
+
+    it('clicking a days ahead option marks display dirty', async () => {
+      const w = await mountPanel({ daysAhead: 2 })
+      const dayBtns = w.findAll('button').filter(b => ['1', '3', '5', '7', '14', '30'].includes(b.text()))
+      await dayBtns[0].trigger('click')
+      expect(w.text()).toContain('Save')
+    })
+
+    it('Cancel display restores saved state', async () => {
+      const w = await mountPanel({ daysAhead: 2 })
+      const dayBtns = w.findAll('button').filter(b => ['7'].includes(b.text()))
+      await dayBtns[0].trigger('click')
+      const cancelBtn = w.findAll('button').find(b => b.text() === 'Cancel' && !(b.element as HTMLButtonElement).disabled)!
+      await cancelBtn.trigger('click')
+      expect(w.findAll('button').some(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)).toBe(false)
+    })
+
+    it('saving display settings calls POST with display fields', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPanel({ showEvents: true, showTasks: false, daysAhead: 2 })
+      await w.findAll('[role="switch"]')[1].trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      const call = mockFetch.mock.calls.find(c => c[0] === '/api/admin/calendar')!
+      expect((call[1] as { body: Record<string, unknown> }).body).toMatchObject({ showTasks: true })
+    })
+
+    it('shows Saved after successful display save', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPanel({ daysAhead: 2 })
+      const dayBtns = w.findAll('button').filter(b => b.text() === '7')
+      await dayBtns[0].trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      expect(w.text()).toContain('Saved')
     })
   })
 })
