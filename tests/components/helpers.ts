@@ -1,4 +1,15 @@
 export const globalStubs = {
+  AdminSaveBar: {
+    template: `<div class="admin-save-bar">
+      <p v-if="saveError" class="text-xs text-danger">{{ saveError }}</p>
+      <p v-else-if="saveSuccess" class="text-xs text-success">Saved</p>
+      <p v-else-if="isDirty" class="text-xs text-warning">Unsaved changes</p>
+      <button :disabled="saving || !isDirty" @click="$emit('cancel')">Cancel</button>
+      <button :disabled="saving || !isDirty" @click="$emit('save')">{{ saving ? 'Saving...' : 'Save' }}</button>
+    </div>`,
+    props: ['isDirty', 'saving', 'saveError', 'saveSuccess'],
+    emits: ['save', 'cancel'],
+  },
   FaIcon: { template: '<span class="fa-icon" :data-icon="icon" />', props: ['icon'] },
   SecretInput: {
     template: '<div><input :type="masked === false ? \'text\' : \'password\'" :placeholder="placeholder" :value="modelValue" :disabled="disabled" @input="$emit(\'update:modelValue\', $event.target.value)" /><button v-if="suggestedVar" class="use-env-var">use env</button></div>',

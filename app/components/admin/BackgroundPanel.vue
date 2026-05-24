@@ -139,28 +139,16 @@ const previewCardStyle    = computed((): CSSVars => CARD_STYLE_MAP[form.value.ca
 </script>
 
 <template>
+  <AdminSaveBar
+    :is-dirty="isDirty"
+    :saving="saving"
+    :save-error="saveError"
+    :save-success="saveSuccess"
+    @save="save"
+    @cancel="cancel"
+  />
+
   <div class="space-y-4">
-
-    <!-- Save bar -->
-    <div class="flex items-center justify-between gap-4">
-      <p v-if="isDirty" class="text-xs text-warning">Unsaved changes</p>
-      <p v-else-if="saveSuccess" class="text-xs text-success">Saved</p>
-      <span v-else />
-      <div class="flex items-center gap-2">
-        <p v-if="saveError" class="text-xs text-danger">{{ saveError }}</p>
-        <button
-          class="cursor-pointer px-3 py-1.5 rounded-lg text-sm border border-border text-muted hover:text-primary transition-colors disabled:opacity-40"
-          :disabled="saving || !isDirty"
-          @click="cancel"
-        >Cancel</button>
-        <button
-          class="cursor-pointer px-4 py-1.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-hover transition-colors disabled:opacity-50"
-          :disabled="saving || !isDirty"
-          @click="save"
-        >{{ saving ? 'Saving...' : 'Save' }}</button>
-      </div>
-    </div>
-
     <div class="flex flex-col lg:flex-row gap-6 items-start">
 
       <!-- Left: stacked section cards -->
