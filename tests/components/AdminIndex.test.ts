@@ -27,54 +27,65 @@ function mountPage() {
 
 describe('admin/index.vue', () => {
   it('renders a Settings heading', () => {
-    const wrapper = mountPage()
-    expect(wrapper.find('h1').text()).toBe('Settings')
+    expect(mountPage().find('h1').text()).toBe('Settings')
   })
 
-  it('renders a Widgets card linking to /admin/widgets', () => {
-    const wrapper = mountPage()
-    const links = wrapper.findAll('a')
-    const widgetsCard = links.find(l => l.attributes('href') === '/admin/widgets')
-    expect(widgetsCard).toBeTruthy()
-    expect(widgetsCard!.text()).toContain('Widgets')
+  it('renders a General card linking to /admin/settings', () => {
+    const links = mountPage().findAll('a')
+    const card = links.find(l => l.attributes('href') === '/admin/settings')
+    expect(card).toBeTruthy()
+    expect(card!.text()).toContain('General')
+  })
+
+  it('uses gear icon for the General card', () => {
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'gear')).toBe(true)
   })
 
   it('renders an Appearance card linking to /admin/appearance', () => {
-    const wrapper = mountPage()
-    const links = wrapper.findAll('a')
-    const bgCard = links.find(l => l.attributes('href') === '/admin/appearance')
-    expect(bgCard).toBeTruthy()
-    expect(bgCard!.text()).toContain('Appearance')
-  })
-
-  it('uses sliders icon for the Widgets card', () => {
-    const wrapper = mountPage()
-    const icons = wrapper.findAll('.fa-icon')
-    expect(icons.some(i => i.attributes('data-icon') === 'sliders')).toBe(true)
+    const links = mountPage().findAll('a')
+    const card = links.find(l => l.attributes('href') === '/admin/appearance')
+    expect(card).toBeTruthy()
+    expect(card!.text()).toContain('Appearance')
   })
 
   it('uses image icon for the Appearance card', () => {
-    const wrapper = mountPage()
-    const icons = wrapper.findAll('.fa-icon')
-    expect(icons.some(i => i.attributes('data-icon') === 'image')).toBe(true)
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'image')).toBe(true)
+  })
+
+  it('renders a Weather card linking to /admin/weather', () => {
+    const links = mountPage().findAll('a')
+    const card = links.find(l => l.attributes('href') === '/admin/weather')
+    expect(card).toBeTruthy()
+    expect(card!.text()).toContain('Weather')
+  })
+
+  it('uses cloud-sun-rain icon for the Weather card', () => {
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'cloud-sun-rain')).toBe(true)
+  })
+
+  it('renders a Widget Fields card linking to /admin/widgets', () => {
+    const links = mountPage().findAll('a')
+    const card = links.find(l => l.attributes('href') === '/admin/widgets')
+    expect(card).toBeTruthy()
+    expect(card!.text()).toContain('Widget Fields')
+  })
+
+  it('uses table-cells icon for the Widget Fields card', () => {
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'table-cells')).toBe(true)
   })
 
   it('renders a Google Calendar card linking to /admin/calendar', () => {
-    const wrapper = mountPage()
-    const links = wrapper.findAll('a')
-    const calCard = links.find(l => l.attributes('href') === '/admin/calendar')
-    expect(calCard).toBeTruthy()
-    expect(calCard!.text()).toContain('Google Calendar')
+    const links = mountPage().findAll('a')
+    const card = links.find(l => l.attributes('href') === '/admin/calendar')
+    expect(card).toBeTruthy()
+    expect(card!.text()).toContain('Google Calendar')
   })
 
   it('uses calendar-days icon for the Google Calendar card', () => {
-    const wrapper = mountPage()
-    const icons = wrapper.findAll('.fa-icon')
-    expect(icons.some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
   })
 
-  it('renders exactly 3 setting cards', () => {
-    const wrapper = mountPage()
-    expect(wrapper.findAll('a').length).toBe(3)
+  it('renders 5 setting cards total', () => {
+    expect(mountPage().findAll('a').length).toBe(5)
   })
 })

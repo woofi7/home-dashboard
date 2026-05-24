@@ -26,20 +26,20 @@ describe('AdminLayout.vue', () => {
     expect(links.some(l => l.attributes('href') === '/' && l.text() === 'Dashboard')).toBe(true)
   })
 
-  it('renders Admin link to /admin', () => {
-    const wrapper = mountLayout('/admin')
+  it('renders Admin back-link to /admin on sub-pages', () => {
+    const wrapper = mountLayout('/admin/settings')
     const links = wrapper.findAll('a')
-    expect(links.some(l => l.attributes('href') === '/admin' && l.text() === 'Admin')).toBe(true)
+    expect(links.some(l => l.attributes('href') === '/admin' && l.text().includes('Admin'))).toBe(true)
   })
 
-  it('shows no extra crumb on /admin', () => {
+  it('shows no extra crumb on /admin root', () => {
     const wrapper = mountLayout('/admin')
     expect(wrapper.text()).not.toContain('/ Admin /')
   })
 
-  it('shows Widgets crumb on /admin/widgets', () => {
+  it('shows Widget Fields crumb on /admin/widgets', () => {
     const wrapper = mountLayout('/admin/widgets')
-    expect(wrapper.text()).toContain('Widgets')
+    expect(wrapper.text()).toContain('Widget Fields')
   })
 
   it('shows Background crumb on /admin/background', () => {
@@ -47,10 +47,10 @@ describe('AdminLayout.vue', () => {
     expect(wrapper.text()).toContain('Background')
   })
 
-  it('capitalizes the crumb segment', () => {
+  it('shows the mapped page title for known routes', () => {
     const wrapper = mountLayout('/admin/widgets')
     const crumbs = wrapper.findAll('span')
-    expect(crumbs.some(s => s.text() === 'Widgets')).toBe(true)
+    expect(crumbs.some(s => s.text() === 'Widget Fields')).toBe(true)
   })
 
   it('renders the default slot', () => {
