@@ -54,6 +54,11 @@ const blurStyle = computed(() => {
   return map[props.appearance?.blur ?? 'none'] ?? '0px'
 })
 
+const blurInset = computed(() => {
+  const map: Record<string, string> = { none: '0px', sm: '-12px', md: '-30px', lg: '-60px' }
+  return map[props.appearance?.blur ?? 'none'] ?? '0px'
+})
+
 const fadeDuration = computed(() => {
   const map: Record<string, { thumb: string; full: string }> = {
     none:   { thumb: '0ms',    full: '0ms' },
@@ -67,28 +72,32 @@ const fadeDuration = computed(() => {
 
 <template>
   <template v-if="background?.thumb">
-    <div
-      class="fixed inset-0 -z-10 bg-cover transition-opacity"
-      :class="thumbLoaded ? 'opacity-100' : 'opacity-0'"
-      :style="{
-        backgroundImage: `url(${background.thumb})`,
-        backgroundPosition: bgPosition,
-        filter: blurStyle !== '0px' ? `blur(${blurStyle})` : undefined,
-        transitionDuration: fadeDuration.thumb,
-      }"
-    />
-    <div
-      v-if="background.full"
-      class="fixed inset-0 -z-10 bg-cover transition-opacity"
-      :class="fullLoaded ? 'opacity-100' : 'opacity-0'"
-      :style="{
-        backgroundImage: `url(${background.full})`,
-        backgroundPosition: bgPosition,
-        filter: blurStyle !== '0px' ? `blur(${blurStyle})` : undefined,
-        transitionDuration: fadeDuration.full,
-      }"
-    />
-    <div class="fixed inset-0 -z-10" :style="{ backgroundColor: overlayColor }" />
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+      <div
+        class="absolute bg-cover transition-opacity"
+        :class="thumbLoaded ? 'opacity-100' : 'opacity-0'"
+        :style="{
+          inset: blurInset,
+          backgroundImage: `url(${background.thumb})`,
+          backgroundPosition: bgPosition,
+          filter: blurStyle !== '0px' ? `blur(${blurStyle})` : undefined,
+          transitionDuration: fadeDuration.thumb,
+        }"
+      />
+      <div
+        v-if="background.full"
+        class="absolute bg-cover transition-opacity"
+        :class="fullLoaded ? 'opacity-100' : 'opacity-0'"
+        :style="{
+          inset: blurInset,
+          backgroundImage: `url(${background.full})`,
+          backgroundPosition: bgPosition,
+          filter: blurStyle !== '0px' ? `blur(${blurStyle})` : undefined,
+          transitionDuration: fadeDuration.full,
+        }"
+      />
+      <div class="absolute inset-0" :style="{ backgroundColor: overlayColor }" />
+    </div>
     <a
       v-if="background.author"
       :href="background.authorLink"
