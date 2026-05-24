@@ -21,12 +21,12 @@ watch([() => useAuth().editEnabled.value, () => useAuth().needsLogin.value], ([e
       </NuxtLink>
 
       <NuxtLink
-        to="/admin/background"
+        to="/admin/appearance"
         class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer"
       >
         <FaIcon icon="image" class="text-2xl text-muted group-hover:text-accent transition-colors mb-3" />
-        <p class="font-medium text-primary group-hover:text-accent transition-colors">Background</p>
-        <p class="text-xs text-muted mt-1">Choose a provider and set image appearance</p>
+        <p class="font-medium text-primary group-hover:text-accent transition-colors">Appearance</p>
+        <p class="text-xs text-muted mt-1">Background, sections and cards appearance</p>
       </NuxtLink>
 
       <NuxtLink

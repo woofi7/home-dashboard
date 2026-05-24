@@ -7,6 +7,7 @@ const props = defineProps<{ service: Service; edit: boolean; pending?: boolean; 
 defineEmits<{ edit: []; delete: []; revert: [] }>()
 
 const { dockerStatus, pingStatus, widgetData } = useRefreshData()
+const { cardStyle } = useAppearanceSettings()
 
 const containerState = computed(() =>
   resolveContainerState(
@@ -52,7 +53,8 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
   <component
     :is="!edit && service.url ? 'a' : 'div'"
     v-bind="!edit && service.url ? { href: service.url, target: '_blank', rel: 'noopener' } : {}"
-    class="relative group/card rounded-lg bg-black/60 border p-3 flex flex-col gap-2 transition-colors"
+    class="relative group/card rounded-lg border p-3 flex flex-col gap-2 transition-colors"
+    :style="cardStyle"
     :class="[
       !edit && service.url ? 'cursor-pointer' : 'cursor-default',
       pendingDelete ? 'border-danger/60 opacity-50' : pending ? 'border-warning/60 hover:border-warning/80' : 'border-white/10 hover:border-white/20',

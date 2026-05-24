@@ -63,6 +63,16 @@ const bgAppearance = computed(() => {
     color: (bg?.color as string) ?? '#0f1117',
   }
 })
+
+const { settings: appearanceSettings } = useAppearanceSettings()
+
+watch(() => localConfig.value.settings?.background, (bg) => {
+  const b = bg as Record<string, unknown> | undefined
+  appearanceSettings.value = {
+    sectionStyle: (b?.sectionStyle as string) ?? 'glass',
+    cardStyle:    (b?.cardStyle    as string) ?? 'dark',
+  }
+}, { immediate: true })
 </script>
 
 <template>
