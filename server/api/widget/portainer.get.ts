@@ -21,19 +21,21 @@ export async function fetchPortainer(creds: ServiceCredentials) {
   }
 
   const [containers, stacks, volumesRes, images] = await Promise.all([
-    $fetch<Array<{ State: string }>>(`${base}/api/endpoints/${epId}/docker/containers/json?all=1`, { headers }),
+    $fetch<Array<{ State: string; Status: string }>>(`${base}/api/endpoints/${epId}/docker/containers/json?all=1`, { headers }),
     $fetch<Array<unknown>>(`${base}/api/stacks?endpointId=${epId}`, { headers }),
     $fetch<{ Volumes: unknown[] }>(`${base}/api/endpoints/${epId}/docker/volumes`, { headers }),
     $fetch<Array<unknown>>(`${base}/api/endpoints/${epId}/docker/images/json`, { headers }),
   ])
 
   const allFields = [
-    { label: 'Running',    value: containers.filter(c => c.State === 'running').length },
-    { label: 'Stopped',    value: containers.filter(c => c.State === 'exited' || c.State === 'stopped').length },
+    { label: 'Running',   value: containers.filter(c => c.State === 'running').length },
+    { label: 'Stopped',   value: containers.filter(c => c.State === 'exited' || c.State === 'stopped').length },
+    { label: 'Healthy',   value: containers.filter(c => c.Status.includes('(healthy)')).length },
+    { label: 'Unhealthy', value: containers.filter(c => c.Status.includes('(unhealthy)')).length },
     { label: 'Containers', value: containers.length },
-    { label: 'Stacks',     value: stacks.length },
-    { label: 'Volumes',    value: (volumesRes.Volumes ?? []).length },
-    { label: 'Images',     value: images.length },
+    { label: 'Stacks',    value: stacks.length },
+    { label: 'Volumes',   value: (volumesRes.Volumes ?? []).length },
+    { label: 'Images',    value: images.length },
   ]
 
   return { type: 'portainer', fields: getOrderedActiveFields('portainer', allFields) }
