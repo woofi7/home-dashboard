@@ -1,16 +1,31 @@
 <script setup lang="ts">
-type CalendarConfig = { clientId: string; clientSecret: string; hasRefreshToken: boolean }
+type CalendarConfig = {
+  clientId: string
+  clientSecret: string
+  hasRefreshToken: boolean
+  showEvents: boolean
+  showTasks: boolean
+  daysAhead: number
+}
+
+const DAYS_OPTIONS = [1, 2, 3, 5, 7, 14, 30]
 
 const route = useRoute()
 
 const { data: current, refresh: refreshCurrent } = await useFetch<CalendarConfig>('/api/admin/calendar')
 
 const form = ref({ clientId: '', clientSecret: '' })
+const display = ref({ showEvents: true, showTasks: false, daysAhead: 2 })
 
 watch(current, (val) => {
   form.value = {
     clientId:     val?.clientId     ?? '',
     clientSecret: val?.clientSecret ?? '',
+  }
+  display.value = {
+    showEvents: val?.showEvents ?? true,
+    showTasks:  val?.showTasks  ?? false,
+    daysAhead:  val?.daysAhead  ?? 2,
   }
 }, { immediate: true })
 
@@ -18,6 +33,40 @@ const isDirty = computed(() =>
   form.value.clientId !== (current.value?.clientId ?? '') ||
   form.value.clientSecret !== (current.value?.clientSecret ?? '')
 )
+
+const isDisplayDirty = computed(() =>
+  display.value.showEvents !== (current.value?.showEvents ?? true) ||
+  display.value.showTasks  !== (current.value?.showTasks  ?? false) ||
+  display.value.daysAhead  !== (current.value?.daysAhead  ?? 2)
+)
+
+function cancelDisplay() {
+  display.value = {
+    showEvents: current.value?.showEvents ?? true,
+    showTasks:  current.value?.showTasks  ?? false,
+    daysAhead:  current.value?.daysAhead  ?? 2,
+  }
+}
+
+const savingDisplay = ref(false)
+const saveDisplayError = ref('')
+const saveDisplaySuccess = ref(false)
+
+async function saveDisplay() {
+  savingDisplay.value = true
+  saveDisplayError.value = ''
+  saveDisplaySuccess.value = false
+  try {
+    await $fetch('/api/admin/calendar', { method: 'POST', body: { showEvents: display.value.showEvents, showTasks: display.value.showTasks, daysAhead: display.value.daysAhead } })
+    await refreshCurrent()
+    saveDisplaySuccess.value = true
+    setTimeout(() => { saveDisplaySuccess.value = false }, 2000)
+  } catch (err: unknown) {
+    saveDisplayError.value = (err as { data?: { message?: string } })?.data?.message ?? 'Save failed'
+  } finally {
+    savingDisplay.value = false
+  }
+}
 
 function cancel() {
   form.value = {
@@ -74,9 +123,20 @@ onMounted(() => {
 })
 
 const { data: calendarData } = useFetch('/api/calendar')
+
+const stepsExpanded = ref(!isConnected.value)
+watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
 </script>
 
 <template>
+  <AdminSaveBar
+    :is-dirty="isDisplayDirty"
+    :saving="savingDisplay"
+    :save-error="saveDisplayError"
+    :save-success="saveDisplaySuccess"
+    @save="saveDisplay"
+    @cancel="cancelDisplay"
+  />
   <div class="space-y-6">
 
     <!-- Success banner after OAuth redirect -->
@@ -91,7 +151,34 @@ const { data: calendarData } = useFetch('/api/calendar')
     <div class="flex flex-col xl:flex-row gap-6 items-start">
 
       <!-- Steps panel -->
-      <div class="w-full xl:flex-1 xl:min-w-0 rounded-xl border border-border bg-surface divide-y divide-border overflow-hidden">
+      <div class="w-full xl:flex-1 xl:min-w-0 rounded-xl border border-border bg-surface overflow-hidden">
+
+        <!-- Collapsible header -->
+        <button
+          class="cursor-pointer w-full flex items-center justify-between px-4 py-3 text-left hover:bg-elevated/50 transition-colors"
+          :class="stepsExpanded ? 'border-b border-border' : ''"
+          @click="stepsExpanded = !stepsExpanded"
+        >
+          <div class="flex items-center gap-2">
+            <span
+              class="w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold shrink-0"
+              :class="isConnected ? 'bg-success/15 border border-success/40 text-success' : 'bg-accent/15 border border-accent/30 text-accent'"
+            >
+              <FaIcon v-if="isConnected" icon="check" />
+              <FaIcon v-else icon="key" />
+            </span>
+            <p class="text-xs font-medium" :class="isConnected ? 'text-success' : 'text-primary'">
+              {{ isConnected ? 'Connected to Google' : 'Google account setup' }}
+            </p>
+          </div>
+          <FaIcon
+            icon="chevron-down"
+            class="text-muted text-xs transition-transform"
+            :class="stepsExpanded ? 'rotate-180' : ''"
+          />
+        </button>
+
+        <div v-if="stepsExpanded" class="divide-y divide-border">
 
         <!-- Step 1: Create project -->
         <div class="flex gap-4 p-5">
@@ -215,6 +302,7 @@ const { data: calendarData } = useFetch('/api/calendar')
           </div>
         </div>
 
+        </div><!-- end stepsExpanded -->
       </div>
 
       <!-- Preview panel -->
@@ -227,6 +315,80 @@ const { data: calendarData } = useFetch('/api/calendar')
         </div>
       </div>
 
+    </div>
+
+    <!-- Display settings -->
+    <div class="rounded-xl border border-border bg-surface overflow-hidden">
+      <div class="px-4 py-3 border-b border-border">
+        <p class="text-xs text-muted uppercase tracking-widest">Display</p>
+      </div>
+      <div class="p-6 space-y-5">
+
+        <!-- Show events toggle -->
+        <label class="flex items-center justify-between gap-4 cursor-pointer">
+          <div>
+            <p class="text-sm text-primary">Show events</p>
+            <p class="text-xs text-muted mt-0.5">Display calendar events on the dashboard.</p>
+          </div>
+          <button
+            role="switch"
+            :aria-checked="display.showEvents"
+            class="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none"
+            :class="display.showEvents ? 'bg-accent' : 'bg-border'"
+            @click="display.showEvents = !display.showEvents"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform"
+              :class="display.showEvents ? 'translate-x-5' : 'translate-x-0'"
+            />
+          </button>
+        </label>
+
+        <!-- Show tasks toggle -->
+        <label class="flex items-center justify-between gap-4 cursor-pointer">
+          <div>
+            <p class="text-sm text-primary">Show tasks</p>
+            <p class="text-xs text-muted mt-0.5">
+              Display Google Tasks due in the selected window.
+              <span v-if="!current?.hasRefreshToken" class="text-warning"> Requires connecting your account.</span>
+              <span v-else-if="!display.showTasks" class="text-muted/60"> Requires reconnecting to grant Tasks permission.</span>
+            </p>
+          </div>
+          <button
+            role="switch"
+            :aria-checked="display.showTasks"
+            class="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none"
+            :class="display.showTasks ? 'bg-accent' : 'bg-border'"
+            @click="display.showTasks = !display.showTasks"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform"
+              :class="display.showTasks ? 'translate-x-5' : 'translate-x-0'"
+            />
+          </button>
+        </label>
+
+        <!-- Days ahead -->
+        <div class="flex items-center justify-between gap-4">
+          <div>
+            <p class="text-sm text-primary">Days ahead</p>
+            <p class="text-xs text-muted mt-0.5">How many days of events and tasks to fetch.</p>
+          </div>
+          <div class="flex gap-1 flex-wrap justify-end">
+            <button
+              v-for="n in DAYS_OPTIONS"
+              :key="n"
+              class="cursor-pointer px-2.5 py-1 rounded-lg text-xs border transition-colors"
+              :class="display.daysAhead === n
+                ? 'bg-accent text-white border-accent'
+                : 'border-border text-muted hover:text-primary hover:border-primary/40'"
+              @click="display.daysAhead = n"
+            >{{ n }}</button>
+          </div>
+        </div>
+
+
+      </div>
     </div>
 
   </div>

@@ -13,7 +13,7 @@ export default defineEventHandler((event) => {
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/calendar.readonly',
+    scope: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks.readonly',
     access_type: 'offline',
     prompt: 'consent',
   })

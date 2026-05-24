@@ -2,6 +2,8 @@ import { loadConfig } from '../utils/config'
 import { createCache } from '../utils/cache'
 
 type CalEvent = { id: string; summary: string; start: string; end: string; allDay: boolean; location?: string; url: string }
+type CalTask  = { id: string; title: string; due?: string; notes?: string; url: string }
+type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
 
 const tokenCache = createCache<string>()
 
@@ -19,49 +21,126 @@ async function getAccessToken(clientId: string, clientSecret: string, refreshTok
   return tokenCache.set(res.access_token, (res.expires_in - 60) * 1000)
 }
 
+function dayLabel(offset: number, date: Date): string {
+  if (offset === 0)
+    return 'Today'
+  if (offset === 1)
+    return 'Tomorrow'
+  return date.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+function pad(n: number) { return String(n).padStart(2, '0') }
+
+function dateStr(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 export default defineEventHandler(async () => {
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')
-  const g = settings?.google as Record<string, string> | undefined
+  const g = (settings?.google ?? {}) as Record<string, unknown>
+  const cal = (g.calendar ?? {}) as Record<string, unknown>
 
-  const { clientId, clientSecret, refreshToken } = g ?? {}
+  const { clientId, clientSecret, refreshToken } = g as Record<string, string>
   if (!clientId || !clientSecret || !refreshToken)
-    return { authorized: false, todayTimed: [], todayAllDay: [], tomorrow: [] }
+    return { authorized: false, days: [], tasks: [] }
 
-  const accessToken = await getAccessToken(clientId, clientSecret, refreshToken)
+  const showEvents = (cal.showEvents as boolean) ?? true
+  const showTasks  = (cal.showTasks  as boolean) ?? false
+  const daysAhead  = Math.max(1, Math.min(30, Number(cal.daysAhead) || 2))
+
+  let accessToken: string
+  try {
+    accessToken = await getAccessToken(clientId, clientSecret, refreshToken)
+  } catch {
+    tokenCache.clear()
+    return { authorized: false, days: [], tasks: [] }
+  }
+  const headers = { Authorization: `Bearer ${accessToken}` }
 
   const now = new Date()
-  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
-  const endOfTomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2).toISOString()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
 
-  const res = await $fetch<{ items: Array<{ id: string; summary?: string; htmlLink?: string; start: { dateTime?: string; date?: string }; end: { dateTime?: string; date?: string }; location?: string }> }>(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfToday}&timeMax=${endOfTomorrow}&singleEvents=true&orderBy=startTime`,
-    { headers: { Authorization: `Bearer ${accessToken}` } }
-  )
-
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
-  const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  const tomorrowStr = `${tomorrow.getFullYear()}-${pad(tomorrow.getMonth() + 1)}-${pad(tomorrow.getDate())}`
-
-  const toEvent = (e: typeof res.items[0]): CalEvent => ({
-    id: e.id,
-    summary: e.summary ?? '(no title)',
-    start: e.start.dateTime ?? e.start.date ?? '',
-    end: e.end.dateTime ?? e.end.date ?? '',
-    allDay: !e.start.dateTime,
-    location: e.location,
-    url: e.htmlLink ?? '',
+  const days: CalDay[] = Array.from({ length: daysAhead }, (_, i) => {
+    const d = new Date(startOfToday)
+    d.setDate(d.getDate() + i)
+    return { label: dayLabel(i, d), date: dateStr(d), timed: [], allDay: [] }
   })
 
-  const belongsTo = (e: typeof res.items[0], day: string) => {
-    const d = e.start.dateTime ? e.start.dateTime.slice(0, 10) : e.start.date ?? ''
-    return d === day
+  let tasks: CalTask[] = []
+
+  if (showEvents) {
+    try {
+      const endOfRange = new Date(startOfToday)
+      endOfRange.setDate(endOfRange.getDate() + daysAhead)
+
+      type GItem = { id: string; summary?: string; htmlLink?: string; start: { dateTime?: string; date?: string }; end: { dateTime?: string; date?: string }; location?: string }
+      const res = await $fetch<{ items: GItem[] }>(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfToday.toISOString()}&timeMax=${endOfRange.toISOString()}&singleEvents=true&orderBy=startTime`,
+        { headers }
+      )
+
+      const toEvent = (e: GItem): CalEvent => ({
+        id: e.id,
+        summary: e.summary ?? '(no title)',
+        start: e.start.dateTime ?? e.start.date ?? '',
+        end: e.end.dateTime ?? e.end.date ?? '',
+        allDay: !e.start.dateTime,
+        location: e.location,
+        url: e.htmlLink ?? '',
+      })
+
+      for (const e of res.items) {
+        const eDate = e.start.dateTime ? e.start.dateTime.slice(0, 10) : (e.start.date ?? '')
+        const day = days.find(d => d.date === eDate)
+        if (!day)
+          continue
+        if (e.start.dateTime)
+          day.timed.push(toEvent(e))
+        else
+          day.allDay.push(toEvent(e))
+      }
+    } catch {
+      tokenCache.clear()
+    }
   }
 
-  return {
-    authorized: true,
-    todayTimed: res.items.filter(e => belongsTo(e, todayStr) && !!e.start.dateTime).map(toEvent),
-    todayAllDay: res.items.filter(e => belongsTo(e, todayStr) && !e.start.dateTime).map(toEvent),
-    tomorrow: res.items.filter(e => belongsTo(e, tomorrowStr)).map(toEvent),
+  if (showTasks) {
+    try {
+      const endOfRange = new Date(startOfToday)
+      endOfRange.setDate(endOfRange.getDate() + daysAhead)
+
+      type GTaskList = { id: string }
+      type GTask = { id: string; title?: string; due?: string; notes?: string; selfLink?: string; status?: string }
+
+      const listsRes = await $fetch<{ items?: GTaskList[] }>('https://www.googleapis.com/tasks/v1/users/@me/lists', { headers })
+      const lists = listsRes.items ?? []
+
+      const allTaskArrays = await Promise.all(lists.map(async (list) => {
+        const res = await $fetch<{ items?: GTask[] }>(
+          `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMin=${startOfToday.toISOString()}&dueMax=${endOfRange.toISOString()}`,
+          { headers }
+        )
+        return (res.items ?? []).filter(t => t.status !== 'completed')
+      }))
+
+      tasks = allTaskArrays.flat().map(t => ({
+        id: t.id,
+        title: t.title ?? '(no title)',
+        due: t.due,
+        notes: t.notes,
+        url: t.selfLink ?? '',
+      }))
+
+      tasks.sort((a, b) => {
+        if (!a.due && !b.due) return 0
+        if (!a.due) return 1
+        if (!b.due) return -1
+        return a.due.localeCompare(b.due)
+      })
+    } catch {
+      // tasks fetch failed silently — show events only
+    }
   }
+
+  return { authorized: true, days, tasks }
 })
