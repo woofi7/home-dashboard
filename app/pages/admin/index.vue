@@ -29,6 +29,15 @@ watch([() => useAuth().editEnabled.value, () => useAuth().needsLogin.value], ([e
         <p class="text-xs text-muted mt-1">Choose a provider and set image appearance</p>
       </NuxtLink>
 
+      <NuxtLink
+        to="/admin/calendar"
+        class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer"
+      >
+        <FaIcon icon="calendar-days" class="text-2xl text-muted group-hover:text-accent transition-colors mb-3" />
+        <p class="font-medium text-primary group-hover:text-accent transition-colors">Google Calendar</p>
+        <p class="text-xs text-muted mt-1">Connect your Google account to show today's events</p>
+      </NuxtLink>
+
     </div>
   </div>
 </template>
