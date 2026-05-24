@@ -11,7 +11,8 @@ type Config = {
 
 export function useDashboardConfig() {
   const { active: editActive, dirty, snapshot, enter, exit } = useEditMode()
-  const { data: config, refresh } = useFetch<Config>('/api/config', { lazy: true, server: false })
+  const { data: config, refresh, status } = useFetch<Config>('/api/config', { lazy: true, server: false })
+  const configLoaded = computed(() => status.value === 'success' || status.value === 'error')
 
   const localConfig = ref<Config>({ services: [], bookmarks: [], widgets: [], settings: {} })
   const sectionOrder = ref<Array<{ type: 'service' | 'bookmark'; name: string }>>([])
@@ -77,6 +78,16 @@ export function useDashboardConfig() {
     sectionOrder.value = sectionOrder.value.filter(s => !(s.type === 'bookmark' && s.name === name))
     dirty.value = true
   }
+  function addServiceGroup(name: string) {
+    localConfig.value.services.push({ name, services: [] })
+    sectionOrder.value = [...sectionOrder.value, { type: 'service', name }]
+    dirty.value = true
+  }
+  function addBookmarkGroup(name: string) {
+    localConfig.value.bookmarks.push({ name, bookmarks: [] })
+    sectionOrder.value = [...sectionOrder.value, { type: 'bookmark', name }]
+    dirty.value = true
+  }
 
   async function save() {
     saveError.value = ''
@@ -110,6 +121,8 @@ export function useDashboardConfig() {
     pendingCount,
     updateServiceGroup, updateBookmarkGroup,
     deleteServiceGroup, deleteBookmarkGroup,
+    addServiceGroup, addBookmarkGroup,
+    configLoaded,
     save, handleCancel,
   }
 }

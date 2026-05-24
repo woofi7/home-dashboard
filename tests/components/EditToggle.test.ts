@@ -9,7 +9,6 @@ const defaultProps = {
   dirty: false,
   pendingCount: 0,
   countdown: 30,
-  editEnabled: false,
   locked: false,
 }
 
@@ -21,22 +20,18 @@ function mountToggle(props: Partial<typeof defaultProps> = {}) {
 }
 
 describe('EditToggle.vue', () => {
-  it('shows only refresh button when active=false and editEnabled=false', () => {
-    const wrapper = mountToggle({ active: false, editEnabled: false })
-    expect(wrapper.find('button').exists()).toBe(true)
-    // No Edit button, no Save button
-    const buttons = wrapper.findAll('button')
-    expect(buttons.some(b => b.text().includes('Edit'))).toBe(false)
-    expect(buttons.some(b => b.text().includes('Save'))).toBe(false)
-  })
-
-  it('shows Edit button when active=false and editEnabled=true', () => {
-    const wrapper = mountToggle({ active: false, editEnabled: true })
+  it('always shows Edit button when not active', () => {
+    const wrapper = mountToggle({ active: false })
     expect(wrapper.findAll('button').some(b => b.text().includes('Edit'))).toBe(true)
   })
 
+  it('does not show Save button when not active', () => {
+    const wrapper = mountToggle({ active: false })
+    expect(wrapper.findAll('button').some(b => b.text().includes('Save'))).toBe(false)
+  })
+
   it('shows countdown value on the refresh button', () => {
-    const wrapper = mountToggle({ active: false, editEnabled: false, countdown: 42 })
+    const wrapper = mountToggle({ active: false, countdown: 42 })
     expect(wrapper.find('button').text()).toContain('42s')
   })
 
@@ -76,13 +71,13 @@ describe('EditToggle.vue', () => {
   })
 
   it('clicking refresh button emits refresh', async () => {
-    const wrapper = mountToggle({ active: false, editEnabled: false })
+    const wrapper = mountToggle({ active: false })
     await wrapper.find('button').trigger('click')
     expect(wrapper.emitted('refresh')).toBeTruthy()
   })
 
   it('clicking Edit emits edit', async () => {
-    const wrapper = mountToggle({ active: false, editEnabled: true })
+    const wrapper = mountToggle({ active: false })
     const editBtn = wrapper.findAll('button').find(b => b.text().includes('Edit'))
     await editBtn!.trigger('click')
     expect(wrapper.emitted('edit')).toBeTruthy()

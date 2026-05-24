@@ -1,24 +1,34 @@
 import { createHash } from 'node:crypto'
 import type { H3Event } from 'h3'
+import { loadConfig } from './config'
 
 const COOKIE = 'hm_auth'
 
+export function getAdminToken(): string {
+  if (process.env.ADMIN_TOKEN)
+    return process.env.ADMIN_TOKEN
+  const settings = loadConfig<Record<string, unknown>>('settings.yaml')
+  return (settings?.adminToken as string) ?? ''
+}
+
+export function tokenConfigured(): boolean {
+  return !!getAdminToken()
+}
+
 function sessionToken(): string {
-  const secret = process.env.ADMIN_TOKEN
+  const secret = getAdminToken()
   if (!secret)
     return ''
-
   return createHash('sha256').update(secret + ':hm_session').digest('hex')
 }
 
 export function editEnabled(): boolean {
-  return !!process.env.ADMIN_TOKEN
+  return tokenConfigured()
 }
 
 export function isAuthenticated(event: H3Event): boolean {
-  if (!editEnabled())
+  if (!tokenConfigured())
     return false
-
   return getCookie(event, COOKIE) === sessionToken()
 }
 

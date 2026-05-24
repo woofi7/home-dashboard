@@ -1,6 +1,7 @@
-import { editEnabled, isAuthenticated } from '../../utils/adminAuth'
+import { tokenConfigured, isAuthenticated } from '../../utils/adminAuth'
 
 export default defineEventHandler((event) => ({
-  editEnabled: editEnabled(),
+  tokenConfigured: tokenConfigured(),
+  editEnabled: tokenConfigured(),
   authenticated: isAuthenticated(event),
 }))
