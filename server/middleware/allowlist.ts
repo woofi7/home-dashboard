@@ -1,4 +1,4 @@
-export default defineEventHandler((event) => {
+export default defineEventHandler(async (event) => {
   const allowed = process.env.ALLOWED_HOSTS || useRuntimeConfig().allowedHosts || '*'
   if (allowed === '*')
     return
@@ -7,6 +7,6 @@ export default defineEventHandler((event) => {
   const allowedList = allowed.split(',').map((h: string) => h.trim())
 
   if (!allowedList.includes(host)) {
-    throw createError({ statusCode: 403, message: 'Host not allowed' })
+    await sendError(event, createError({ statusCode: 403, message: 'Host not allowed' }), false)
   }
 })

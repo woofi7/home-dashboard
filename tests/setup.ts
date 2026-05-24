@@ -2,6 +2,14 @@ import { vi } from 'vitest'
 import { ref, computed, watch, reactive, nextTick, onMounted, onUnmounted } from 'vue'
 import { onClickOutside, useEventListener } from '@vueuse/core'
 
+// Nuxt state / composables
+vi.stubGlobal('useState', (_key: string, init?: () => unknown) => ref(init ? init() : undefined))
+vi.stubGlobal('useAppearanceSettings', () => ({
+  settings: ref({ sectionStyle: 'glass', cardStyle: 'dark' }),
+  sectionStyle: computed(() => ({ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)' })),
+  cardStyle: computed(() => ({ backgroundColor: 'rgba(0,0,0,0.6)' })),
+}))
+
 // Nitro server globals
 vi.stubGlobal('defineEventHandler', (fn: unknown) => fn)
 vi.stubGlobal('getQuery', () => ({}))

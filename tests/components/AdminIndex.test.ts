@@ -39,12 +39,12 @@ describe('admin/index.vue', () => {
     expect(widgetsCard!.text()).toContain('Widgets')
   })
 
-  it('renders a Background card linking to /admin/background', () => {
+  it('renders an Appearance card linking to /admin/appearance', () => {
     const wrapper = mountPage()
     const links = wrapper.findAll('a')
-    const bgCard = links.find(l => l.attributes('href') === '/admin/background')
+    const bgCard = links.find(l => l.attributes('href') === '/admin/appearance')
     expect(bgCard).toBeTruthy()
-    expect(bgCard!.text()).toContain('Background')
+    expect(bgCard!.text()).toContain('Appearance')
   })
 
   it('uses sliders icon for the Widgets card', () => {
@@ -53,7 +53,7 @@ describe('admin/index.vue', () => {
     expect(icons.some(i => i.attributes('data-icon') === 'sliders')).toBe(true)
   })
 
-  it('uses image icon for the Background card', () => {
+  it('uses image icon for the Appearance card', () => {
     const wrapper = mountPage()
     const icons = wrapper.findAll('.fa-icon')
     expect(icons.some(i => i.attributes('data-icon') === 'image')).toBe(true)

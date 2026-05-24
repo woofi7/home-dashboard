@@ -4,6 +4,8 @@ export type AppearanceForm = {
   overlay: number
   blur: string
   fadeSpeed: string
+  sectionStyle: string
+  cardStyle: string
 }
 
 const props = defineProps<{ modelValue: AppearanceForm }>()
@@ -34,11 +36,24 @@ const SPEEDS = [
   { value: 'normal', label: 'Normal' },
   { value: 'slow',   label: 'Slow' },
 ]
+
+const SECTION_STYLES = [
+  { value: 'glass',   label: 'Glass' },
+  { value: 'dark',    label: 'Dark' },
+  { value: 'darker',  label: 'Darker' },
+  { value: 'none',    label: 'None' },
+]
+
+const CARD_STYLES = [
+  { value: 'glass',   label: 'Glass' },
+  { value: 'dark',    label: 'Dark' },
+  { value: 'darker',  label: 'Darker' },
+  { value: 'none',    label: 'None' },
+]
 </script>
 
 <template>
   <div class="space-y-5">
-    <p class="text-xs text-muted uppercase tracking-widest">Appearance</p>
 
     <div>
       <label class="text-xs text-muted block mb-2">Position</label>
@@ -85,6 +100,32 @@ const SPEEDS = [
         size="sm"
         @update:model-value="set({ fadeSpeed: $event })"
       />
+    </div>
+
+    <div class="border-t border-border pt-5">
+      <p class="text-xs text-muted uppercase tracking-widest mb-4">UI elements</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="text-xs text-muted block mb-2">Sections background</label>
+          <OptionPicker
+            :model-value="modelValue.sectionStyle"
+            :options="SECTION_STYLES"
+            size="sm"
+            @update:model-value="set({ sectionStyle: $event })"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs text-muted block mb-2">Cards background</label>
+          <OptionPicker
+            :model-value="modelValue.cardStyle"
+            :options="CARD_STYLES"
+            size="sm"
+            @update:model-value="set({ cardStyle: $event })"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>
