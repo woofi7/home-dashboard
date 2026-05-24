@@ -1,6 +1,6 @@
-type AuthStatus = { editEnabled: boolean; authenticated: boolean }
+type AuthStatus = { tokenConfigured: boolean; editEnabled: boolean; authenticated: boolean }
 
-const status = ref<AuthStatus>({ editEnabled: false, authenticated: false })
+const status = ref<AuthStatus>({ tokenConfigured: false, editEnabled: false, authenticated: false })
 
 async function fetchStatus() {
   try {
@@ -19,6 +19,7 @@ export function useAuth() {
 
   return {
     ready: readyPromise,
+    tokenConfigured: computed(() => status.value.tokenConfigured),
     editEnabled: computed(() => status.value.editEnabled),
     authenticated: computed(() => status.value.authenticated),
     needsLogin: computed(() => status.value.editEnabled && !status.value.authenticated),
@@ -26,6 +27,16 @@ export function useAuth() {
     async login(password: string): Promise<boolean> {
       try {
         await $fetch('/api/auth/login', { method: 'POST', body: { password } })
+        await fetchStatus()
+        return true
+      } catch {
+        return false
+      }
+    },
+
+    async setup(password: string): Promise<boolean> {
+      try {
+        await $fetch('/api/auth/setup', { method: 'POST', body: { password } })
         await fetchStatus()
         return true
       } catch {

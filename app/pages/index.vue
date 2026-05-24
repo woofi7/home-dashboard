@@ -11,12 +11,15 @@ const {
   pendingCount,
   updateServiceGroup, updateBookmarkGroup,
   deleteServiceGroup, deleteBookmarkGroup,
+  addServiceGroup, addBookmarkGroup,
+  configLoaded,
   save, handleCancel,
 } = useDashboardConfig()
 
 const { countdown, forceRefresh } = useWidgetRefresh()
-const { editEnabled, needsLogin, logout } = useAuth()
+const { tokenConfigured, editEnabled, needsLogin, logout } = useAuth()
 const loginVisible = ref(false)
+const setupVisible = ref(false)
 const leaveConfirmVisible = ref(false)
 const pendingRoute = ref('')
 
@@ -36,6 +39,10 @@ function confirmLeave() {
 }
 
 function handleEdit() {
+  if (!tokenConfigured.value) {
+    setupVisible.value = true
+    return
+  }
   if (needsLogin.value) {
     loginVisible.value = true
     return
@@ -44,6 +51,10 @@ function handleEdit() {
 }
 function handleLoginSuccess() {
   loginVisible.value = false
+  enter(localConfig.value)
+}
+function handleSetupSuccess() {
+  setupVisible.value = false
   enter(localConfig.value)
 }
 async function handleLogout() {
@@ -97,7 +108,6 @@ watch(() => localConfig.value.settings?.background, (bg) => {
       :dirty="dirty"
       :pending-count="pendingCount"
       :countdown="countdown"
-      :edit-enabled="editEnabled"
       :locked="needsLogin"
       @edit="handleEdit"
       @save="save"
@@ -107,6 +117,7 @@ watch(() => localConfig.value.settings?.background, (bg) => {
     />
 
     <LoginModal v-if="loginVisible" @success="handleLoginSuccess" @close="loginVisible = false" />
+    <SetupTokenModal v-if="setupVisible" @success="handleSetupSuccess" @close="setupVisible = false" />
     <ConfirmModal
       v-if="leaveConfirmVisible"
       message="You have unsaved changes. Leave and discard them?"
@@ -126,10 +137,14 @@ watch(() => localConfig.value.settings?.background, (bg) => {
       v-model:section-order="sectionOrder"
       :local-config="localConfig"
       :edit-active="editActive"
+      :config-loaded="configLoaded"
       @update-service-group="updateServiceGroup"
       @update-bookmark-group="updateBookmarkGroup"
       @delete-service-group="deleteServiceGroup"
       @delete-bookmark-group="deleteBookmarkGroup"
+      @add-service-group="addServiceGroup"
+      @add-bookmark-group="addBookmarkGroup"
+      @request-edit="handleEdit"
       @dirty="dirty = true"
     />
   </div>

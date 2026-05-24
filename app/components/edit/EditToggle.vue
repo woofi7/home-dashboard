@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; editEnabled?: boolean; locked?: boolean }>()
+defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; locked?: boolean }>()
 defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
 </script>
 
@@ -36,18 +36,11 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
         <span v-if="pendingCount > 0" class="ml-1.5 px-1.5 py-0.5 rounded-md text-xs font-bold bg-warning text-base">{{ pendingCount }}</span>
       </button>
     </template>
-    <template v-else-if="editEnabled">
+    <template v-else>
       <button
-        v-if="locked"
         class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-muted text-xs md:text-sm hover:border-accent hover:text-accent-hover transition-colors"
         @click="$emit('edit')"
       >Edit</button>
-      <template v-else>
-        <button
-          class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-secondary text-xs md:text-sm hover:border-accent hover:text-accent-hover transition-colors"
-          @click="$emit('edit')"
-        >Edit</button>
-      </template>
     </template>
   </div>
 </template>
