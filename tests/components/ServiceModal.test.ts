@@ -161,43 +161,33 @@ describe('ServiceModal.vue', () => {
   it('API key field shown when type is sonarr (authType: apiKey)', async () => {
     const wrapper = mountModal({ name: 'Sonarr', type: 'sonarr' })
     await flushPromises()
-    // After creds load, should show API key input (not username/password)
-    const inputs = wrapper.findAll('input')
-    // API key input has font-mono class and autocomplete=off
-    const apiInput = inputs.find(i => {
-      const el = i.element as HTMLInputElement
-      return el.autocomplete === 'off' && i.classes().includes('font-mono') && el.placeholder !== '-' && el.placeholder !== 'nas' && el.placeholder !== 'auto'
-    })
-    expect(apiInput).toBeTruthy()
+    // SecretInput stub renders a .use-env-var button for the api key field
+    expect(wrapper.find('.use-env-var').exists()).toBe(true)
   })
 
   it('Username and Password fields shown when type is pihole (authType: basic)', async () => {
     const wrapper = mountModal({ name: 'Pihole', type: 'pihole' })
     await flushPromises()
-    const text = wrapper.text()
-    // The labels come from Field stubs (stubbed as div with slot), but we can check
-    // input types: password input exists
-    const inputs = wrapper.findAll('input')
-    const passwordInputs = inputs.filter(i => (i.element as HTMLInputElement).type === 'password')
-    expect(passwordInputs.length).toBeGreaterThan(0)
+    // Username: plain input with env var hint; Password: SecretInput stub with .use-env-var button
+    expect(wrapper.find('.use-env-var').exists()).toBe(true)
+    // Username text input exists (not from SecretInput)
+    const inputs = wrapper.findAll('input[type="text"], input:not([type])')
+    expect(inputs.length).toBeGreaterThan(0)
   })
 
   it('no credential fields when type is tdarr (authType: none)', async () => {
     const wrapper = mountModal({ name: 'Tdarr', type: 'tdarr' })
     await flushPromises()
-    // authType none → no credential block
-    const inputs = wrapper.findAll('input')
-    const passwordInputs = inputs.filter(i => (i.element as HTMLInputElement).type === 'password')
-    expect(passwordInputs.length).toBe(0)
+    // authType none - no SecretInput rendered
+    expect(wrapper.find('.use-env-var').exists()).toBe(false)
   })
 
   it('only Password field shown when type is duplicati (authType: password)', async () => {
     const wrapper = mountModal({ name: 'Duplicati', type: 'duplicati' })
     await flushPromises()
-    const inputs = wrapper.findAll('input')
-    const passwordInputs = inputs.filter(i => (i.element as HTMLInputElement).type === 'password')
-    // only one password field, no username
-    expect(passwordInputs.length).toBe(1)
+    // Only one SecretInput (password), no username field
+    expect(wrapper.findAll('.use-env-var').length).toBe(1)
+    expect(wrapper.text()).not.toContain('Username')
   })
 
   it('"Test widget" button shown only when both type and url are set', async () => {

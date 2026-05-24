@@ -7,6 +7,11 @@ vi.stubGlobal('defineEventHandler', (fn: unknown) => fn)
 vi.stubGlobal('getQuery', () => ({}))
 vi.stubGlobal('createError', ({ statusCode, message }: { statusCode: number; message: string }) => new Error(`${statusCode}: ${message}`))
 
+// Nuxt router globals
+vi.stubGlobal('defineNuxtRouteMiddleware', (fn: Function) => fn)
+vi.stubGlobal('navigateTo', vi.fn())
+vi.stubGlobal('useRoute', () => ({ path: '/' }))
+
 // Vue primitives (Nuxt auto-imports these; expose them for composable tests)
 vi.stubGlobal('ref', ref)
 vi.stubGlobal('computed', computed)

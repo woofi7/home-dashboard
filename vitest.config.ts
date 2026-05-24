@@ -10,6 +10,9 @@ export default defineConfig({
       '~': resolve('./app'),
     },
   },
+  define: {
+    'import.meta.client': true,
+  },
   test: {
     include: ['tests/**/*.test.ts'],
     environment: 'node',
