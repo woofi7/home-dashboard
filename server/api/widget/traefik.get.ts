@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/traefik'
@@ -25,8 +25,7 @@ export async function fetchTraefik(creds: ServiceCredentials) {
     { label: 'Middlewares', value: overview.http.middlewares.total },
   ]
 
-  const active = getActiveFields('traefik', allFields.map(f => f.label))
-  return { type: 'traefik', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'traefik', fields: getOrderedActiveFields('traefik', allFields) }
 }
 
 export { fetchTraefik as fetch }

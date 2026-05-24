@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/bazarr'
@@ -24,8 +24,7 @@ export async function fetchBazarr(creds: ServiceCredentials) {
     { label: 'Providers',        value: providers.data.length },
   ]
 
-  const active = getActiveFields('bazarr', allFields.map(f => f.label))
-  return { type: 'bazarr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'bazarr', fields: getOrderedActiveFields('bazarr', allFields) }
 }
 
 export { fetchBazarr as fetch }

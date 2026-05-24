@@ -1,4 +1,4 @@
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
 import definition from '#shared/widgetDefinitions/prowlarr'
@@ -29,8 +29,7 @@ export async function fetchProwlarr(creds: ServiceCredentials) {
     { label: 'Failures',  value: sum('numberOfFailedQueries') },
   ]
 
-  const active = getActiveFields('prowlarr', allFields.map(f => f.label))
-  return { type: 'prowlarr', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'prowlarr', fields: getOrderedActiveFields('prowlarr', allFields) }
 }
 
 export { fetchProwlarr as fetch }

@@ -1,5 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatDuration } from '../../utils/formatBytes'
 
 import definition from '#shared/widgetDefinitions/audiobookshelf'
@@ -32,8 +32,7 @@ export async function fetchAudiobookshelf(creds: ServiceCredentials) {
     { label: 'Size',       value: formatBytes(stats.reduce((s, r) => s + r.totalSize, 0)) },
   ]
 
-  const active = getActiveFields('audiobookshelf', allFields.map(f => f.label))
-  return { type: 'audiobookshelf', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'audiobookshelf', fields: getOrderedActiveFields('audiobookshelf', allFields) }
 }
 
 export { fetchAudiobookshelf as fetch }

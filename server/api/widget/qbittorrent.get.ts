@@ -1,5 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatSpeed } from '../../utils/formatBytes'
 
 import definition from '#shared/widgetDefinitions/qbittorrent'
@@ -34,8 +34,7 @@ export async function fetchQbittorrent(creds: ServiceCredentials) {
     { label: 'UL Speed', value: formatSpeed(transfer.up_info_speed, transfer.up_rate_limit) },
   ]
 
-  const active = getActiveFields('qbittorrent', allFields.map(f => f.label))
-  return { type: 'qbittorrent', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'qbittorrent', fields: getOrderedActiveFields('qbittorrent', allFields) }
 }
 
 export { fetchQbittorrent as fetch }

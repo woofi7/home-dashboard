@@ -1,5 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatKilobytes } from '../../utils/formatBytes'
 
 import definition from '#shared/widgetDefinitions/unraid'
@@ -45,8 +45,7 @@ export async function fetchUnraid(creds: ServiceCredentials) {
     { label: 'Memory', value: `${formatBytes(memory.total - memory.available)} / ${formatBytes(memory.total)}` },
   ]
 
-  const active = getActiveFields('unraid', allFields.map(f => f.label))
-  return { type: 'unraid', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'unraid', fields: getOrderedActiveFields('unraid', allFields) }
 }
 
 export { fetchUnraid as fetch }

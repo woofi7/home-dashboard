@@ -23,3 +23,11 @@ export function getActiveFields(type: string, allLabels: string[]): Set<string> 
   const saved = readFieldConfig()[type]
   return new Set(saved ?? allLabels)
 }
+
+export function getOrderedActiveFields<T extends { label: string }>(type: string, allFields: T[]): T[] {
+  const saved = readFieldConfig()[type]
+  if (!saved)
+    return allFields
+  const map = new Map(allFields.map(f => [f.label, f]))
+  return saved.map(l => map.get(l)).filter((f): f is T => f !== undefined)
+}

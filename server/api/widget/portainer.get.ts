@@ -1,5 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
-import { getActiveFields } from '../../utils/widget-fields'
+import { getOrderedActiveFields } from '../../utils/widget-fields'
 
 import definition from '#shared/widgetDefinitions/portainer'
 export const meta = definition
@@ -36,8 +36,7 @@ export async function fetchPortainer(creds: ServiceCredentials) {
     { label: 'Images',     value: images.length },
   ]
 
-  const active = getActiveFields('portainer', allFields.map(f => f.label))
-  return { type: 'portainer', fields: allFields.filter(f => active.has(f.label)) }
+  return { type: 'portainer', fields: getOrderedActiveFields('portainer', allFields) }
 }
 
 export { fetchPortainer as fetch }

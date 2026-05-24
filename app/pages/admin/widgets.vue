@@ -17,18 +17,12 @@ function defaultLabels(type: string): string[] {
 function activeLabels(type: string): string[] {
   return pendingFields.value[type] ?? fieldConfig.value?.[type] ?? defaultLabels(type)
 }
-function initPending(type: string) {
-  if (!pendingFields.value[type])
-    pendingFields.value[type] = [...activeLabels(type)]
+function updateFields(type: string, labels: string[]) {
+  pendingFields.value[type] = labels
 }
-function toggleField(type: string, label: string) {
-  initPending(type)
-  const list = pendingFields.value[type]!
-  const idx = list.indexOf(label)
-  if (idx === -1)
-    list.push(label)
-  else
-    list.splice(idx, 1)
+
+function cancelFields(type: string) {
+  delete pendingFields.value[type]
 }
 async function saveFields(type: string) {
   saving.value = type
@@ -45,7 +39,7 @@ function isDirty(type: string): boolean {
     return false
   const current = fieldConfig.value?.[type] ?? defaultLabels(type)
   const pending = pendingFields.value[type]!
-  return JSON.stringify([...current].sort()) !== JSON.stringify([...pending].sort())
+  return JSON.stringify(current) !== JSON.stringify(pending)
 }
 
 const filteredCatalog = computed(() => {
@@ -85,7 +79,8 @@ const AUTH_COLORS: Record<string, string> = {
       :is-dirty="isDirty(type)"
       :saving="saving === type"
       :auth-colors="AUTH_COLORS"
-      @toggle-field="toggleField(type, $event)"
+      @update-fields="updateFields(type, $event)"
+      @cancel="cancelFields(type)"
       @save="saveFields(type)"
     />
   </div>
