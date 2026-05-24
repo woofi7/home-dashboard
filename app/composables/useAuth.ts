@@ -9,14 +9,16 @@ async function fetchStatus() {
 }
 
 let initialized = false
+let readyPromise: Promise<void> = Promise.resolve()
 
 export function useAuth() {
   if (!initialized && import.meta.client) {
     initialized = true
-    fetchStatus()
+    readyPromise = fetchStatus()
   }
 
   return {
+    ready: readyPromise,
     editEnabled: computed(() => status.value.editEnabled),
     authenticated: computed(() => status.value.authenticated),
     needsLogin: computed(() => status.value.editEnabled && !status.value.authenticated),

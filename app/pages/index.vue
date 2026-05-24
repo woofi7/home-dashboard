@@ -52,11 +52,22 @@ async function handleLogout() {
 }
 
 useHead(computed(() => ({ title: (localConfig.value.settings?.title as string) || 'Dashboard' })))
+
+const bgAppearance = computed(() => {
+  const bg = localConfig.value.settings?.background as Record<string, unknown> | undefined
+  return {
+    position: (bg?.position as string) ?? 'center',
+    overlay: typeof bg?.overlay === 'number' ? bg.overlay : 40,
+    blur: (bg?.blur as string) ?? 'none',
+    fadeSpeed: (bg?.fadeSpeed as string) ?? 'normal',
+    color: (bg?.color as string) ?? '#0f1117',
+  }
+})
 </script>
 
 <template>
   <div class="min-h-screen text-primary relative">
-    <DashboardBackground :background="background as any" />
+    <DashboardBackground :background="background as any" :appearance="bgAppearance" />
 
     <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 px-4 md:px-6 pt-6 md:pt-8 pb-2 items-start">
       <CalendarPanel :calendar="calendar as any" />
