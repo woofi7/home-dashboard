@@ -17,6 +17,9 @@ const emit = defineEmits<{
   restore: []
 }>()
 
+const { settings } = useGlobalSettings()
+const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
+
 function faviconUrl(url: string) {
   try {
     const { hostname } = new URL(url)
@@ -30,7 +33,7 @@ function faviconUrl(url: string) {
 <template>
   <component
     :is="edit ? 'div' : 'a'"
-    v-bind="edit ? {} : { href: bookmark.url, target: '_blank', rel: 'noopener' }"
+    v-bind="edit ? {} : { href: bookmark.url, target: linkTarget, rel: 'noopener' }"
     class="group/bm relative flex flex-col items-center gap-1.5 transition-opacity"
     :class="[edit ? 'cursor-default' : 'cursor-pointer', pendingDelete ? 'opacity-40' : '']"
     @click="!edit && emit('click')"

@@ -9,7 +9,7 @@ vi.stubGlobal('definePageMeta', vi.fn())
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean }
+type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab' }
 
 function makeUseFetch(settings: SettingsData = {}, clicks: Record<string, number> = {}) {
   const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, ...settings })
@@ -180,6 +180,58 @@ describe('admin/settings.vue', () => {
       await w.findAll('button').find(b => b.text() === 'Reset')!.trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Counts cleared')
+    })
+  })
+
+  describe('link behavior', () => {
+    it('renders New tab and Same tab buttons', async () => {
+      const w = await mountPage()
+      expect(w.text()).toContain('New tab')
+      expect(w.text()).toContain('Same tab')
+    })
+
+    it('New tab button is active by default', async () => {
+      const w = await mountPage()
+      const newTabBtn = w.findAll('button').find(b => b.text() === 'New tab')!
+      expect(newTabBtn.classes()).toContain('bg-accent')
+    })
+
+    it('Same tab button is active when linkTarget is same-tab', async () => {
+      const w = await mountPage({ linkTarget: 'same-tab' })
+      const sameTabBtn = w.findAll('button').find(b => b.text() === 'Same tab')!
+      expect(sameTabBtn.classes()).toContain('bg-accent')
+    })
+
+    it('clicking Same tab marks form dirty', async () => {
+      const w = await mountPage()
+      await w.findAll('button').find(b => b.text() === 'Same tab')!.trigger('click')
+      expect(w.text()).toContain('Unsaved changes')
+    })
+
+    it('clicking New tab when already new-tab does not mark dirty', async () => {
+      const w = await mountPage({ linkTarget: 'new-tab' })
+      await w.findAll('button').find(b => b.text() === 'New tab')!.trigger('click')
+      expect(w.text()).not.toContain('Unsaved changes')
+    })
+
+    it('Cancel restores link target to original value', async () => {
+      const w = await mountPage({ linkTarget: 'new-tab' })
+      await w.findAll('button').find(b => b.text() === 'Same tab')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
+      const newTabBtn = w.findAll('button').find(b => b.text() === 'New tab')!
+      expect(newTabBtn.classes()).toContain('bg-accent')
+    })
+
+    it('saves linkTarget in POST body', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const w = await mountPage({ linkTarget: 'new-tab' })
+      await w.findAll('button').find(b => b.text() === 'Same tab')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/edit/settings',
+        expect.objectContaining({ body: expect.objectContaining({ linkTarget: 'same-tab' }) }),
+      )
     })
   })
 })

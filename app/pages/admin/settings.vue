@@ -1,7 +1,7 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false, layout: 'admin', middleware: 'admin' })
 
-type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean }
+type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab' }
 
 const { data: current, refresh } = await useFetch<SettingsConfig>('/api/admin/settings')
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
@@ -10,18 +10,19 @@ const form = ref<SettingsConfig>({ title: '', bookmarkCounterEnabled: true })
 
 watch(current, (v) => {
   if (v)
-    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true }
+    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, linkTarget: v.linkTarget ?? 'new-tab' }
 }, { immediate: true })
 
 const isDirty = computed(() => {
   const c = current.value
   return (form.value.title ?? '') !== (c?.title ?? '')
     || (form.value.bookmarkCounterEnabled ?? true) !== (c?.bookmarkCounterEnabled ?? true)
+    || (form.value.linkTarget ?? 'new-tab') !== (c?.linkTarget ?? 'new-tab')
 })
 
 function cancel() {
   if (current.value)
-    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true }
+    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, linkTarget: current.value.linkTarget ?? 'new-tab' }
 }
 
 const saving = ref(false)
@@ -33,7 +34,7 @@ async function save() {
   saveError.value = ''
   saveSuccess.value = false
   try {
-    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled } })
+    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, linkTarget: form.value.linkTarget } })
     await refresh()
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 2000)
@@ -89,6 +90,22 @@ async function resetClicks() {
             class="w-full px-3 py-2 rounded-lg bg-elevated border border-border text-primary text-sm placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
           />
           <p class="text-xs text-muted/60 mt-1">Shown in the browser tab.</p>
+        </div>
+        <div>
+          <label class="text-xs text-muted block mb-2">Link behavior</label>
+          <div class="flex gap-2">
+            <button
+              class="flex-1 px-3 py-2 rounded-lg text-sm border transition-colors"
+              :class="(form.linkTarget ?? 'new-tab') === 'new-tab' ? 'bg-accent text-white border-accent' : 'bg-elevated border-border text-muted hover:border-accent'"
+              @click="form.linkTarget = 'new-tab'"
+            >New tab</button>
+            <button
+              class="flex-1 px-3 py-2 rounded-lg text-sm border transition-colors"
+              :class="form.linkTarget === 'same-tab' ? 'bg-accent text-white border-accent' : 'bg-elevated border-border text-muted hover:border-accent'"
+              @click="form.linkTarget = 'same-tab'"
+            >Same tab</button>
+          </div>
+          <p class="text-xs text-muted/60 mt-1">Where service and bookmark links open.</p>
         </div>
       </div>
     </div>

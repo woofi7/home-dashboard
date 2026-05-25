@@ -17,6 +17,9 @@ vi.stubGlobal('useRefreshData', () => ({
 // widgetRefresh stub so useRefreshData's internal composable doesn't fail
 vi.stubGlobal('useWidgetRefresh', () => ({ refreshKey: ref(0), forceKey: ref(0) }))
 
+const globalSettingsData = ref<{ linkTarget?: 'new-tab' | 'same-tab' }>({})
+vi.stubGlobal('useGlobalSettings', () => ({ settings: computed(() => globalSettingsData.value) }))
+
 import ServiceCard from '~/components/layout/ServiceCard.vue'
 
 type Service = {
@@ -272,5 +275,32 @@ describe('ServiceCard.vue — Edit mode buttons', () => {
     const root = wrapper.element as HTMLElement
     expect(root.className).toContain('border-danger')
     expect(root.className).toContain('opacity-50')
+  })
+})
+
+describe('ServiceCard.vue — Link target', () => {
+  beforeEach(() => {
+    dockerStatus.value = {}
+    pingStatus.value = {}
+    widgetData.value = {}
+    globalSettingsData.value = {}
+  })
+
+  it('opens in new tab by default', () => {
+    globalSettingsData.value = {}
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.element.getAttribute('target')).toBe('_blank')
+  })
+
+  it('opens in new tab when linkTarget is new-tab', () => {
+    globalSettingsData.value = { linkTarget: 'new-tab' }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.element.getAttribute('target')).toBe('_blank')
+  })
+
+  it('opens in same tab when linkTarget is same-tab', () => {
+    globalSettingsData.value = { linkTarget: 'same-tab' }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.element.getAttribute('target')).toBe('_self')
   })
 })
