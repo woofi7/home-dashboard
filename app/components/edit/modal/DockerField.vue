@@ -12,7 +12,7 @@ const emit = defineEmits<{ 'update:server': [v: string]; 'update:container': [v:
           :value="server"
           type="text"
           class="modal-input font-mono text-xs"
-          placeholder="nas"
+          placeholder=""
           autocomplete="off"
           @input="emit('update:server', ($event.target as HTMLInputElement).value)"
         />

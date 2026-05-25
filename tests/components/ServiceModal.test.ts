@@ -218,10 +218,10 @@ describe('ServiceModal.vue', () => {
 
   it('Docker section: Server and Container fields rendered', () => {
     const wrapper = mountModal(null)
-    const inputs = wrapper.findAll('input')
-    const serverInput = inputs.find(i => (i.element as HTMLInputElement).placeholder === 'nas')
-    const containerInput = inputs.find(i => (i.element as HTMLInputElement).placeholder === 'auto')
-    expect(serverInput).toBeTruthy()
+    const labels = wrapper.findAll('label')
+    expect(labels.some(l => l.text() === 'Server')).toBe(true)
+    expect(labels.some(l => l.text() === 'Container')).toBe(true)
+    const containerInput = wrapper.findAll('input').find(i => (i.element as HTMLInputElement).placeholder === 'auto')
     expect(containerInput).toBeTruthy()
   })
 })

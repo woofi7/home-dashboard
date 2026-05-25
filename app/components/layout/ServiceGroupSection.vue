@@ -140,6 +140,7 @@ function saveService(updated: Service) {
       item-key="name"
       :style="{ ...containerStyle, padding: '0.75rem', minHeight: '80px' }"
       @end="onServicesUpdate"
+      @add="onServicesUpdate"
     >
       <ServiceCard
         v-for="service in localGroup.services"
