@@ -8,6 +8,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/weather': 'Weather',
   '/admin/widgets': 'Widget Fields',
   '/admin/calendar': 'Google Calendar',
+  '/admin/backup': 'Backup & Restore',
 }
 
 const isRoot = computed(() => route.path === '/admin')
