@@ -10,6 +10,7 @@ vi.stubGlobal('useAuth', () => ({
   editEnabled: ref(true),
   needsLogin: ref(false),
 }))
+vi.stubGlobal('$fetch', vi.fn().mockResolvedValue(new Blob(['PK'], { type: 'application/zip' })))
 
 import AdminIndex from '~/pages/admin/index.vue'
 
@@ -85,7 +86,25 @@ describe('admin/index.vue', () => {
     expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
   })
 
-  it('renders 5 setting cards total', () => {
+  it('renders 5 setting nav cards (links)', () => {
     expect(mountPage().findAll('a').length).toBe(5)
+  })
+
+  it('renders a Backup button', () => {
+    const w = mountPage()
+    const btn = w.findAll('button').find(b => b.text().includes('Backup'))
+    expect(btn).toBeTruthy()
+  })
+
+  it('uses file-zipper icon for the Backup button', () => {
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'file-zipper')).toBe(true)
+  })
+
+  it('clicking Backup calls $fetch with the backup endpoint', async () => {
+    const w = mountPage()
+    const btn = w.findAll('button').find(b => b.text().includes('Backup'))!
+    await btn.trigger('click')
+    await new Promise(r => setTimeout(r, 10))
+    expect($fetch).toHaveBeenCalledWith('/api/admin/backup', { responseType: 'blob' })
   })
 })
