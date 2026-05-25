@@ -3,6 +3,12 @@ import { applyGroupAction } from '../../utils/groupCrud'
 import { preserveCredentials } from '../../utils/credentialMerge'
 import type { Service, ServiceGroup } from '../../types'
 
+function stripEmpty(svc: Service): Service {
+  return Object.fromEntries(
+    Object.entries(svc).filter(([, v]) => v !== '' && v !== null && v !== undefined)
+  ) as Service
+}
+
 export default defineEventHandler(async (event) => {
   if (event.method === 'GET') {
     return loadConfig<ServiceGroup[]>('services.yaml') ?? []
@@ -33,6 +39,9 @@ export default defineEventHandler(async (event) => {
     const raw = loadConfigRaw<ServiceGroup[]>('services.yaml') ?? []
     updated = preserveCredentials(raw, updated)
   }
+
+  // Strip empty-string fields so clearing a value (e.g. server) removes it from YAML.
+  updated = updated.map(g => ({ ...g, services: g.services.map(stripEmpty) }))
 
   writeConfig('services.yaml', updated)
   return { ok: true }

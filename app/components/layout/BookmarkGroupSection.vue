@@ -148,6 +148,7 @@ function save(updated: Bookmark) {
       :style="{ ...bookmarkContainerStyle, minHeight: '48px' }"
       @start="dragging = true"
       @end="dragging = false; onUpdate()"
+      @add="onUpdate()"
     >
       <BookmarkItem
         v-for="b in localGroup.bookmarks"

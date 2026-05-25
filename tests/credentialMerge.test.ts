@@ -47,20 +47,21 @@ describe('preserveCredentials', () => {
     expect(pihole.password).toBe('pipass')
   })
 
-  it('keeps user-entered value when non-empty', () => {
+  it('preserves incoming safe-field value when non-empty (e.g. changed URL)', () => {
     const incoming: ServiceGroup[] = [{
       name: 'Homelab',
-      services: [{ name: 'Unraid', url: 'http://nas', type: 'unraid', apiKey: 'newkey' }],
+      services: [{ name: 'Unraid', url: 'http://nas-new', type: 'unraid' }],
     }]
     const raw: ServiceGroup[] = [{
       name: 'Homelab',
       services: [{ name: 'Unraid', url: 'http://nas', type: 'unraid', apiKey: 'oldkey' }],
     }]
     const result = preserveCredentials(raw, incoming)
-    expect(result[0].services[0].apiKey).toBe('newkey')
+    expect(result[0].services[0].url).toBe('http://nas-new')
+    expect(result[0].services[0].apiKey).toBe('oldkey')
   })
 
-  it('keeps env var reference (non-empty string)', () => {
+  it('keeps env var reference in incoming', () => {
     const incoming: ServiceGroup[] = [{
       name: 'Homelab',
       services: [{ name: 'Unraid', url: 'http://nas', type: 'unraid', apiKey: '${UNRAID_API_KEY}' }],
@@ -73,17 +74,73 @@ describe('preserveCredentials', () => {
     expect(result[0].services[0].apiKey).toBe('${UNRAID_API_KEY}')
   })
 
-  it('restores when incoming value is explicit empty string', () => {
-    const incoming: ServiceGroup[] = [{
-      name: 'Homelab',
-      services: [{ name: 'Unraid', url: 'http://nas', type: 'unraid', apiKey: '' }],
-    }]
-    const raw: ServiceGroup[] = [{
-      name: 'Homelab',
-      services: [{ name: 'Unraid', url: 'http://nas', type: 'unraid', apiKey: 'existingkey' }],
-    }]
+  it('restores credentials when service is moved to a different group (source group kept)', () => {
+    // Sonarr was in "Media", user moved it to "Arr". Both groups remain.
+    const raw: ServiceGroup[] = [
+      {
+        name: 'Media',
+        services: [{ name: 'Sonarr', url: 'http://sonarr', type: 'sonarr', apiKey: 'secret' }],
+      },
+      { name: 'Arr', services: [] },
+    ]
+    const incoming: ServiceGroup[] = [
+      { name: 'Media', services: [] },
+      { name: 'Arr', services: [{ name: 'Sonarr', url: 'http://sonarr', type: 'sonarr' }] },
+    ]
     const result = preserveCredentials(raw, incoming)
-    expect(result[0].services[0].apiKey).toBe('existingkey')
+    const sonarr = result.flatMap(g => g.services).find(s => s.name === 'Sonarr')!
+    expect(sonarr.apiKey).toBe('secret')
+  })
+
+  it('restores credentials after create-group / move / delete-old / save flow', () => {
+    // Exact user-reported flow:
+    // 1. Raw YAML has Media with Sonarr + Radarr (credentialled)
+    // 2. User creates new "Arr" group (not yet in YAML)
+    // 3. User moves Sonarr and Radarr to "Arr"
+    // 4. User deletes "Media" (so it is absent from incoming)
+    // 5. Save sends reorderGroups with only [Arr (Sonarr, Radarr, no creds)]
+    const raw: ServiceGroup[] = [
+      {
+        name: 'Media',
+        services: [
+          { name: 'Sonarr', url: 'http://sonarr', type: 'sonarr', apiKey: 'sonarr-key' },
+          { name: 'Radarr', url: 'http://radarr', type: 'radarr', apiKey: 'radarr-key' },
+        ],
+      },
+    ]
+    const incoming: ServiceGroup[] = [
+      {
+        name: 'Arr',
+        services: [
+          { name: 'Sonarr', url: 'http://sonarr', type: 'sonarr' },
+          { name: 'Radarr', url: 'http://radarr', type: 'radarr' },
+        ],
+      },
+    ]
+    const result = preserveCredentials(raw, incoming)
+    expect(result).toHaveLength(1)
+    expect(result[0].name).toBe('Arr')
+    const sonarr = result[0].services.find(s => s.name === 'Sonarr')!
+    const radarr = result[0].services.find(s => s.name === 'Radarr')!
+    expect(sonarr.apiKey).toBe('sonarr-key')
+    expect(radarr.apiKey).toBe('radarr-key')
+  })
+
+  it('restores non-credential fields (e.g. docker server) across group move', () => {
+    const raw: ServiceGroup[] = [
+      {
+        name: 'Docker',
+        services: [{ name: 'Nginx', url: 'http://nginx', type: '', container: 'nginx', server: 'nas' }],
+      },
+      { name: 'Web', services: [] },
+    ]
+    const incoming: ServiceGroup[] = [
+      { name: 'Docker', services: [] },
+      { name: 'Web', services: [{ name: 'Nginx', url: 'http://nginx', type: '', container: 'nginx' }] },
+    ]
+    const result = preserveCredentials(raw, incoming)
+    const nginx = result.flatMap(g => g.services).find(s => s.name === 'Nginx')!
+    expect(nginx.server).toBe('nas')
   })
 
   it('passes through new services not in raw', () => {
