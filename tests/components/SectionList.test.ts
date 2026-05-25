@@ -140,6 +140,32 @@ describe('SectionList.vue', () => {
       const buttons = w.findAll('button').filter(b => b.text().includes('section') || b.text().includes('group'))
       expect(buttons.length).toBe(0)
     })
+
+    it('add buttons use white-alpha border and background for visibility over backgrounds', () => {
+      const w = mountList({
+        sectionOrder: [{ type: 'service', name: 'Media' }],
+        services: ['Media'],
+        editActive: true,
+      })
+      const buttons = w.findAll('button').filter(b => b.text().includes('section') || b.text().includes('group'))
+      for (const btn of buttons) {
+        expect(btn.classes()).toContain('border-white/30')
+        expect(btn.classes()).toContain('bg-black/20')
+        expect(btn.classes()).not.toContain('border-border')
+        expect(btn.classes()).not.toContain('text-muted')
+      }
+    })
+
+    it('empty-state add buttons use white-alpha border and background', () => {
+      const w = mountList({ configLoaded: true, sectionOrder: [], editActive: true })
+      const buttons = w.findAll('button').filter(b => b.text().includes('section') || b.text().includes('group'))
+      for (const btn of buttons) {
+        expect(btn.classes()).toContain('border-white/30')
+        expect(btn.classes()).toContain('bg-black/20')
+        expect(btn.classes()).not.toContain('border-border')
+        expect(btn.classes()).not.toContain('text-muted')
+      }
+    })
   })
 
   describe('add group flow', () => {

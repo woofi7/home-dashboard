@@ -94,6 +94,15 @@ describe('ServiceGroupSection.vue', () => {
     expect(wrapper.find('.service-modal-stub').exists()).toBe(true)
   })
 
+  it('Add button uses white-alpha border and background for visibility over backgrounds', () => {
+    const wrapper = mountSection({ edit: true })
+    const addBtn = wrapper.findAll('button').find(b => b.text().includes('Add'))!
+    expect(addBtn.classes()).toContain('border-white/30')
+    expect(addBtn.classes()).toContain('bg-black/20')
+    expect(addBtn.classes()).not.toContain('border-border')
+    expect(addBtn.classes()).not.toContain('text-muted')
+  })
+
   it('after mount + nextTick, component has opacity-100 class', async () => {
     const { nextTick } = await import('vue')
     const wrapper = mountSection()

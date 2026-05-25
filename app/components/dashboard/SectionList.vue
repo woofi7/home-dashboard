@@ -104,11 +104,11 @@ function onAddKeydown(e: KeyboardEvent) {
       </div>
       <div v-else class="flex flex-col sm:flex-row gap-2 mt-2">
         <button
-          class="px-4 py-2 rounded-lg border border-border text-sm text-muted hover:border-accent hover:text-accent transition-colors"
+          class="px-4 py-2 rounded-lg border border-white/30 bg-black/20 backdrop-blur-sm text-sm text-white/60 hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('service')"
         >+ Service section</button>
         <button
-          class="px-4 py-2 rounded-lg border border-border text-sm text-muted hover:border-accent hover:text-accent transition-colors"
+          class="px-4 py-2 rounded-lg border border-white/30 bg-black/20 backdrop-blur-sm text-sm text-white/60 hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('bookmark')"
         >+ Bookmark group</button>
       </div>
@@ -164,11 +164,11 @@ function onAddKeydown(e: KeyboardEvent) {
     <div v-if="editActive" class="px-4 md:px-6 pt-4 pb-28">
       <div v-if="!addMode" class="flex gap-2">
         <button
-          class="px-3 py-1.5 rounded-lg border border-dashed border-border text-xs text-muted hover:border-accent hover:text-accent transition-colors"
+          class="px-3 py-1.5 rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm text-xs text-white/60 hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('service')"
         >+ Service section</button>
         <button
-          class="px-3 py-1.5 rounded-lg border border-dashed border-border text-xs text-muted hover:border-accent hover:text-accent transition-colors"
+          class="px-3 py-1.5 rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm text-xs text-white/60 hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('bookmark')"
         >+ Bookmark group</button>
       </div>
