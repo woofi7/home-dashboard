@@ -18,6 +18,7 @@ const {
 
 const { countdown, forceRefresh } = useWidgetRefresh()
 const { tokenConfigured, editEnabled, needsLogin, logout } = useAuth()
+const version = useRuntimeConfig().public.version
 const loginVisible = ref(false)
 const setupVisible = ref(false)
 const leaveConfirmVisible = ref(false)
@@ -102,6 +103,10 @@ watch(() => localConfig.value.settings?.background, (bg) => {
         class="fixed bottom-16 md:bottom-20 right-4 md:right-6 z-50 px-4 py-2 rounded-xl bg-danger/90 text-white text-xs backdrop-blur-sm max-w-xs text-right"
       >{{ saveError }}</div>
     </Transition>
+
+    <div class="fixed bottom-2 left-3 z-50 text-white/20 text-[10px] select-none pointer-events-none">
+      {{ version }}
+    </div>
 
     <EditToggle
       :active="editActive"
