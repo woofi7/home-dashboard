@@ -1,6 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
 import { readdirSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { getVersion } from './server/utils/version'
 
 function generateWidgetRegistry() {
   const widgetDir = resolve('./server/api/widget')
@@ -51,6 +52,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     configDir: process.env.CONFIG_DIR || './config',
     allowedHosts: process.env.ALLOWED_HOSTS || '*',
+    public: {
+      version: getVersion(),
+    },
   },
 
   routeRules: {
