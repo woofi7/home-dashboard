@@ -8,6 +8,8 @@ defineEmits<{ edit: []; delete: []; revert: [] }>()
 
 const { dockerStatus, pingStatus, widgetData } = useRefreshData()
 const { cardStyle } = useAppearanceSettings()
+const { settings } = useGlobalSettings()
+const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
 
 const containerState = computed(() =>
   resolveContainerState(
@@ -52,7 +54,7 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
 <template>
   <component
     :is="!edit && service.url ? 'a' : 'div'"
-    v-bind="!edit && service.url ? { href: service.url, target: '_blank', rel: 'noopener' } : {}"
+    v-bind="!edit && service.url ? { href: service.url, target: linkTarget, rel: 'noopener' } : {}"
     class="relative group/card rounded-lg border p-3 flex flex-col gap-2 transition-colors"
     :style="cardStyle"
     :class="[
