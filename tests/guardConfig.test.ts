@@ -23,15 +23,16 @@ describe('recoverOrphanedItems', () => {
     expect(names).toContain('B')
   })
 
-  it('recovers item to first group when original group was deleted', () => {
+  it('does not recover items from an intentionally deleted group', () => {
     const raw = [
       { name: 'G1', services: [{ name: 'A' }] },
       { name: 'G2', services: [{ name: 'B' }] },
     ]
-    // G1 is gone, B moved to G2 but A was accidentally lost
+    // G1 was deleted by the user — A must not be recovered into G2
     const incoming = [{ name: 'G2', services: [{ name: 'B' }] }]
     const result = run(raw, incoming, 'services')
-    expect(result[0].services!.map(s => s.name)).toContain('A')
+    expect(result[0].services!.map(s => s.name)).not.toContain('A')
+    expect(result).toEqual(incoming)
   })
 
   it('handles items that moved between groups without losing any', () => {
@@ -72,19 +73,52 @@ describe('recoverOrphanedItems', () => {
     expect(run([], incoming, 'services')).toEqual(incoming)
   })
 
-  it('simulates exact user bug flow: create group, move services, delete old, save', () => {
-    // Raw YAML before the save
+  it('user flow: create group, move services, delete old — services in new group are kept', () => {
+    // Raw: OldGroup has Sonarr and Radarr
     const raw = [
       { name: 'OldGroup', services: [{ name: 'Sonarr', apiKey: 'secret123' }, { name: 'Radarr', apiKey: 'abc' }] },
     ]
-    // Frontend bug: services were moved to NewGroup but OldGroup still shows them in state.
-    // User then deletes OldGroup. Resulting payload has NewGroup but Sonarr/Radarr are lost.
+    // User properly moved services to NewGroup, then deleted OldGroup.
+    // Incoming: NewGroup has both services, OldGroup is gone.
     const incoming = [
-      { name: 'NewGroup', services: [] },
+      { name: 'NewGroup', services: [{ name: 'Sonarr' }, { name: 'Radarr' }] },
     ]
     const result = run(raw, incoming, 'services')
     const allNames = result.flatMap(g => g.services!.map(s => s.name))
     expect(allNames).toContain('Sonarr')
     expect(allNames).toContain('Radarr')
+  })
+
+  it('user flow: delete group — items from deleted group are not recovered', () => {
+    // Raw: Services group has Overseerr and Sonarr
+    const raw = [
+      { name: 'Services', services: [{ name: 'Overseerr' }, { name: 'Sonarr' }] },
+      { name: 'Media', services: [{ name: 'Plex' }] },
+    ]
+    // User deleted Services group entirely. Only Media remains.
+    const incoming = [
+      { name: 'Media', services: [{ name: 'Plex' }] },
+    ]
+    const result = run(raw, incoming, 'services')
+    const allNames = result.flatMap(g => g.services!.map(s => s.name))
+    expect(allNames).not.toContain('Overseerr')
+    expect(allNames).not.toContain('Sonarr')
+    expect(allNames).toContain('Plex')
+  })
+
+  it('recovers item accidentally lost from a surviving group (the original move bug)', () => {
+    // Raw: two groups exist
+    const raw = [
+      { name: 'G1', services: [{ name: 'A' }, { name: 'B' }] },
+      { name: 'G2', services: [] },
+    ]
+    // Frontend bug caused B to be dropped entirely — both groups survive
+    const incoming = [
+      { name: 'G1', services: [{ name: 'A' }] },
+      { name: 'G2', services: [] },
+    ]
+    const result = run(raw, incoming, 'services')
+    const g1Names = result.find(g => g.name === 'G1')!.services!.map(s => s.name)
+    expect(g1Names).toContain('B')
   })
 })
