@@ -168,7 +168,7 @@ function save(updated: Bookmark) {
 
     <button
       v-if="edit"
-      class="cursor-pointer mt-3 w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
+      class="cursor-pointer mt-3 w-full rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm hover:border-accent text-white/60 hover:text-accent-hover text-sm py-2 transition-colors"
       @click="openAdd"
     >+ Add</button>
   </div>

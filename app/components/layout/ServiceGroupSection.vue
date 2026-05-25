@@ -157,7 +157,7 @@ function saveService(updated: Service) {
 
     <div v-if="edit" class="px-3 pb-3">
       <button
-        class="w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
+        class="w-full rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm hover:border-accent text-white/60 hover:text-accent-hover text-sm py-2 transition-colors"
         @click="openAdd"
       >+ Add</button>
     </div>
