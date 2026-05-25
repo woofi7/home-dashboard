@@ -1,6 +1,8 @@
 import type { WidgetDefinition } from './types'
+import asf from './asf'
 import audiobookshelf from './audiobookshelf'
 import bazarr from './bazarr'
+import beszel from './beszel'
 import duplicati from './duplicati'
 import homeassistant from './homeassistant'
 import overseerr from './overseerr'
@@ -11,14 +13,18 @@ import prowlarr from './prowlarr'
 import qbittorrent from './qbittorrent'
 import radarr from './radarr'
 import readarr from './readarr'
+import restic from './restic'
 import sonarr from './sonarr'
 import tdarr from './tdarr'
 import traefik from './traefik'
 import unraid from './unraid'
+import uptimekuma from './uptimekuma'
 
 export const widgetDefinitions: Record<string, WidgetDefinition> = {
+  asf,
   audiobookshelf,
   bazarr,
+  beszel,
   duplicati,
   homeassistant,
   overseerr,
@@ -29,8 +35,10 @@ export const widgetDefinitions: Record<string, WidgetDefinition> = {
   qbittorrent,
   radarr,
   readarr,
+  restic,
   sonarr,
   tdarr,
   traefik,
   unraid,
+  uptimekuma,
 }
