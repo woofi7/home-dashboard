@@ -9,8 +9,16 @@ vi.mock('../server/utils/widget-fields', () => ({
   getOrderedActiveFields: <T>(_type: string, allFields: T[]) => allFields,
 }))
 
-const fetch = vi.fn()
-vi.stubGlobal('$fetch', fetch)
+const fetchDollar = vi.fn()
+vi.stubGlobal('$fetch', fetchDollar)
+
+// Native fetch mock — used by fetchUptimekuma (returns a Response-like object)
+const nativeFetch = vi.fn()
+vi.stubGlobal('fetch', nativeFetch)
+
+function mockPrometheusResponse(text: string, ok = true) {
+  nativeFetch.mockResolvedValueOnce({ ok, text: async () => text })
+}
 
 const mockReadFileSync = vi.fn()
 vi.mock('node:fs', () => ({
@@ -18,7 +26,8 @@ vi.mock('node:fs', () => ({
 }))
 
 beforeEach(() => {
-  fetch.mockReset()
+  fetchDollar.mockReset()
+  nativeFetch.mockReset()
   mockReadFileSync.mockReset()
 })
 
@@ -34,7 +43,7 @@ describe('fetchAsf', () => {
   })
 
   it('returns correct fields', async () => {
-    fetch.mockResolvedValueOnce({
+    fetchDollar.mockResolvedValueOnce({
       Result: {
         bot1: { IsConnectedAndLoggedOn: true,  CardsFarmer: { Farming: true,  CardsRemaining: 10, GamesRemaining: 2 } },
         bot2: { IsConnectedAndLoggedOn: true,  CardsFarmer: { Farming: false, CardsRemaining: 5,  GamesRemaining: 0 } },
@@ -53,22 +62,22 @@ describe('fetchAsf', () => {
   })
 
   it('uses Authentication header (not Bearer)', async () => {
-    fetch.mockResolvedValueOnce({ Result: {} })
+    fetchDollar.mockResolvedValueOnce({ Result: {} })
     await fetchAsf({ url: 'http://asf', password: 'secret' })
-    expect(fetch).toHaveBeenCalledWith(
+    expect(fetchDollar).toHaveBeenCalledWith(
       'http://asf/Api/Bot/ASF',
       expect.objectContaining({ headers: { Authentication: 'secret' } }),
     )
   })
 
   it('strips trailing slash from url', async () => {
-    fetch.mockResolvedValueOnce({ Result: {} })
+    fetchDollar.mockResolvedValueOnce({ Result: {} })
     await fetchAsf({ url: 'http://asf/', password: 'pw' })
-    expect(fetch).toHaveBeenCalledWith('http://asf/Api/Bot/ASF', expect.anything())
+    expect(fetchDollar).toHaveBeenCalledWith('http://asf/Api/Bot/ASF', expect.anything())
   })
 
   it('handles empty Result gracefully', async () => {
-    fetch.mockResolvedValueOnce({ Result: {} })
+    fetchDollar.mockResolvedValueOnce({ Result: {} })
     const result = await fetchAsf({ url: 'http://asf', password: 'pw' })
     expect(result?.fields).toEqual([
       { label: 'Bots',    value: 0 },
@@ -96,7 +105,7 @@ describe('fetchBeszel', () => {
   })
 
   it('returns correct fields', async () => {
-    fetch
+    fetchDollar
       .mockResolvedValueOnce({ token: 'tok' })
       .mockResolvedValueOnce({
         items: [
@@ -117,37 +126,37 @@ describe('fetchBeszel', () => {
   })
 
   it('falls back to superuser auth when user auth fails', async () => {
-    fetch
+    fetchDollar
       .mockRejectedValueOnce(new Error('401'))
       .mockResolvedValueOnce({ token: 'admin-tok' })
       .mockResolvedValueOnce({ items: [] })
 
     await fetchBeszel({ url: 'http://beszel', username: 'admin', password: 'p' })
 
-    expect(fetch).toHaveBeenNthCalledWith(1,
+    expect(fetchDollar).toHaveBeenNthCalledWith(1,
       'http://beszel/api/collections/users/auth-with-password',
       expect.anything(),
     )
-    expect(fetch).toHaveBeenNthCalledWith(2,
+    expect(fetchDollar).toHaveBeenNthCalledWith(2,
       'http://beszel/api/collections/_superusers/auth-with-password',
       expect.anything(),
     )
   })
 
   it('sends Bearer token to systems endpoint', async () => {
-    fetch
+    fetchDollar
       .mockResolvedValueOnce({ token: 'mytoken' })
       .mockResolvedValueOnce({ items: [] })
 
     await fetchBeszel({ url: 'http://beszel', username: 'u', password: 'p' })
-    expect(fetch).toHaveBeenCalledWith(
+    expect(fetchDollar).toHaveBeenCalledWith(
       'http://beszel/api/collections/systems/records?perPage=500',
       expect.objectContaining({ headers: { Authorization: 'Bearer mytoken' } }),
     )
   })
 
   it('parses info when stored as JSON string', async () => {
-    fetch
+    fetchDollar
       .mockResolvedValueOnce({ token: 'tok' })
       .mockResolvedValueOnce({
         items: [
@@ -160,7 +169,7 @@ describe('fetchBeszel', () => {
   })
 
   it('shows dash for avg when no info values are present', async () => {
-    fetch
+    fetchDollar
       .mockResolvedValueOnce({ token: 'tok' })
       .mockResolvedValueOnce({ items: [{ status: 'up', info: {} }] })
 
@@ -169,7 +178,7 @@ describe('fetchBeszel', () => {
   })
 
   it('does not count paused systems as down', async () => {
-    fetch
+    fetchDollar
       .mockResolvedValueOnce({ token: 'tok' })
       .mockResolvedValueOnce({
         items: [
@@ -186,142 +195,174 @@ describe('fetchBeszel', () => {
 
 // ─── Uptime Kuma ──────────────────────────────────────────────────────────────
 
+const PROMETHEUS_RESPONSE = `# HELP monitor_status Monitor Status
+# TYPE monitor_status gauge
+monitor_status{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",monitor_hostname="",monitor_port=""} 1
+monitor_status{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",monitor_hostname="",monitor_port=""} 0
+monitor_status{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",monitor_hostname="",monitor_port=""} 1
+# HELP monitor_uptime_ratio Monitor Uptime Ratio
+# TYPE monitor_uptime_ratio gauge
+monitor_uptime_ratio{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",window="1d"} 1
+monitor_uptime_ratio{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",window="1d"} 0.8
+monitor_uptime_ratio{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",window="1d"} 0.9
+monitor_uptime_ratio{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",window="30d"} 0.99
+monitor_uptime_ratio{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",window="30d"} 0.95
+monitor_uptime_ratio{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",window="30d"} 0.97
+monitor_uptime_ratio{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",window="365d"} 0.999
+monitor_uptime_ratio{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",window="365d"} 0.98
+monitor_uptime_ratio{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",window="365d"} 0.99
+# HELP monitor_response_time_seconds Avg response time
+# TYPE monitor_response_time_seconds gauge
+monitor_response_time_seconds{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",monitor_hostname="",monitor_port="",window="1d"} 0.1
+monitor_response_time_seconds{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",monitor_hostname="",monitor_port="",window="1d"} 0.2
+monitor_response_time_seconds{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",monitor_hostname="",monitor_port="",window="1d"} 0.3
+# HELP monitor_cert_is_valid Cert valid
+# TYPE monitor_cert_is_valid gauge
+monitor_cert_is_valid{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",monitor_hostname="",monitor_port=""} 1
+monitor_cert_is_valid{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",monitor_hostname="",monitor_port=""} 0
+monitor_cert_is_valid{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",monitor_hostname="",monitor_port=""} 1
+# HELP monitor_cert_days_remaining Cert days remaining
+# TYPE monitor_cert_days_remaining gauge
+monitor_cert_days_remaining{monitor_name="Site A",monitor_type="http",monitor_url="https://a.example.com",monitor_hostname="",monitor_port=""} 90
+monitor_cert_days_remaining{monitor_name="Site B",monitor_type="http",monitor_url="https://b.example.com",monitor_hostname="",monitor_port=""} 5
+monitor_cert_days_remaining{monitor_name="Site C",monitor_type="http",monitor_url="https://c.example.com",monitor_hostname="",monitor_port=""} 45
+`
+
 describe('fetchUptimekuma', () => {
   it('returns null when url is missing', async () => {
-    expect(await fetchUptimekuma({ username: 'u', password: 'p' })).toBeNull()
+    expect(await fetchUptimekuma({ apiKey: 'key' })).toBeNull()
   })
 
-  it('returns null when username is missing', async () => {
-    expect(await fetchUptimekuma({ url: 'http://kuma', password: 'p' })).toBeNull()
+  it('returns null when apiKey is missing', async () => {
+    expect(await fetchUptimekuma({ url: 'http://kuma' })).toBeNull()
   })
 
-  it('returns null when password is missing', async () => {
-    expect(await fetchUptimekuma({ url: 'http://kuma', username: 'u' })).toBeNull()
-  })
-
-  it('returns null when login returns no token', async () => {
-    fetch.mockResolvedValueOnce({ token: '' })
-    expect(await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })).toBeNull()
-  })
-
-  it('returns null when 2FA is required', async () => {
-    fetch.mockResolvedValueOnce({ token: 'tok', tokenRequired: true })
-    expect(await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })).toBeNull()
-  })
-
-  it('returns correct fields with monitors as object', async () => {
-    fetch
-      .mockResolvedValueOnce({ token: 'tok' })
-      .mockResolvedValueOnce({
-        monitors: {
-          '1': { id: 1, name: 'Site A', active: true },
-          '2': { id: 2, name: 'Site B', active: true },
-          '3': { id: 3, name: 'Site C', active: false },
-        },
-      })
-      .mockResolvedValueOnce({
-        heartbeats: {
-          '1': [{ status: 1, time: '2026-01-01T00:00:00Z' }],
-          '2': [{ status: 0, time: '2026-01-01T01:00:00Z', msg: 'timeout' }],
-        },
-      })
-      .mockResolvedValueOnce({
-        uptimeList: { '1_24': 1.0, '2_24': 0.9 },
-      })
-
-    const result = await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })
-    expect(result?.fields).toEqual([
-      { label: 'Monitors',   value: 3 },
-      { label: 'Up',         value: 1 },
-      { label: 'Down',       value: 1 },
-      { label: 'Paused',     value: 1 },
-      { label: 'Uptime',     value: '95.0%' },
-      { label: 'Last Down',  value: 'Site B' },
-    ])
-  })
-
-  it('returns correct fields with monitors as array', async () => {
-    fetch
-      .mockResolvedValueOnce({ token: 'tok' })
-      .mockResolvedValueOnce({
-        monitors: [
-          { id: 1, name: 'A', active: 1 },
-          { id: 2, name: 'B', active: 0 },
-        ],
-      })
-      .mockResolvedValueOnce({ heartbeats: { '1': [{ status: 1, time: '2026-01-01T00:00:00Z' }] } })
-      .mockResolvedValueOnce({ uptimeList: { '1_24': 0.8 } })
-
-    const result = await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })
-    expect(result?.fields.find(f => f.label === 'Monitors')?.value).toBe(2)
-    expect(result?.fields.find(f => f.label === 'Paused')?.value).toBe(1)
-  })
-
-  it('uses form-encoded login body', async () => {
-    fetch
-      .mockResolvedValueOnce({ token: 'tok' })
-      .mockResolvedValueOnce({ monitors: [] })
-      .mockResolvedValueOnce({ heartbeats: {} })
-      .mockResolvedValueOnce({ uptimeList: {} })
-
-    await fetchUptimekuma({ url: 'http://kuma', username: 'admin', password: 'secret' })
-    expect(fetch).toHaveBeenNthCalledWith(1,
-      'http://kuma/api/login/access-token',
-      expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'username=admin&password=secret',
-      }),
+  it('fetches /metrics with Basic authorization (API key as password)', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    await fetchUptimekuma({ url: 'http://kuma', apiKey: 'mykey' })
+    const expectedToken = Buffer.from(':mykey').toString('base64')
+    expect(nativeFetch).toHaveBeenCalledWith(
+      'http://kuma/metrics',
+      expect.objectContaining({ headers: { Authorization: `Basic ${expectedToken}` } }),
     )
   })
 
-  it('falls back to counting active as up when heartbeat endpoint fails', async () => {
-    fetch
-      .mockResolvedValueOnce({ token: 'tok' })
-      .mockResolvedValueOnce({
-        monitors: [
-          { id: 1, name: 'A', active: true },
-          { id: 2, name: 'B', active: true },
-        ],
-      })
-      .mockRejectedValueOnce(new Error('404'))
-      .mockResolvedValueOnce({ uptimeList: {} })
+  it('strips trailing slash from url before appending /metrics', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    await fetchUptimekuma({ url: 'http://kuma/', apiKey: 'k' })
+    expect(nativeFetch).toHaveBeenCalledWith('http://kuma/metrics', expect.anything())
+  })
 
-    const result = await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })
+  it('returns null when response is not ok (e.g. 401)', async () => {
+    mockPrometheusResponse('Unauthorized', false)
+    expect(await fetchUptimekuma({ url: 'http://kuma', apiKey: 'bad' })).toBeNull()
+  })
+
+  it('counts monitors, up, and down correctly', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.find(f => f.label === 'Monitors')?.value).toBe(3)
     expect(result?.fields.find(f => f.label === 'Up')?.value).toBe(2)
+    expect(result?.fields.find(f => f.label === 'Down')?.value).toBe(1)
+  })
+
+  it('lists names of down monitors in Down Services field', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.find(f => f.label === 'Down Services')?.value).toBe('Site B')
+  })
+
+  it('shows dash for Down Services when all monitors are up', async () => {
+    mockPrometheusResponse(`
+monitor_status{monitor_name="A",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 1
+monitor_status{monitor_name="B",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 1
+`)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.find(f => f.label === 'Down Services')?.value).toBe('-')
+  })
+
+  it('counts PENDING and MAINTENANCE separately', async () => {
+    mockPrometheusResponse(`
+monitor_status{monitor_name="A",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 1
+monitor_status{monitor_name="B",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 2
+monitor_status{monitor_name="C",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 3
+monitor_status{monitor_name="D",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 3
+`)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.find(f => f.label === 'Monitors')?.value).toBe(4)
+    expect(result?.fields.find(f => f.label === 'Up')?.value).toBe(1)
     expect(result?.fields.find(f => f.label === 'Down')?.value).toBe(0)
+    expect(result?.fields.find(f => f.label === 'Pending')?.value).toBe(1)
+    expect(result?.fields.find(f => f.label === 'Maintenance')?.value).toBe(2)
   })
 
-  it('shows dash for uptime when uptime endpoint fails', async () => {
-    fetch
-      .mockResolvedValueOnce({ token: 'tok' })
-      .mockResolvedValueOnce({ monitors: [{ id: 1, name: 'A', active: true }] })
-      .mockResolvedValueOnce({ heartbeats: { '1': [{ status: 1, time: '2026-01-01T00:00:00Z' }] } })
-      .mockRejectedValueOnce(new Error('500'))
-
-    const result = await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })
-    expect(result?.fields.find(f => f.label === 'Uptime')?.value).toBe('—')
+  it('computes average 24h uptime from monitor_uptime_ratio{window="1d"} only', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    // (1 + 0.8 + 0.9) / 3 = 0.9 -> 90.0%
+    expect(result?.fields.find(f => f.label === 'Uptime 1d')?.value).toBe('90.0%')
   })
 
-  it('tracks the most recently downed monitor', async () => {
-    fetch
-      .mockResolvedValueOnce({ token: 'tok' })
-      .mockResolvedValueOnce({
-        monitors: {
-          '1': { id: 1, name: 'Old Down', active: true },
-          '2': { id: 2, name: 'New Down', active: true },
-        },
-      })
-      .mockResolvedValueOnce({
-        heartbeats: {
-          '1': [{ status: 0, time: '2026-01-01T00:00:00Z' }],
-          '2': [{ status: 0, time: '2026-01-02T00:00:00Z' }],
-        },
-      })
-      .mockResolvedValueOnce({ uptimeList: {} })
+  it('computes average 30d uptime from monitor_uptime_ratio{window="30d"}', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    // (0.99 + 0.95 + 0.97) / 3 = 0.97 -> 97.0%
+    expect(result?.fields.find(f => f.label === 'Uptime 30d')?.value).toBe('97.0%')
+  })
 
-    const result = await fetchUptimekuma({ url: 'http://kuma', username: 'u', password: 'p' })
-    expect(result?.fields.find(f => f.label === 'Last Down')?.value).toBe('New Down')
+  it('computes average 1y uptime from monitor_uptime_ratio{window="365d"}', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    // (0.999 + 0.98 + 0.99) / 3 = 0.98966... -> 99.0%
+    expect(result?.fields.find(f => f.label === 'Uptime 1y')?.value).toBe('99.0%')
+  })
+
+  it('shows dash for uptime when no uptime metrics are present', async () => {
+    mockPrometheusResponse(`
+monitor_status{monitor_name="A",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 1
+`)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.find(f => f.label === 'Uptime 1d')?.value).toBe('-')
+  })
+
+  it('computes avg ping from monitor_response_time_seconds{window="1d"} in ms', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    // (0.1 + 0.2 + 0.3) / 3 = 0.2 s = 200 ms
+    expect(result?.fields.find(f => f.label === 'Avg Ping')?.value).toBe('200 ms')
+  })
+
+  it('counts valid certs', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    // Site A and Site C valid, Site B invalid
+    expect(result?.fields.find(f => f.label === 'Cert Valid')?.value).toBe(2)
+  })
+
+  it('reports minimum cert expiry days', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    // min(90, 5, 45) = 5
+    expect(result?.fields.find(f => f.label === 'Min Cert Expiry')?.value).toBe('5 d')
+  })
+
+  it('shows dash for cert fields when no cert metrics are present', async () => {
+    mockPrometheusResponse(`
+monitor_status{monitor_name="A",monitor_type="http",monitor_url="",monitor_hostname="",monitor_port=""} 1
+`)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.find(f => f.label === 'Cert Valid')?.value).toBe('-')
+    expect(result?.fields.find(f => f.label === 'Min Cert Expiry')?.value).toBe('-')
+  })
+
+  it('returns all twelve fields in order', async () => {
+    mockPrometheusResponse(PROMETHEUS_RESPONSE)
+    const result = await fetchUptimekuma({ url: 'http://kuma', apiKey: 'k' })
+    expect(result?.fields.map(f => f.label)).toEqual([
+      'Monitors', 'Up', 'Down', 'Down Services', 'Pending', 'Maintenance',
+      'Uptime 1d', 'Uptime 30d', 'Uptime 1y',
+      'Avg Ping', 'Cert Valid', 'Min Cert Expiry',
+    ])
   })
 })
 
@@ -340,7 +381,7 @@ describe('fetchRestic', () => {
 
     const result = await fetchRestic({ url: '/var/lib/restic/snapshots.json' })
     expect(mockReadFileSync).toHaveBeenCalledWith('/var/lib/restic/snapshots.json', 'utf-8')
-    expect(fetch).not.toHaveBeenCalled()
+    expect(fetchDollar).not.toHaveBeenCalled()
     expect(result?.fields.find(f => f.label === 'Snapshots')?.value).toBe(1)
   })
 
@@ -348,20 +389,20 @@ describe('fetchRestic', () => {
     const snapshots = [
       { id: 'abc', short_id: 'abc', time: new Date(Date.now() - 3600_000).toISOString(), hostname: 'srv', paths: ['/home'] },
     ]
-    fetch.mockResolvedValueOnce(snapshots)
+    fetchDollar.mockResolvedValueOnce(snapshots)
 
     const result = await fetchRestic({ url: 'http://example.com/snapshots.json' })
-    expect(fetch).toHaveBeenCalledWith('http://example.com/snapshots.json')
+    expect(fetchDollar).toHaveBeenCalledWith('http://example.com/snapshots.json')
     expect(mockReadFileSync).not.toHaveBeenCalled()
     expect(result?.fields.find(f => f.label === 'Snapshots')?.value).toBe(1)
   })
 
   it('fetches from HTTP when url starts with https://', async () => {
-    fetch.mockResolvedValueOnce([
+    fetchDollar.mockResolvedValueOnce([
       { id: 'x', short_id: 'x', time: new Date().toISOString(), hostname: 'h', paths: [] },
     ])
     await fetchRestic({ url: 'https://example.com/snapshots.json' })
-    expect(fetch).toHaveBeenCalledWith('https://example.com/snapshots.json')
+    expect(fetchDollar).toHaveBeenCalledWith('https://example.com/snapshots.json')
   })
 
   it('returns zero fields when snapshot list is empty', async () => {
