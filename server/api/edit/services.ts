@@ -1,6 +1,7 @@
 import { loadConfig, loadConfigRaw, writeConfig } from '../../utils/config'
 import { applyGroupAction } from '../../utils/groupCrud'
 import { preserveCredentials } from '../../utils/credentialMerge'
+import { recoverOrphanedItems } from '../../utils/guardConfig'
 import type { Service, ServiceGroup } from '../../types'
 
 function stripEmpty(svc: Service): Service {
@@ -33,10 +34,13 @@ export default defineEventHandler(async (event) => {
     groups: body.groups,
   })
 
-  // For reorderGroups, incoming services lack credentials (stripped by config.get.ts).
-  // Merge them back from the raw YAML so saves don't wipe stored keys/passwords.
+  // For reorderGroups: guard against data loss then restore stripped credentials.
   if (body.action === 'reorderGroups') {
     const raw = loadConfigRaw<ServiceGroup[]>('services.yaml') ?? []
+    if (raw.length > 0 && (!body.groups || body.groups.length === 0)) {
+      throw createError({ statusCode: 400, statusMessage: 'Refusing to wipe all service groups: incoming list is empty' })
+    }
+    updated = recoverOrphanedItems<Service>(raw, updated, 'services') as ServiceGroup[]
     updated = preserveCredentials(raw, updated)
   }
 

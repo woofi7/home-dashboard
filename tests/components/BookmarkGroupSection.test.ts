@@ -86,4 +86,82 @@ describe('BookmarkGroupSection.vue', () => {
     const w = mountSection({ edit: false })
     expect(w.find('.section-handle').exists()).toBe(false)
   })
+
+  it('shows pencil button next to group name in edit mode', () => {
+    const w = mountSection({ edit: true })
+    expect(w.findAll('button').some(b => b.find('[data-icon="pencil"]').exists())).toBe(true)
+  })
+
+  it('does not show pencil button when not editing', () => {
+    const w = mountSection({ edit: false })
+    expect(w.findAll('button').some(b => b.find('[data-icon="pencil"]').exists())).toBe(false)
+  })
+
+  it('clicking pencil shows name input with current name', async () => {
+    const { nextTick } = await import('vue')
+    const w = mountSection({ edit: true })
+    const pencil = w.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    const input = w.find('input')
+    expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).value).toBe('Links')
+  })
+
+  it('confirming rename with Enter emits update with new name', async () => {
+    const { nextTick } = await import('vue')
+    const w = mountSection({ edit: true })
+    const pencil = w.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await w.find('input').setValue('Favorites')
+    await w.find('input').trigger('keydown', { key: 'Enter' })
+    const updates = w.emitted('update') as Array<[typeof defaultGroup]>
+    expect(updates?.at(-1)?.[0].name).toBe('Favorites')
+  })
+
+  it('pressing Escape cancels rename without emitting', async () => {
+    const { nextTick } = await import('vue')
+    const w = mountSection({ edit: true })
+    const emitsBefore = w.emitted('update')?.length ?? 0
+    const pencil = w.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await w.find('input').trigger('keydown', { key: 'Escape' })
+    await nextTick()
+    expect(w.emitted('update')?.length ?? 0).toBe(emitsBefore)
+    expect(w.find('input').exists()).toBe(false)
+  })
+
+  it('rejects duplicate name and shows error', async () => {
+    const { nextTick } = await import('vue')
+    const w = mount(BookmarkGroupSection, {
+      props: { group: defaultGroup, edit: true, existingNames: ['Links', 'Favorites'] },
+      global: { stubs },
+    })
+    const pencil = w.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await w.find('input').setValue('Favorites')
+    await w.find('input').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    expect(w.find('input').exists()).toBe(true)
+    expect(w.text()).toContain('Name already used')
+    expect(w.emitted('update')).toBeFalsy()
+  })
+
+  it('allows keeping the same name (no duplicate error)', async () => {
+    const { nextTick } = await import('vue')
+    const w = mount(BookmarkGroupSection, {
+      props: { group: defaultGroup, edit: true, existingNames: ['Links', 'Favorites'] },
+      global: { stubs },
+    })
+    const pencil = w.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await w.find('input').setValue('Links')
+    await w.find('input').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    expect(w.text()).not.toContain('Name already used')
+  })
 })

@@ -43,10 +43,12 @@ function getBookmarkGroup(name: string) {
 type AddMode = 'service' | 'bookmark' | null
 const addMode = ref<AddMode>(null)
 const addName = ref('')
+const addError = ref('')
 
 function startAdd(mode: 'service' | 'bookmark') {
   addMode.value = mode
   addName.value = ''
+  addError.value = ''
   nextTick(() => {
     const el = document.getElementById('add-section-input')
     el?.focus()
@@ -57,17 +59,26 @@ function confirmAdd() {
   const name = addName.value.trim()
   if (!name)
     return
+  const existing = addMode.value === 'service'
+    ? props.localConfig.services.map(g => g.name)
+    : props.localConfig.bookmarks.map(g => g.name)
+  if (existing.includes(name)) {
+    addError.value = 'Name already used'
+    return
+  }
   if (addMode.value === 'service')
     emit('add-service-group', name)
   else if (addMode.value === 'bookmark')
     emit('add-bookmark-group', name)
   addMode.value = null
   addName.value = ''
+  addError.value = ''
 }
 
 function cancelAdd() {
   addMode.value = null
   addName.value = ''
+  addError.value = ''
 }
 
 function onAddKeydown(e: KeyboardEvent) {
@@ -75,6 +86,8 @@ function onAddKeydown(e: KeyboardEvent) {
     confirmAdd()
   else if (e.key === 'Escape')
     cancelAdd()
+  else
+    addError.value = ''
 }
 </script>
 
@@ -113,16 +126,20 @@ function onAddKeydown(e: KeyboardEvent) {
         >+ Bookmark group</button>
       </div>
       <!-- Inline name input -->
-      <div v-if="addMode" class="flex items-center gap-2 mt-1">
-        <input
-          id="add-section-input"
-          v-model="addName"
-          :placeholder="addMode === 'service' ? 'Section name' : 'Group name'"
-          class="px-3 py-1.5 rounded-lg bg-elevated border border-border text-sm text-primary outline-none focus:border-accent w-48"
-          @keydown="onAddKeydown"
-        />
-        <button class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm hover:bg-accent-hover transition-colors" @click="confirmAdd">Add</button>
-        <button class="px-3 py-1.5 rounded-lg border border-border text-sm text-muted hover:text-primary transition-colors" @click="cancelAdd">Cancel</button>
+      <div v-if="addMode" class="flex flex-col items-center gap-1 mt-1">
+        <div class="flex items-center gap-2">
+          <input
+            id="add-section-input"
+            v-model="addName"
+            :placeholder="addMode === 'service' ? 'Section name' : 'Group name'"
+            class="px-3 py-1.5 rounded-lg bg-elevated border text-sm text-primary outline-none w-48"
+            :class="addError ? 'border-danger' : 'border-border focus:border-accent'"
+            @keydown="onAddKeydown"
+          />
+          <button class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm hover:bg-accent-hover transition-colors" @click="confirmAdd">Add</button>
+          <button class="px-3 py-1.5 rounded-lg border border-border text-sm text-muted hover:text-primary transition-colors" @click="cancelAdd">Cancel</button>
+        </div>
+        <span v-if="addError" class="text-[10px] text-danger">{{ addError }}</span>
       </div>
     </div>
   </div>
@@ -145,6 +162,7 @@ function onAddKeydown(e: KeyboardEvent) {
           v-if="item.type === 'service' && getServiceGroup(item.name)"
           :group="getServiceGroup(item.name)!"
           :edit="editActive"
+          :existing-names="localConfig.services.map(g => g.name)"
           @update="$emit('update-service-group', item.name, $event)"
           @dirty="$emit('dirty')"
           @delete="$emit('delete-service-group', item.name)"
@@ -153,6 +171,7 @@ function onAddKeydown(e: KeyboardEvent) {
           v-else-if="item.type === 'bookmark' && getBookmarkGroup(item.name)"
           :group="getBookmarkGroup(item.name)!"
           :edit="editActive"
+          :existing-names="localConfig.bookmarks.map(g => g.name)"
           @update="$emit('update-bookmark-group', item.name, $event)"
           @dirty="$emit('dirty')"
           @delete="$emit('delete-bookmark-group', item.name)"
@@ -172,16 +191,20 @@ function onAddKeydown(e: KeyboardEvent) {
           @click="startAdd('bookmark')"
         >+ Bookmark group</button>
       </div>
-      <div v-else class="flex items-center gap-2">
-        <input
-          id="add-section-input"
-          v-model="addName"
-          :placeholder="addMode === 'service' ? 'Section name' : 'Group name'"
-          class="px-3 py-1.5 rounded-lg bg-elevated border border-border text-sm text-primary outline-none focus:border-accent w-48"
-          @keydown="onAddKeydown"
-        />
-        <button class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm hover:bg-accent-hover transition-colors" @click="confirmAdd">Add</button>
-        <button class="px-3 py-1.5 rounded-lg border border-border text-sm text-muted hover:text-primary transition-colors" @click="cancelAdd">Cancel</button>
+      <div v-else class="flex flex-col gap-1">
+        <div class="flex items-center gap-2">
+          <input
+            id="add-section-input"
+            v-model="addName"
+            :placeholder="addMode === 'service' ? 'Section name' : 'Group name'"
+            class="px-3 py-1.5 rounded-lg bg-elevated border text-sm text-primary outline-none w-48"
+            :class="addError ? 'border-danger' : 'border-border focus:border-accent'"
+            @keydown="onAddKeydown"
+          />
+          <button class="px-3 py-1.5 rounded-lg bg-accent text-white text-sm hover:bg-accent-hover transition-colors" @click="confirmAdd">Add</button>
+          <button class="px-3 py-1.5 rounded-lg border border-border text-sm text-muted hover:text-primary transition-colors" @click="cancelAdd">Cancel</button>
+        </div>
+        <span v-if="addError" class="text-[10px] text-danger">{{ addError }}</span>
       </div>
     </div>
     <div v-else class="pb-28" />

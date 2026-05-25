@@ -8,6 +8,7 @@ type ServiceGroup = { name: string; services: Service[]; layout?: LayoutSettings
 const props = defineProps<{
   group: ServiceGroup
   edit: boolean
+  existingNames?: string[]
 }>()
 
 const visible = ref(false)
@@ -71,6 +72,40 @@ const pendingItems = computed(() => {
   )
 })
 
+const editingName = ref(false)
+const nameInput = ref<HTMLInputElement | null>(null)
+const draftName = ref('')
+const nameError = ref('')
+
+function startRename() {
+  draftName.value = localGroup.value.name
+  nameError.value = ''
+  editingName.value = true
+  nextTick(() => nameInput.value?.select())
+}
+
+function confirmRename() {
+  const trimmed = draftName.value.trim()
+  if (!trimmed)
+    return
+  const others = (props.existingNames ?? []).filter(n => n !== localGroup.value.name)
+  if (others.includes(trimmed)) {
+    nameError.value = 'Name already used'
+    return
+  }
+  if (trimmed !== localGroup.value.name) {
+    localGroup.value.name = trimmed
+    onServicesUpdate()
+  }
+  editingName.value = false
+  nameError.value = ''
+}
+
+function cancelRename() {
+  editingName.value = false
+  nameError.value = ''
+}
+
 const editingService = ref<Service | null>(null)
 const showModal = ref(false)
 
@@ -122,7 +157,24 @@ function saveService(updated: Service) {
   >
     <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
       <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
-      <span class="font-semibold text-sm text-secondary flex-1">{{ group.name }}</span>
+      <template v-if="edit && editingName">
+        <input
+          ref="nameInput"
+          v-model="draftName"
+          class="bg-transparent border-b text-sm font-semibold text-secondary outline-none"
+          :class="nameError ? 'border-danger' : 'border-accent'"
+          @blur="confirmRename"
+          @keydown.enter.prevent="confirmRename"
+          @keydown.escape.prevent="cancelRename"
+        />
+        <span v-if="nameError" class="text-[10px] text-danger ml-1">{{ nameError }}</span>
+        <span class="flex-1" />
+      </template>
+      <template v-else>
+        <span class="font-semibold text-sm text-secondary">{{ group.name }}</span>
+        <button v-if="edit" class="text-muted hover:text-primary ml-1" @click="startRename"><FaIcon icon="pencil" class="text-xs" /></button>
+        <span class="flex-1" />
+      </template>
       <template v-if="edit">
         <SectionLayoutSettings v-model="layout" />
         <button class="text-xs text-danger hover:text-red-400" @click="$emit('delete')">Remove</button>

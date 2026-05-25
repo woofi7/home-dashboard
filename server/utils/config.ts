@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml'
 import { config as loadDotenv } from 'dotenv'
@@ -76,7 +76,11 @@ export function loadConfigRaw<T>(filename: string): T | null {
 
 export function writeConfig(filename: string, data: unknown): void {
   const dir = getConfigDir()
-  writeFileSync(join(dir, filename), dumpYaml(data, { lineWidth: -1 }), 'utf-8')
+  const filePath = join(dir, filename)
+  if (existsSync(filePath)) {
+    copyFileSync(filePath, filePath + '.bak')
+  }
+  writeFileSync(filePath, dumpYaml(data, { lineWidth: -1 }), 'utf-8')
 }
 
 export function configFileExists(filename: string): boolean {
