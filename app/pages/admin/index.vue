@@ -4,27 +4,6 @@ definePageMeta({ ssr: false, layout: 'admin', middleware: 'admin' })
 watch([() => useAuth().editEnabled.value, () => useAuth().needsLogin.value], ([enabled, locked]) => {
   if (!enabled || locked) navigateTo('/')
 })
-
-const backing = ref(false)
-
-async function downloadBackup() {
-  if (backing.value)
-    return
-  backing.value = true
-  try {
-    const blob = await $fetch<Blob>('/api/admin/backup', { responseType: 'blob' })
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `homepage-backup-${timestamp}.zip`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-  finally {
-    backing.value = false
-  }
-}
 </script>
 
 <template>
@@ -77,15 +56,14 @@ async function downloadBackup() {
         <p class="text-xs text-muted mt-1">Connect your Google account to show today's events</p>
       </NuxtLink>
 
-      <button
-        class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer text-left disabled:opacity-50 disabled:cursor-not-allowed"
-        :disabled="backing"
-        @click="downloadBackup"
+      <NuxtLink
+        to="/admin/backup"
+        class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer"
       >
-        <FaIcon :icon="backing ? 'spinner' : 'file-zipper'" :spin="backing" class="text-2xl text-muted group-hover:text-accent transition-colors mb-3" />
-        <p class="font-medium text-primary group-hover:text-accent transition-colors">Backup</p>
-        <p class="text-xs text-muted mt-1">Download all config files as a zip archive</p>
-      </button>
+        <FaIcon icon="file-zipper" class="text-2xl text-muted group-hover:text-accent transition-colors mb-3" />
+        <p class="font-medium text-primary group-hover:text-accent transition-colors">Backup & Restore</p>
+        <p class="text-xs text-muted mt-1">Download or restore config files as a zip archive</p>
+      </NuxtLink>
 
     </div>
   </div>
