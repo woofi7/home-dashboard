@@ -60,12 +60,22 @@ export function useDashboardConfig() {
     const idx = localConfig.value.services.findIndex(g => g.name === name)
     if (idx !== -1)
       localConfig.value.services[idx] = updated
+    if (updated.name !== name) {
+      const orderIdx = sectionOrder.value.findIndex(s => s.type === 'service' && s.name === name)
+      if (orderIdx !== -1)
+        sectionOrder.value[orderIdx] = { type: 'service', name: updated.name }
+    }
     dirty.value = true
   }
   function updateBookmarkGroup(name: string, updated: BookmarkGroup) {
     const idx = localConfig.value.bookmarks.findIndex(g => g.name === name)
     if (idx !== -1)
       localConfig.value.bookmarks[idx] = updated
+    if (updated.name !== name) {
+      const orderIdx = sectionOrder.value.findIndex(s => s.type === 'bookmark' && s.name === name)
+      if (orderIdx !== -1)
+        sectionOrder.value[orderIdx] = { type: 'bookmark', name: updated.name }
+    }
     dirty.value = true
   }
   function deleteServiceGroup(name: string) {

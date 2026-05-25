@@ -236,5 +236,65 @@ describe('SectionList.vue', () => {
       await w.findAll('button').find(b => b.text() === 'Add')!.trigger('click')
       expect(w.emitted('add-service-group')![0]).toEqual(['Tools'])
     })
+
+    it('rejects duplicate service group name and shows error', async () => {
+      const w = mountList({
+        configLoaded: true,
+        sectionOrder: [],
+        editActive: true,
+        services: ['Media'],
+      })
+      await clickAddService(w)
+      await w.find('input').setValue('Media')
+      await w.findAll('button').find(b => b.text() === 'Add')!.trigger('click')
+      expect(w.emitted('add-service-group')).toBeFalsy()
+      expect(w.find('input').exists()).toBe(true)
+      expect(w.text()).toContain('Name already used')
+    })
+
+    it('rejects duplicate bookmark group name and shows error', async () => {
+      const w = mountList({
+        configLoaded: true,
+        sectionOrder: [],
+        editActive: true,
+        bookmarks: ['Links'],
+      })
+      await clickAddBookmark(w)
+      await w.find('input').setValue('Links')
+      await w.findAll('button').find(b => b.text() === 'Add')!.trigger('click')
+      expect(w.emitted('add-bookmark-group')).toBeFalsy()
+      expect(w.find('input').exists()).toBe(true)
+      expect(w.text()).toContain('Name already used')
+    })
+
+    it('clears error when user types a new name', async () => {
+      const w = mountList({
+        configLoaded: true,
+        sectionOrder: [],
+        editActive: true,
+        services: ['Media'],
+      })
+      await clickAddService(w)
+      await w.find('input').setValue('Media')
+      await w.findAll('button').find(b => b.text() === 'Add')!.trigger('click')
+      expect(w.text()).toContain('Name already used')
+      await w.find('input').trigger('keydown', { key: 'a' })
+      expect(w.text()).not.toContain('Name already used')
+    })
+
+    it('allows duplicate name across type boundaries (service named same as bookmark)', async () => {
+      const w = mountList({
+        configLoaded: true,
+        sectionOrder: [],
+        editActive: true,
+        services: ['wololo'],
+        bookmarks: [],
+      })
+      await clickAddBookmark(w)
+      await w.find('input').setValue('wololo')
+      await w.findAll('button').find(b => b.text() === 'Add')!.trigger('click')
+      expect(w.emitted('add-bookmark-group')?.[0]).toEqual(['wololo'])
+      expect(w.text()).not.toContain('Name already used')
+    })
   })
 })

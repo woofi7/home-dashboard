@@ -103,6 +103,86 @@ describe('ServiceGroupSection.vue', () => {
     expect(addBtn.classes()).not.toContain('text-muted')
   })
 
+  it('shows pencil button next to group name in edit mode', () => {
+    const wrapper = mountSection({ edit: true })
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())
+    expect(pencil).toBeTruthy()
+  })
+
+  it('does not show pencil button when not editing', () => {
+    const wrapper = mountSection({ edit: false })
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())
+    expect(pencil).toBeFalsy()
+  })
+
+  it('clicking pencil shows name input with current name', async () => {
+    const { nextTick } = await import('vue')
+    const wrapper = mountSection({ edit: true })
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    const input = wrapper.find('input')
+    expect(input.exists()).toBe(true)
+    expect((input.element as HTMLInputElement).value).toBe('Media')
+  })
+
+  it('confirming rename with Enter emits update with new name', async () => {
+    const { nextTick } = await import('vue')
+    const wrapper = mountSection({ edit: true })
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await wrapper.find('input').setValue('Arr')
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' })
+    const updates = wrapper.emitted('update') as Array<[typeof defaultGroup]>
+    expect(updates?.at(-1)?.[0].name).toBe('Arr')
+  })
+
+  it('pressing Escape cancels rename without emitting', async () => {
+    const { nextTick } = await import('vue')
+    const wrapper = mountSection({ edit: true })
+    const emitsBefore = wrapper.emitted('update')?.length ?? 0
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await wrapper.find('input').trigger('keydown', { key: 'Escape' })
+    await nextTick()
+    expect((wrapper.emitted('update')?.length ?? 0)).toBe(emitsBefore)
+    expect(wrapper.find('input').exists()).toBe(false)
+  })
+
+  it('rejects duplicate name and shows error', async () => {
+    const { nextTick } = await import('vue')
+    const wrapper = mount(ServiceGroupSection, {
+      props: { group: defaultGroup, edit: true, existingNames: ['Media', 'Arr'] },
+      global: { stubs },
+    })
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await wrapper.find('input').setValue('Arr')
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    expect(wrapper.find('input').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Name already used')
+    expect(wrapper.emitted('update')).toBeFalsy()
+  })
+
+  it('allows keeping the same name (no duplicate error)', async () => {
+    const { nextTick } = await import('vue')
+    const wrapper = mount(ServiceGroupSection, {
+      props: { group: defaultGroup, edit: true, existingNames: ['Media', 'Arr'] },
+      global: { stubs },
+    })
+    const pencil = wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!
+    await pencil.trigger('click')
+    await nextTick(); await nextTick()
+    await wrapper.find('input').setValue('Media')
+    await wrapper.find('input').trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    expect(wrapper.text()).not.toContain('Name already used')
+  })
+
   it('after mount + nextTick, component has opacity-100 class', async () => {
     const { nextTick } = await import('vue')
     const wrapper = mountSection()
