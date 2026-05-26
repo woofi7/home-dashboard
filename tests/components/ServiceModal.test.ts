@@ -224,4 +224,17 @@ describe('ServiceModal.vue', () => {
     const containerInput = wrapper.findAll('input').find(i => (i.element as HTMLInputElement).placeholder === 'auto')
     expect(containerInput).toBeTruthy()
   })
+
+  it('backdrop prevents wheel events from reaching the page', () => {
+    const wrapper = mountModal(null)
+    const backdrop = wrapper.find('div.fixed')
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true })
+    backdrop.element.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('scrollable content area has overscroll-contain', () => {
+    const wrapper = mountModal(null)
+    expect(wrapper.find('.overscroll-contain').exists()).toBe(true)
+  })
 })

@@ -23,9 +23,10 @@ const emit = defineEmits<{ 'update:modelValue': [v: string]; browse: [] }>()
         @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
       />
       <button
-        class="shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
+        class="shrink-0 w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center text-secondary hover:border-accent hover:text-accent-hover transition-colors"
+        title="Search icons"
         @click="emit('browse')"
-      >Browse</button>
+      ><FaIcon icon="magnifying-glass" /></button>
     </div>
   </Field>
 </template>

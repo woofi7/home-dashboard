@@ -88,14 +88,14 @@ function submit() {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @wheel.prevent>
       <div class="bg-surface border border-border rounded-2xl w-full max-w-md mx-4 flex flex-col max-h-[90vh]">
         <div class="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
           <h2 class="font-semibold text-primary">{{ service ? 'Edit service' : 'Add service' }}</h2>
           <button class="text-muted hover:text-primary" @click="$emit('close')"><FaIcon icon="xmark" /></button>
         </div>
 
-        <div class="px-6 py-4 space-y-4 overflow-y-auto">
+        <div class="px-6 py-4 space-y-4 overflow-y-auto overscroll-contain">
           <Field label="Name" required>
             <input v-model="form.name" type="text" class="modal-input" :class="errors.name ? 'border-danger' : ''" placeholder="Sonarr" @input="errors.name = ''" />
             <p v-if="errors.name" class="text-xs text-danger mt-1">{{ errors.name }}</p>

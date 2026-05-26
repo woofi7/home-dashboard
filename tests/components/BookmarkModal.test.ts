@@ -111,7 +111,7 @@ describe('BookmarkModal.vue', () => {
     expect(wrapper.find('img').exists()).toBe(false)
   })
 
-  it('Browse button sets showIconPicker = true (IconPicker appears)', async () => {
+  it('Search icons button sets showIconPicker = true (IconPicker appears)', async () => {
     const wrapper = mount(BookmarkModal, {
       props: { bookmark: null },
       global: {
@@ -123,8 +123,8 @@ describe('BookmarkModal.vue', () => {
       },
     })
     expect(wrapper.find('.icon-picker-stub').exists()).toBe(false)
-    const browseBtn = wrapper.findAll('button').find(b => b.text() === 'Browse')
-    await browseBtn!.trigger('click')
+    const searchBtn = wrapper.findAll('button').find(b => b.attributes('title') === 'Search icons')
+    await searchBtn!.trigger('click')
     expect(wrapper.find('.icon-picker-stub').exists()).toBe(true)
   })
 
@@ -151,5 +151,13 @@ describe('BookmarkModal.vue', () => {
     const handler = keydownCall[1] as (e: KeyboardEvent) => void
     handler(new KeyboardEvent('keydown', { key: 'Enter' }))
     expect(wrapper.emitted('save')).toBeTruthy()
+  })
+
+  it('backdrop prevents wheel events from reaching the page', () => {
+    const wrapper = mountModal(null)
+    const backdrop = wrapper.find('div.fixed')
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true })
+    backdrop.element.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(true)
   })
 })

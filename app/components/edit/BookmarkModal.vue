@@ -36,7 +36,7 @@ function submit() {
 
 <template>
   <Teleport to="body">
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" >
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" @wheel.prevent>
       <div class="bg-surface border border-border rounded-2xl w-full max-w-sm mx-4">
         <div class="px-6 py-4 border-b border-border flex items-center justify-between">
           <h2 class="font-semibold text-primary">{{ bookmark ? 'Edit bookmark' : 'Add bookmark' }}</h2>
@@ -64,9 +64,10 @@ function submit() {
               </div>
               <input v-model="form.icon" type="text" class="modal-input" placeholder="Search or paste URL..." />
               <button
-                class="shrink-0 px-3 py-2 rounded-lg bg-elevated border border-border text-xs text-secondary hover:border-accent hover:text-accent-hover transition-colors whitespace-nowrap"
+                class="shrink-0 w-9 h-9 rounded-lg bg-elevated border border-border flex items-center justify-center text-secondary hover:border-accent hover:text-accent-hover transition-colors"
+                title="Search icons"
                 @click="showIconPicker = true"
-              >Browse</button>
+              ><FaIcon icon="magnifying-glass" /></button>
             </div>
           </Field>
         </div>
