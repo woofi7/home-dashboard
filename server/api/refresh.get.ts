@@ -50,11 +50,12 @@ async function doRefresh(): Promise<RefreshResponse> {
     Promise.all(urls.map(async url => [url, await pingUrl(url)] as const)),
     Promise.all(
       widgetServices.map(async s => {
-        const passFields = new Set(['url', ...CRED_FIELDS])
+        const passFields = new Set(['url', 'widgetUrl', ...CRED_FIELDS])
         const credentials = Object.fromEntries(
           Object.entries(s).filter(([k, v]) => passFields.has(k) && typeof v === 'string'),
         ) as Record<string, string>
-        const result = await withTimeout(fetchWidgetForService(s.type as string, credentials), WIDGET_TIMEOUT)
+        const effectiveUrl = credentials.widgetUrl?.trim() || credentials.url
+        const result = await withTimeout(fetchWidgetForService(s.type as string, { ...credentials, url: effectiveUrl }), WIDGET_TIMEOUT)
         return [s.name, result] as const
       }),
     ),
