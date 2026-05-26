@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import * as widgetFields from '../server/utils/widget-fields'
 import { fetchAsf } from '../server/api/widget/asf.get'
 import { fetchBackrest } from '../server/api/widget/backrest.get'
 import { fetchBeszel } from '../server/api/widget/beszel.get'
@@ -768,5 +769,57 @@ describe('fetchTugtainer', () => {
     const urls = fetchDollar.mock.calls.map((c: unknown[]) => c[0])
     expect(urls).toContain('http://tug/api/auth/password/login')
     expect(urls).toContain('http://tug/api/public/summary')
+  })
+
+  describe('field filtering (admin widget-fields config)', () => {
+    it('omits Updates available when disabled in field config', async () => {
+      vi.spyOn(widgetFields, 'getActiveFields').mockReturnValueOnce(
+        new Set(['Total containers', 'Unused images', 'Dangling images']),
+      )
+      mockTugLogin()
+      fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+      const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+      const labels = result?.fields.map(f => f.label) ?? []
+      expect(labels).not.toContain('Updates available')
+      expect(labels).toContain('Total containers')
+    })
+
+    it('omits Total containers when disabled in field config', async () => {
+      vi.spyOn(widgetFields, 'getActiveFields').mockReturnValueOnce(
+        new Set(['Updates available', 'Unused images', 'Dangling images']),
+      )
+      mockTugLogin()
+      fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+      const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+      const labels = result?.fields.map(f => f.label) ?? []
+      expect(labels).not.toContain('Total containers')
+      expect(labels).toContain('Updates available')
+    })
+
+    it('omits per-host updates for all hosts when Updates available is disabled', async () => {
+      vi.spyOn(widgetFields, 'getActiveFields').mockReturnValueOnce(
+        new Set(['Total containers', 'Unused images', 'Dangling images']),
+      )
+      mockTugLogin()
+      fetchDollar.mockResolvedValueOnce([
+        makeTugSummary({ host_name: 'Roger' }),
+        makeTugSummary({ host_id: 2, host_name: 'NAS' }),
+      ])
+      const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+      const labels = result?.fields.map(f => f.label) ?? []
+      expect(labels).not.toContain('Roger - Updates available')
+      expect(labels).not.toContain('NAS - Updates available')
+      expect(labels).toContain('Total containers')
+    })
+
+    it('shows only fields in active set when multiple fields are disabled', async () => {
+      vi.spyOn(widgetFields, 'getActiveFields').mockReturnValueOnce(
+        new Set(['Unused images']),
+      )
+      mockTugLogin()
+      fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+      const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+      expect(result?.fields.map(f => f.label)).toEqual(['Unused images'])
+    })
   })
 })

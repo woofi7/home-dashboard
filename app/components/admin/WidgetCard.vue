@@ -71,7 +71,7 @@ function cancel() {
         <div
           v-for="label in dragList"
           :key="label"
-          class="flex items-center gap-2 py-1 group/field"
+          class="flex items-center gap-2 py-1 px-1 rounded-lg group/field hover:bg-elevated transition-colors"
         >
           <span class="field-handle cursor-grab text-muted/50 hover:text-muted transition-colors select-none shrink-0">
             <FaIcon icon="grip-vertical" class="text-xs" />
