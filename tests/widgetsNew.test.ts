@@ -534,6 +534,22 @@ describe('fetchBackrest', () => {
     expect(labels).toEqual(['Last backup', 'Snapshots', 'Disk size'])
   })
 
+  it('sorts repos alphabetically by id', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig([
+        { id: 'zebra', guid: BACKREST_GUID },
+        { id: 'alpha', guid: BACKREST_GUID.replace(/a/g, 'b') },
+      ]))
+      .mockResolvedValueOnce({ repoSummaries: [] })
+      .mockResolvedValueOnce(makeOpsResponse())
+      .mockResolvedValueOnce(makeOpsResponse())
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    const labels = result?.fields.map(f => f.label)
+    const alphaIdx = labels!.findIndex(l => l.startsWith('alpha'))
+    const zebraIdx = labels!.findIndex(l => l.startsWith('zebra'))
+    expect(alphaIdx).toBeLessThan(zebraIdx)
+  })
+
   it('prefixes fields with repo id for multiple repos', async () => {
     fetchDollar
       .mockResolvedValueOnce(makeConfig([
