@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { resolveContainerState } from '~/utils/dockerLookup'
 
-type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; container?: string; server?: string; [key: string]: unknown }
+type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; container?: string; server?: string; healthcheck?: string; [key: string]: unknown }
 type WidgetField = { label: string; value: unknown; suffix?: string }
 const props = defineProps<{ service: Service; edit: boolean; pending?: boolean; pendingDelete?: boolean }>()
 defineEmits<{ edit: []; delete: []; revert: [] }>()
@@ -11,16 +11,30 @@ const { cardStyle } = useAppearanceSettings()
 const { settings } = useGlobalSettings()
 const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
 
-const containerState = computed(() =>
-  resolveContainerState(
+const hc = computed(() => props.service.healthcheck ?? '')
+
+const pingUrl = computed(() => {
+  if (hc.value === 'none' || hc.value === 'docker')
+    return null
+  if (hc.value && hc.value !== 'http')
+    return hc.value
+  return props.service.url ?? null
+})
+
+const containerState = computed(() => {
+  if (hc.value === 'http' || (hc.value && hc.value !== 'docker' && hc.value !== 'none'))
+    return null
+  return resolveContainerState(
     dockerStatus.value,
     props.service.name,
     props.service.container,
     props.service.server,
-  ),
-)
+  )
+})
 
 const statusColor = computed(() => {
+  if (hc.value === 'none')
+    return null
   if (containerState.value) {
     const { state, status } = containerState.value
     if (state === 'running')
@@ -29,20 +43,29 @@ const statusColor = computed(() => {
       return 'bg-yellow-400'
     return 'bg-red-400'
   }
-  const up = props.service.url ? pingStatus.value[props.service.url] : undefined
-  if (up === true)
-    return 'bg-green-400'
-  if (up === false)
-    return 'bg-red-400'
+  if (pingUrl.value !== null) {
+    const up = pingStatus.value[pingUrl.value]
+    if (up === true)
+      return 'bg-green-400'
+    if (up === false)
+      return 'bg-red-400'
+  }
   return null
 })
 
 const statusTitle = computed(() => {
+  if (hc.value === 'none')
+    return null
   if (containerState.value)
     return containerState.value.status
-  const up = props.service.url ? pingStatus.value[props.service.url] : undefined
-  if (up !== undefined)
-    return up ? 'Reachable' : 'Unreachable'
+  if (pingUrl.value !== null) {
+    const up = pingStatus.value[pingUrl.value]
+    if (up !== undefined) {
+      const label = up ? 'Reachable' : 'Unreachable'
+      const isCustomUrl = hc.value && hc.value !== 'http' && hc.value !== 'none' && hc.value !== 'docker'
+      return isCustomUrl ? `${label}: ${pingUrl.value}` : label
+    }
+  }
   return null
 })
 

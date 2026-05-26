@@ -30,6 +30,7 @@ type Service = {
   type?: string
   container?: string
   server?: string
+  healthcheck?: string
 }
 
 function mountCard(service: Partial<Service> & { name: string }, overrides: { edit?: boolean; pending?: boolean; pendingDelete?: boolean } = {}) {
@@ -302,5 +303,91 @@ describe('ServiceCard.vue — Link target', () => {
     globalSettingsData.value = { linkTarget: 'same-tab' }
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
     expect(wrapper.element.getAttribute('target')).toBe('_self')
+  })
+})
+
+describe('ServiceCard.vue — Healthcheck', () => {
+  beforeEach(() => {
+    dockerStatus.value = {}
+    pingStatus.value = {}
+    widgetData.value = {}
+    globalSettingsData.value = {}
+  })
+
+  it('healthcheck:none hides status dot even when ping data exists', () => {
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'none' })
+    expect(wrapper.find('span.rounded-full').exists()).toBe(false)
+  })
+
+  it('healthcheck:none hides status dot even when Docker data exists', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'running', status: 'Up 2h' } } }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'none' })
+    expect(wrapper.find('span.rounded-full').exists()).toBe(false)
+  })
+
+  it('healthcheck:docker shows Docker status, ignores ping', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'running', status: 'Up 2h' } } }
+    pingStatus.value = { 'http://sonarr': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'docker' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+  })
+
+  it('healthcheck:docker shows no dot when no Docker data (no ping fallback)', () => {
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'docker' })
+    expect(wrapper.find('span.rounded-full').exists()).toBe(false)
+  })
+
+  it('healthcheck:http uses ping status, ignores Docker', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'exited', status: 'Exited (0)' } } }
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+  })
+
+  it('healthcheck with custom URL pings that URL, not service URL', () => {
+    pingStatus.value = { 'http://sonarr/health': true, 'http://sonarr': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http://sonarr/health' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+  })
+
+  it('healthcheck with custom URL shows red when custom URL is down', () => {
+    pingStatus.value = { 'http://sonarr/health': false, 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http://sonarr/health' })
+    expect(wrapper.find('span.bg-red-400').exists()).toBe(true)
+  })
+
+  it('auto behavior: Docker takes precedence over ping when no healthcheck set', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'running', status: 'Up 2h' } } }
+    pingStatus.value = { 'http://sonarr': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+  })
+
+  it('auto behavior: falls back to ping when no Docker data', () => {
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+  })
+
+  it('status dot title shows just Reachable for HTTP ping to service URL', () => {
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Reachable')
+  })
+
+  it('status dot title includes custom URL when using custom healthcheck URL', () => {
+    pingStatus.value = { 'http://sonarr/health': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http://sonarr/health' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toContain('http://sonarr/health')
+    expect(wrapper.find('span.rounded-full').attributes('title')).toContain('Reachable')
+  })
+
+  it('status dot title includes custom URL when unreachable', () => {
+    pingStatus.value = { 'http://sonarr/health': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http://sonarr/health' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toContain('http://sonarr/health')
+    expect(wrapper.find('span.rounded-full').attributes('title')).toContain('Unreachable')
   })
 })
