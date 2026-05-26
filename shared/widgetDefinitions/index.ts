@@ -1,6 +1,7 @@
 import type { WidgetDefinition } from './types'
 import asf from './asf'
 import audiobookshelf from './audiobookshelf'
+import backrest from './backrest'
 import bazarr from './bazarr'
 import beszel from './beszel'
 import duplicati from './duplicati'
@@ -22,6 +23,7 @@ import uptimekuma from './uptimekuma'
 
 export const widgetDefinitions: Record<string, WidgetDefinition> = {
   asf,
+  backrest,
   audiobookshelf,
   bazarr,
   beszel,

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { fetchAsf } from '../server/api/widget/asf.get'
+import { fetchBackrest } from '../server/api/widget/backrest.get'
 import { fetchBeszel } from '../server/api/widget/beszel.get'
 import { fetchUptimekuma } from '../server/api/widget/uptimekuma.get'
 import { fetchRestic } from '../server/api/widget/restic.get'
@@ -476,5 +477,160 @@ describe('fetchRestic', () => {
 
     const result = await fetchRestic({ url: '/snap.json' })
     expect(result?.fields.find(f => f.label === 'Age')?.value).toBe('3d ago')
+  })
+})
+
+// ─── Backrest ─────────────────────────────────────────────────────────────────
+
+const BACKREST_GUID = 'abc123def456abc123def456abc123def456abc123def456abc123def456ab12'
+
+function makeConfig(repos: Array<{ id: string; guid?: string }> = [{ id: 'local', guid: BACKREST_GUID }]) {
+  return { repos }
+}
+
+function makeDashboard(overrides: { timestampMs?: string; status?: string } = {}) {
+  return {
+    repoSummaries: [{
+      id: 'local',
+      recentBackups: {
+        timestampMs: [overrides.timestampMs ?? String(Date.now() - 5 * 60 * 1000)],
+        status: [overrides.status ?? 'STATUS_SUCCESS'],
+      },
+    }],
+  }
+}
+
+function makeOpsResponse(totalSize = '2048', snapshotCount = '3') {
+  return {
+    operations: [{
+      operationStats: {
+        stats: { totalSize, snapshotCount },
+      },
+    }],
+  }
+}
+
+describe('fetchBackrest', () => {
+  it('returns null when url is missing', async () => {
+    expect(await fetchBackrest({})).toBeNull()
+  })
+
+  it('returns None configured when no repos', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig([]))
+      .mockResolvedValueOnce({ repoSummaries: [] })
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields[0]?.value).toBe('None configured')
+  })
+
+  it('returns last backup, snapshots and disk size fields for single repo', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard())
+      .mockResolvedValueOnce(makeOpsResponse())
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    const labels = result?.fields.map(f => f.label)
+    expect(labels).toEqual(['Last backup', 'Snapshots', 'Disk size'])
+  })
+
+  it('prefixes fields with repo id for multiple repos', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig([
+        { id: 'local', guid: BACKREST_GUID },
+        { id: 'offsite', guid: BACKREST_GUID.replace(/a/g, 'b') },
+      ]))
+      .mockResolvedValueOnce({
+        repoSummaries: [
+          { id: 'local', recentBackups: { timestampMs: [String(Date.now() - 60_000)], status: ['STATUS_SUCCESS'] } },
+          { id: 'offsite', recentBackups: { timestampMs: [String(Date.now() - 120_000)], status: ['STATUS_SUCCESS'] } },
+        ],
+      })
+      .mockResolvedValueOnce(makeOpsResponse())
+      .mockResolvedValueOnce(makeOpsResponse('4096', '5'))
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    const labels = result?.fields.map(f => f.label)
+    expect(labels).toContain('local: Last backup')
+    expect(labels).toContain('offsite: Snapshots')
+  })
+
+  it('shows last backup age in minutes', async () => {
+    const twoMinsAgo = String(Date.now() - 2 * 60 * 1000)
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard({ timestampMs: twoMinsAgo }))
+      .mockResolvedValueOnce(makeOpsResponse())
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields.find(f => f.label === 'Last backup')?.value).toMatch(/^2m ago$/)
+  })
+
+  it('marks last backup as failed when status is not success', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard({ status: 'STATUS_ERROR' }))
+      .mockResolvedValueOnce(makeOpsResponse())
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields.find(f => f.label === 'Last backup')?.value).toContain('(failed)')
+  })
+
+  it('shows Never when no recent backups in dashboard', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce({ repoSummaries: [{ id: 'local', recentBackups: {} }] })
+      .mockResolvedValueOnce(makeOpsResponse())
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields.find(f => f.label === 'Last backup')?.value).toBe('Never')
+  })
+
+  it('shows snapshot count from stats operation', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard())
+      .mockResolvedValueOnce(makeOpsResponse('2048', '7'))
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields.find(f => f.label === 'Snapshots')?.value).toBe('7')
+  })
+
+  it('shows formatted disk size from stats operation', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard())
+      .mockResolvedValueOnce(makeOpsResponse(String(1024 * 1024)))
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields.find(f => f.label === 'Disk size')?.value).toBe('1.00 MB')
+  })
+
+  it('shows dash when no stats operation has been run', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard())
+      .mockResolvedValueOnce({ operations: [] })
+    const result = await fetchBackrest({ url: 'http://backrest' })
+    expect(result?.fields.find(f => f.label === 'Disk size')?.value).toBe('—')
+    expect(result?.fields.find(f => f.label === 'Snapshots')?.value).toBe('—')
+  })
+
+  it('sends Basic auth header when username and password provided', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard())
+      .mockResolvedValueOnce(makeOpsResponse())
+    await fetchBackrest({ url: 'http://backrest', username: 'admin', password: 'secret' })
+    const configCall = fetchDollar.mock.calls[0]
+    const headers = configCall[1]?.headers as Record<string, string>
+    expect(headers['Authorization']).toMatch(/^Basic /)
+    const decoded = Buffer.from(headers['Authorization'].replace('Basic ', ''), 'base64').toString()
+    expect(decoded).toBe('admin:secret')
+  })
+
+  it('calls GetConfig and GetSummaryDashboard', async () => {
+    fetchDollar
+      .mockResolvedValueOnce(makeConfig())
+      .mockResolvedValueOnce(makeDashboard())
+      .mockResolvedValueOnce(makeOpsResponse())
+    await fetchBackrest({ url: 'http://backrest' })
+    const urls = fetchDollar.mock.calls.map((c: unknown[]) => c[0])
+    expect(urls).toContain('http://backrest/v1.Backrest/GetConfig')
+    expect(urls).toContain('http://backrest/v1.Backrest/GetSummaryDashboard')
+    expect(urls).toContain('http://backrest/v1.Backrest/GetOperations')
   })
 })
