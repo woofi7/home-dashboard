@@ -31,9 +31,11 @@ import {
   faFolderOpen,
   faCircleExclamation,
   faFile,
+  faMagnifyingGlass,
+  faChevronUp,
 } from '@fortawesome/free-solid-svg-icons'
 
-library.add(faXmark, faCheck, faPencil, faRotateLeft, faRotateRight, faRightFromBracket, faTableColumns, faTableCells, faGripVertical, faSliders, faImage, faEye, faEyeSlash, faCalendarDays, faArrowUpRightFromSquare, faGear, faCloudSun, faCloudSunRain, faChevronLeft, faChevronDown, faFileZipper, faSpinner, faDownload, faUpload, faFolderOpen, faCircleExclamation, faFile)
+library.add(faXmark, faCheck, faPencil, faRotateLeft, faRotateRight, faRightFromBracket, faTableColumns, faTableCells, faGripVertical, faSliders, faImage, faEye, faEyeSlash, faCalendarDays, faArrowUpRightFromSquare, faGear, faCloudSun, faCloudSunRain, faChevronLeft, faChevronDown, faChevronUp, faFileZipper, faSpinner, faDownload, faUpload, faFolderOpen, faCircleExclamation, faFile, faMagnifyingGlass)
 
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.component('FaIcon', FontAwesomeIcon)
