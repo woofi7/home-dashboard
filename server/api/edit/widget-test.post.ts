@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const result = await fetchWidgetForService(type, { url, ...credentials })
-    if (result && result.fields.length > 0)
+    if (result !== null)
       return { ok: true, fields: result.fields }
     return { ok: false, message: 'Connected but returned no data — check credentials' }
   } catch (err: unknown) {

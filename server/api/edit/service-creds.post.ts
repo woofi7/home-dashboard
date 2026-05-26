@@ -1,4 +1,4 @@
-import { loadConfigRaw } from '../../utils/config'
+import { loadConfig } from '../../utils/config'
 import { CRED_FIELDS } from '../../utils/credentialMerge'
 
 type Service = Record<string, unknown>
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   if (!name)
     throw createError({ statusCode: 400, message: 'name is required' })
 
-  const groups = loadConfigRaw<ServiceGroup[]>('services.yaml') ?? []
+  const groups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
 
   let service: Service | undefined
   if (group) {
