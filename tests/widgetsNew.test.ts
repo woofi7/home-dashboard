@@ -708,8 +708,8 @@ describe('fetchTugtainer', () => {
     ])
     const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
     const labels = result?.fields.map(f => f.label)
-    expect(labels).toContain('Roger: Updates available')
-    expect(labels).toContain('woofi7.com: Updates available')
+    expect(labels).toContain('Roger - Updates available')
+    expect(labels).toContain('woofi7.com - Updates available')
     expect(labels).toContain('Total containers')
   })
 
@@ -733,7 +733,7 @@ describe('fetchTugtainer', () => {
     ])
     const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
     const labels = result?.fields.map(f => f.label)
-    expect(labels).not.toContain('Disabled: Updates available')
+    expect(labels).not.toContain('Disabled - Updates available')
     expect(labels).toContain('Updates available')
   })
 
