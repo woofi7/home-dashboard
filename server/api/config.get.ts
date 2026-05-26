@@ -6,7 +6,7 @@ type BookmarkGroup = { name: string; bookmarks: unknown[] }
 type Widget = Record<string, unknown>
 
 // Fields safe to expose to the browser — everything else (tokens, passwords, apiKeys) is stripped
-const SERVICE_SAFE_FIELDS = new Set(['name', 'url', 'icon', 'description', 'type', 'container', 'server', 'healthcheck'])
+const SERVICE_SAFE_FIELDS = new Set(['name', 'url', 'icon', 'description', 'type', 'container', 'server', 'healthcheck', 'widgetUrl'])
 
 function sanitizeService(s: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(s).filter(([k]) => SERVICE_SAFE_FIELDS.has(k)))

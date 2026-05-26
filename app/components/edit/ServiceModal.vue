@@ -19,6 +19,7 @@ const form = reactive<Service>({
   container: props.service?.container ?? '',
   server: props.service?.server ?? '',
   healthcheck: props.service?.healthcheck ?? '',
+  widgetUrl: props.service?.widgetUrl ?? '',
 })
 
 const credsLoading = ref(false)
@@ -70,7 +71,7 @@ async function test() {
   try {
     testResult.value = await $fetch<TestResult>('/api/edit/widget-test', {
       method: 'POST',
-      body: { type: form.type, url: form.url, apiKey: form.apiKey, username: form.username, password: form.password },
+      body: { type: form.type, url: form.url, widgetUrl: form.widgetUrl, apiKey: form.apiKey, username: form.username, password: form.password },
     })
   } catch {
     testResult.value = { ok: false, message: 'Request failed' }
@@ -126,6 +127,9 @@ function submit() {
             <div class="space-y-4">
               <HealthcheckField v-model="form.healthcheck as string" />
               <WidgetTypeField v-model="form.type as string" />
+              <Field v-if="form.type" label="Custom widget URL">
+                <input v-model="form.widgetUrl as string" type="text" class="modal-input" placeholder="Optional — defaults to service URL" />
+              </Field>
               <p v-if="credsError" class="text-xs text-danger">{{ credsError }}</p>
               <CredentialFields
                 :auth-type="authType"
