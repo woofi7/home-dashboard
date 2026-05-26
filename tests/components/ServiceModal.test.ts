@@ -264,7 +264,7 @@ describe('ServiceModal.vue', () => {
     expect(wrapper.emitted('save')).toBeTruthy()
   })
 
-  it('backdrop prevents wheel events from reaching the page', () => {
+  it('backdrop prevents wheel events directly on it', () => {
     const wrapper = mountModal(null)
     const backdrop = wrapper.find('div.fixed')
     const event = new WheelEvent('wheel', { bubbles: true, cancelable: true })
@@ -272,8 +272,49 @@ describe('ServiceModal.vue', () => {
     expect(event.defaultPrevented).toBe(true)
   })
 
+  it('wheel events from children of the backdrop are not prevented (scroll fix)', () => {
+    const wrapper = mountModal(null)
+    const content = wrapper.find('.overscroll-contain')
+    const event = new WheelEvent('wheel', { bubbles: true, cancelable: true })
+    content.element.dispatchEvent(event)
+    expect(event.defaultPrevented).toBe(false)
+  })
+
   it('scrollable content area has overscroll-contain', () => {
     const wrapper = mountModal(null)
     expect(wrapper.find('.overscroll-contain').exists()).toBe(true)
+  })
+
+  it('modal is max-w-3xl for 2-column layout', () => {
+    const wrapper = mountModal(null)
+    expect(wrapper.find('.max-w-3xl').exists()).toBe(true)
+  })
+
+  it('form uses a 2-column grid', () => {
+    const wrapper = mountModal(null)
+    expect(wrapper.find('.grid.grid-cols-2').exists()).toBe(true)
+  })
+
+  it('Name and URL inputs are in the left column', () => {
+    const wrapper = mountModal(null)
+    const [leftCol] = wrapper.find('.grid.grid-cols-2').findAll(':scope > div')
+    const placeholders = leftCol.findAll('input').map(i => (i.element as HTMLInputElement).placeholder)
+    expect(placeholders).toContain('Sonarr')
+    expect(placeholders).toContain('http://192.168.1.10:8989')
+  })
+
+  it('Widget type input is in the right column', () => {
+    const wrapper = mountModal(null)
+    const cols = wrapper.find('.grid.grid-cols-2').findAll(':scope > div')
+    const rightCol = cols[1]
+    const widgetInput = rightCol.findAll('input').find(i => (i.element as HTMLInputElement).placeholder === '-')
+    expect(widgetInput).toBeTruthy()
+  })
+
+  it('Docker select is in the left column, not the right', () => {
+    const wrapper = mountModal(null)
+    const [leftCol, rightCol] = wrapper.find('.grid.grid-cols-2').findAll(':scope > div')
+    expect(leftCol.find('select').exists()).toBe(true)
+    expect(rightCol.find('select').exists()).toBe(false)
   })
 })
