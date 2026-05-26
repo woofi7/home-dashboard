@@ -18,6 +18,7 @@ import restic from './restic'
 import sonarr from './sonarr'
 import tdarr from './tdarr'
 import traefik from './traefik'
+import tugtainer from './tugtainer'
 import unraid from './unraid'
 import uptimekuma from './uptimekuma'
 
@@ -41,6 +42,7 @@ export const widgetDefinitions: Record<string, WidgetDefinition> = {
   sonarr,
   tdarr,
   traefik,
+  tugtainer,
   unraid,
   uptimekuma,
 }

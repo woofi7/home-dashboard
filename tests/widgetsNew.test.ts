@@ -4,6 +4,7 @@ import { fetchBackrest } from '../server/api/widget/backrest.get'
 import { fetchBeszel } from '../server/api/widget/beszel.get'
 import { fetchUptimekuma } from '../server/api/widget/uptimekuma.get'
 import { fetchRestic } from '../server/api/widget/restic.get'
+import { fetchTugtainer } from '../server/api/widget/tugtainer.get'
 
 vi.mock('../server/utils/widget-fields', () => ({
   getActiveFields: (_type: string, labels: string[]) => new Set(labels),
@@ -632,5 +633,124 @@ describe('fetchBackrest', () => {
     expect(urls).toContain('http://backrest/v1.Backrest/GetConfig')
     expect(urls).toContain('http://backrest/v1.Backrest/GetSummaryDashboard')
     expect(urls).toContain('http://backrest/v1.Backrest/GetOperations')
+  })
+})
+
+// ─── Tugtainer ────────────────────────────────────────────────────────────────
+
+type TugtainerSummary = {
+  host_id: number
+  host_name: string
+  host_enabled: boolean
+  total_containers: number
+  by_update_available: Record<string, number>
+  total_images: number
+  unused_images: number
+  dangling_images: number
+}
+
+function makeTugSummary(overrides: Partial<TugtainerSummary> = {}): TugtainerSummary {
+  return {
+    host_id: 1,
+    host_name: 'Roger',
+    host_enabled: true,
+    total_containers: 34,
+    by_update_available: { 'true': 14, 'false': 20 },
+    total_images: 76,
+    unused_images: 42,
+    dangling_images: 8,
+    ...overrides,
+  }
+}
+
+function mockTugLogin(token = 'testtoken') {
+  fetchDollar.mockImplementationOnce(async (_url: string, opts?: { onResponse?: (ctx: unknown) => void }) => {
+    opts?.onResponse?.({
+      response: {
+        headers: { get: (h: string) => h === 'set-cookie' ? `access_token=${token}; HttpOnly` : '' },
+      },
+    })
+  })
+}
+
+describe('fetchTugtainer', () => {
+  it('returns null when url is missing', async () => {
+    expect(await fetchTugtainer({ password: 'pw' })).toBeNull()
+  })
+
+  it('returns null when password is missing', async () => {
+    expect(await fetchTugtainer({ url: 'http://tug' })).toBeNull()
+  })
+
+  it('returns updates, total containers, unused and dangling images', async () => {
+    mockTugLogin()
+    fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+    const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    const labels = result?.fields.map(f => f.label)
+    expect(labels).toEqual(['Updates available', 'Total containers', 'Unused images', 'Dangling images'])
+  })
+
+  it('uses correct values for single host', async () => {
+    mockTugLogin()
+    fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+    const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    expect(result?.fields.find(f => f.label === 'Updates available')?.value).toBe(14)
+    expect(result?.fields.find(f => f.label === 'Total containers')?.value).toBe(34)
+    expect(result?.fields.find(f => f.label === 'Unused images')?.value).toBe(42)
+    expect(result?.fields.find(f => f.label === 'Dangling images')?.value).toBe(8)
+  })
+
+  it('prefixes updates with host name for multiple hosts', async () => {
+    mockTugLogin()
+    fetchDollar.mockResolvedValueOnce([
+      makeTugSummary({ host_id: 1, host_name: 'Roger', by_update_available: { 'true': 14 } }),
+      makeTugSummary({ host_id: 2, host_name: 'woofi7.com', by_update_available: { 'true': 10 }, total_containers: 17, unused_images: 12, dangling_images: 0 }),
+    ])
+    const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    const labels = result?.fields.map(f => f.label)
+    expect(labels).toContain('Roger: Updates available')
+    expect(labels).toContain('woofi7.com: Updates available')
+    expect(labels).toContain('Total containers')
+  })
+
+  it('aggregates totals across hosts', async () => {
+    mockTugLogin()
+    fetchDollar.mockResolvedValueOnce([
+      makeTugSummary({ total_containers: 34, unused_images: 42, dangling_images: 8 }),
+      makeTugSummary({ host_id: 2, host_name: 'woofi7.com', total_containers: 17, unused_images: 12, dangling_images: 0 }),
+    ])
+    const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    expect(result?.fields.find(f => f.label === 'Total containers')?.value).toBe(51)
+    expect(result?.fields.find(f => f.label === 'Unused images')?.value).toBe(54)
+    expect(result?.fields.find(f => f.label === 'Dangling images')?.value).toBe(8)
+  })
+
+  it('skips disabled hosts', async () => {
+    mockTugLogin()
+    fetchDollar.mockResolvedValueOnce([
+      makeTugSummary({ host_name: 'Roger' }),
+      makeTugSummary({ host_id: 2, host_name: 'Disabled', host_enabled: false, by_update_available: { 'true': 99 } }),
+    ])
+    const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    const labels = result?.fields.map(f => f.label)
+    expect(labels).not.toContain('Disabled: Updates available')
+    expect(labels).toContain('Updates available')
+  })
+
+  it('passes the access_token cookie to the summary request', async () => {
+    mockTugLogin('mytoken123')
+    fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+    await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    const summaryCall = fetchDollar.mock.calls[1]
+    expect(summaryCall[1]?.headers?.Cookie).toBe('access_token=mytoken123')
+  })
+
+  it('calls the correct login and summary endpoints', async () => {
+    mockTugLogin()
+    fetchDollar.mockResolvedValueOnce([makeTugSummary()])
+    await fetchTugtainer({ url: 'http://tug', password: 'pw' })
+    const urls = fetchDollar.mock.calls.map((c: unknown[]) => c[0])
+    expect(urls).toContain('http://tug/api/auth/password/login')
+    expect(urls).toContain('http://tug/api/public/summary')
   })
 })
