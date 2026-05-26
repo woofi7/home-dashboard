@@ -201,6 +201,63 @@ describe('weather.get', () => {
     })
   })
 
+  describe('open-meteo retry', () => {
+    const customCfg = {
+      weather: {
+        locationMode: 'custom',
+        location: { name: 'Montreal', lat: 45.5, lon: -73.6, admin1: 'Quebec', countryCode: 'ca' },
+      },
+    }
+
+    beforeEach(() => {
+      mockLoadConfig.mockReturnValue(customCfg)
+    })
+
+    it('uses api.open-meteo.com on first attempt', async () => {
+      mockFetch.mockResolvedValueOnce(makeWeatherResponse())
+      await (handler as Function)()
+      expect((mockFetch.mock.calls[0]![0] as string)).toContain('api.open-meteo.com')
+    })
+
+    it('falls back to api1.open-meteo.com when primary returns 502', async () => {
+      mockFetch
+        .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+        .mockResolvedValueOnce(makeWeatherResponse())
+      const result = await (handler as Function)() as { city: string }
+      expect(result.city).toBe('Montreal')
+      expect((mockFetch.mock.calls[0]![0] as string)).toContain('api.open-meteo.com')
+      expect((mockFetch.mock.calls[1]![0] as string)).toContain('api1.open-meteo.com')
+    })
+
+    it('falls back to api2.open-meteo.com when primary and api1 both fail', async () => {
+      mockFetch
+        .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+        .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+        .mockResolvedValueOnce(makeWeatherResponse())
+      const result = await (handler as Function)() as { city: string }
+      expect(result.city).toBe('Montreal')
+      expect((mockFetch.mock.calls[2]![0] as string)).toContain('api2.open-meteo.com')
+    })
+
+    it('throws when all three hosts fail', async () => {
+      mockFetch
+        .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+        .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+        .mockRejectedValueOnce(new Error('502 Bad Gateway'))
+      await expect((handler as Function)()).rejects.toThrow('502 Bad Gateway')
+    })
+
+    it('preserves query params across retries', async () => {
+      mockFetch
+        .mockRejectedValueOnce(new Error('503'))
+        .mockResolvedValueOnce(makeWeatherResponse())
+      await (handler as Function)()
+      const fallbackUrl = mockFetch.mock.calls[1]![0] as string
+      expect(fallbackUrl).toContain('latitude=45.5')
+      expect(fallbackUrl).toContain('longitude=-73.6')
+    })
+  })
+
   describe('units', () => {
     it('returns unit C for celsius', async () => {
       mockLoadConfig.mockReturnValue({ weather: { units: 'celsius' } })

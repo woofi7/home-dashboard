@@ -87,7 +87,7 @@ export default defineEventHandler(async () => {
     countryCode = geo.countryCode.toLowerCase()
   }
 
-  const weather = await $fetch<{
+  type WeatherResponse = {
     current: {
       time: string
       temperature_2m: number
@@ -112,14 +112,28 @@ export default defineEventHandler(async () => {
       precipitation_probability_max: number[]
       wind_speed_10m_max: number[]
     }
-  }>(
-    `https://api.open-meteo.com/v1/forecast` +
+  }
+
+  const weatherQuery =
     `?latitude=${lat}&longitude=${lon}` +
     `&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code` +
     `&hourly=temperature_2m,apparent_temperature,weather_code,precipitation_probability,wind_speed_10m` +
     `&daily=temperature_2m_min,temperature_2m_max,weather_code,precipitation_probability_max,wind_speed_10m_max` +
     `&temperature_unit=${units}&wind_speed_unit=${windUnit}&forecast_days=2&timezone=auto`
-  )
+
+  const openMeteoHosts = ['api.open-meteo.com', 'api1.open-meteo.com', 'api2.open-meteo.com']
+  let weather: WeatherResponse | undefined
+  let lastError: unknown
+  for (const host of openMeteoHosts) {
+    try {
+      weather = await $fetch<WeatherResponse>(`https://${host}/v1/forecast${weatherQuery}`)
+      break
+    } catch (e) {
+      lastError = e
+    }
+  }
+  if (!weather)
+    throw lastError
 
   const c = weather.current
   const { desc, icon } = wmo(c.weather_code)
