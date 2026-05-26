@@ -46,7 +46,7 @@ export async function fetchTugtainer(creds: ServiceCredentials) {
   const multiHost = enabled.length > 1
   for (const host of enabled) {
     const updates = host.by_update_available['true'] ?? 0
-    const prefix = multiHost ? `${host.host_name}: ` : ''
+    const prefix = multiHost ? `${host.host_name} - ` : ''
     fields.push({ label: `${prefix}Updates available`, value: updates })
   }
 

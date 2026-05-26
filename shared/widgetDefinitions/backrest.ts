@@ -2,7 +2,7 @@ import type { WidgetDefinition } from './types'
 
 export default {
   name: 'Backrest',
-  authType: 'password',
+  authType: 'basic',
   fields: [
     { label: 'Last backup', desc: 'Time since the most recent backup (per repo)' },
     { label: 'Snapshots',   desc: 'Total snapshot count from most recent stats run' },
