@@ -44,9 +44,9 @@ function isDirty(type: string): boolean {
 
 const filteredCatalog = computed(() => {
   const q = search.value.trim().toLowerCase()
-  return Object.entries(widgetDefinitions).filter(([type, def]) =>
-    !q || type.includes(q) || def.name.toLowerCase().includes(q)
-  )
+  return Object.entries(widgetDefinitions)
+    .filter(([type, def]) => !q || type.includes(q) || def.name.toLowerCase().includes(q))
+    .sort(([, a], [, b]) => a.name.localeCompare(b.name))
 })
 
 const AUTH_COLORS: Record<string, string> = {

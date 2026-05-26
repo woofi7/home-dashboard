@@ -99,4 +99,10 @@ describe('admin/index.vue', () => {
   it('uses file-zipper icon for the Backup & Restore card', () => {
     expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'file-zipper')).toBe(true)
   })
+
+  it('nav cards are ordered alphabetically by title', () => {
+    const links = mountPage().findAll('a')
+    const titles = links.map(l => l.find('p').text())
+    expect(titles).toEqual([...titles].sort((a, b) => a.localeCompare(b)))
+  })
 })

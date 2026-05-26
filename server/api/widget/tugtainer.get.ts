@@ -1,4 +1,5 @@
 import type { ServiceCredentials } from '../../utils/auth'
+import { getActiveFields } from '../../utils/widget-fields'
 import definition from '#shared/widgetDefinitions/tugtainer'
 export const meta = definition
 
@@ -41,22 +42,27 @@ export async function fetchTugtainer(creds: ServiceCredentials) {
   })
 
   const enabled = summaries.filter(h => h.host_enabled)
+  const active = getActiveFields('tugtainer', definition.fields.map(f => f.label))
   const fields: { label: string; value: unknown }[] = []
 
   const multiHost = enabled.length > 1
-  for (const host of enabled) {
-    const updates = host.by_update_available['true'] ?? 0
-    const prefix = multiHost ? `${host.host_name} - ` : ''
-    fields.push({ label: `${prefix}Updates available`, value: updates })
+  if (active.has('Updates available')) {
+    for (const host of enabled) {
+      const prefix = multiHost ? `${host.host_name} - ` : ''
+      fields.push({ label: `${prefix}Updates available`, value: host.by_update_available['true'] ?? 0 })
+    }
   }
 
   const totalContainers = enabled.reduce((s, h) => s + h.total_containers, 0)
   const unusedImages = enabled.reduce((s, h) => s + h.unused_images, 0)
   const danglingImages = enabled.reduce((s, h) => s + h.dangling_images, 0)
 
-  fields.push({ label: 'Total containers', value: totalContainers })
-  fields.push({ label: 'Unused images',    value: unusedImages })
-  fields.push({ label: 'Dangling images',  value: danglingImages })
+  if (active.has('Total containers'))
+    fields.push({ label: 'Total containers', value: totalContainers })
+  if (active.has('Unused images'))
+    fields.push({ label: 'Unused images', value: unusedImages })
+  if (active.has('Dangling images'))
+    fields.push({ label: 'Dangling images', value: danglingImages })
 
   return { type: 'tugtainer', fields }
 }

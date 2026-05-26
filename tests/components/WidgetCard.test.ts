@@ -38,6 +38,14 @@ describe('WidgetCard.vue', () => {
       expect(mountCard(['Series']).text()).toContain('Sonarr')
     })
 
+    it('active field rows have hover highlight class', () => {
+      const w = mountCard(['Series', 'Queued'])
+      const rows = w.findAll('.group\\/field')
+      expect(rows.length).toBe(2)
+      for (const row of rows)
+        expect(row.classes()).toContain('hover:bg-elevated')
+    })
+
     it('renders active fields in the active section', () => {
       const w = mountCard(['Series', 'Queued'])
       expect(w.text()).toContain('Series')
