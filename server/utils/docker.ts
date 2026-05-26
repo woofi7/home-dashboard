@@ -1,4 +1,6 @@
 import { createConnection } from 'node:net'
+import { existsSync } from 'node:fs'
+import { URL } from 'node:url'
 import { loadConfig } from './config'
 import { createCache } from './cache'
 import type { DockerContainerStatus, DockerServerStatus, DockerStatus } from '../types'
@@ -31,7 +33,6 @@ async function fetchContainersForServer(server: DockerServerConfig): Promise<Doc
   }
 
   const socketPath = server.socket ?? '/var/run/docker.sock'
-  const { existsSync } = await import('node:fs')
   if (existsSync(socketPath))
     return httpOverSocket(socketPath, '/v1.41/containers/json') as Promise<DockerContainer[]>
 
@@ -49,6 +50,33 @@ export function toServerStatus(containers: DockerContainer[]): DockerServerStatu
 }
 
 export function clearDockerCache() { cache.clear() }
+
+function tcpPing(host: string, port: number, timeoutMs = 3000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ host, port })
+    const timer = setTimeout(() => { socket.destroy(); resolve(false) }, timeoutMs)
+    socket.on('connect', () => { clearTimeout(timer); socket.destroy(); resolve(true) })
+    socket.on('error', () => { clearTimeout(timer); resolve(false) })
+  })
+}
+
+export async function pingDockerServer(server: DockerServerConfig): Promise<boolean> {
+  if (server.host) {
+    try {
+      const base = server.host.replace(/^tcp:/, 'http:')
+      const parsed = new URL(base)
+      const host = parsed.hostname
+      const port = server.port ?? (parsed.port ? Number(parsed.port) : 2375)
+      return await tcpPing(host, port)
+    }
+    catch {
+      return false
+    }
+  }
+
+  const socketPath = server.socket ?? '/var/run/docker.sock'
+  return existsSync(socketPath)
+}
 
 export function fetchDockerStatus(): Promise<DockerStatus> {
   return cache.fetch(async () => {

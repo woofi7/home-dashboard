@@ -80,7 +80,8 @@ async function test() {
 
 function submit() {
   errors.name = form.name ? '' : 'Name is required'
-  if (errors.name)
+  errors.container = (form.server && !form.container) ? 'Container is required' : ''
+  if (errors.name || errors.container)
     return
   emit('save', { ...form })
 }
@@ -107,7 +108,11 @@ function submit() {
             <input v-model="form.description" type="text" class="modal-input" />
           </Field>
           <IconField v-model="form.icon as string" @browse="showIconPicker = true" />
-          <DockerField v-model:server="form.server as string" v-model:container="form.container as string" />
+          <DockerField
+            v-model:server="form.server as string"
+            v-model:container="form.container as string"
+            :container-error="errors.container"
+          />
           <WidgetTypeField v-model="form.type as string" />
           <p v-if="credsError" class="text-xs text-danger">{{ credsError }}</p>
           <CredentialFields

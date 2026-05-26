@@ -65,6 +65,15 @@ watch([() => useAuth().editEnabled.value, () => useAuth().needsLogin.value], ([e
         <p class="text-xs text-muted mt-1">Download or restore config files as a zip archive</p>
       </NuxtLink>
 
+      <NuxtLink
+        to="/admin/docker"
+        class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer"
+      >
+        <FaIcon icon="server" class="text-2xl text-muted group-hover:text-accent transition-colors mb-3" />
+        <p class="font-medium text-primary group-hover:text-accent transition-colors">Docker</p>
+        <p class="text-xs text-muted mt-1">Configure Docker server endpoints for container status</p>
+      </NuxtLink>
+
     </div>
   </div>
 </template>

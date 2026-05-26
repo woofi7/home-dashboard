@@ -4,6 +4,14 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { globalStubs } from './helpers'
 
 vi.stubGlobal('$fetch', vi.fn().mockResolvedValue({}))
+
+const dockerServersRef = { value: {} as Record<string, unknown> }
+vi.stubGlobal('useFetch', (url: string) => {
+  if (url === '/api/admin/docker')
+    return { data: dockerServersRef }
+  return { data: { value: null } }
+})
+
 vi.stubGlobal('widgetDefinitions', {
   sonarr: { name: 'Sonarr', authType: 'apiKey', fields: [{ label: 'Wanted', desc: '' }] },
   pihole: { name: 'Pi-hole', authType: 'basic', fields: [] },
@@ -216,13 +224,44 @@ describe('ServiceModal.vue', () => {
     expect(wrapper.emitted('close')).toBeTruthy()
   })
 
-  it('Docker section: Server and Container fields rendered', () => {
+  it('Docker section: Server select rendered with None and localhost options', () => {
     const wrapper = mountModal(null)
+    const select = wrapper.find('select')
+    expect(select.exists()).toBe(true)
+    const options = select.findAll('option')
+    expect(options.some(o => o.element.value === '')).toBe(true)
+    expect(options.some(o => o.element.value === 'local')).toBe(true)
+  })
+
+  it('Docker section: container field hidden when server is None', () => {
+    const wrapper = mountModal(null)
+    // Default server is empty (None), so container input should not be visible
     const labels = wrapper.findAll('label')
-    expect(labels.some(l => l.text() === 'Server')).toBe(true)
+    expect(labels.some(l => l.text() === 'Container')).toBe(false)
+  })
+
+  it('Docker section: container field shown when service has a server set', async () => {
+    const wrapper = mountModal({ name: 'Sonarr', server: 'local', container: '' })
+    await flushPromises()
+    const labels = wrapper.findAll('label')
     expect(labels.some(l => l.text() === 'Container')).toBe(true)
-    const containerInput = wrapper.findAll('input').find(i => (i.element as HTMLInputElement).placeholder === 'auto')
-    expect(containerInput).toBeTruthy()
+  })
+
+  it('Save with server set but empty container shows "Container is required" and does NOT emit save', async () => {
+    const wrapper = mountModal({ name: 'Sonarr', server: 'local', container: '' })
+    await flushPromises()
+    const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Save')
+    await saveBtn!.trigger('click')
+    expect(wrapper.text()).toContain('Container is required')
+    expect(wrapper.emitted('save')).toBeFalsy()
+  })
+
+  it('Save with server and container both set emits save', async () => {
+    const wrapper = mountModal({ name: 'Sonarr', server: 'local', container: 'sonarr' })
+    await flushPromises()
+    const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Save')
+    await saveBtn!.trigger('click')
+    expect(wrapper.emitted('save')).toBeTruthy()
   })
 
   it('backdrop prevents wheel events from reaching the page', () => {

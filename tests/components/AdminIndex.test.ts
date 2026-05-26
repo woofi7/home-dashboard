@@ -85,8 +85,8 @@ describe('admin/index.vue', () => {
     expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
   })
 
-  it('renders 6 setting nav cards (links)', () => {
-    expect(mountPage().findAll('a').length).toBe(6)
+  it('renders 7 setting nav cards (links)', () => {
+    expect(mountPage().findAll('a').length).toBe(7)
   })
 
   it('renders a Backup & Restore card linking to /admin/backup', () => {
