@@ -30,10 +30,19 @@ function withTimeout<T>(p: Promise<T | null>, ms: number): Promise<T | null> {
   return Promise.race([p, new Promise<null>(resolve => setTimeout(() => resolve(null), ms))])
 }
 
+function healthcheckPingUrl(service: ServiceGroup['services'][number]): string | null {
+  const hc = service.healthcheck as string | undefined
+  if (hc === 'none' || hc === 'docker')
+    return null
+  if (hc && hc !== 'http')
+    return hc
+  return (service.url as string | undefined) ?? null
+}
+
 async function doRefresh(): Promise<RefreshResponse> {
   const groups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
   const services = groups.flatMap(g => g.services)
-  const urls = [...new Set(services.map(s => s.url).filter((u): u is string => !!u))]
+  const urls = [...new Set(services.map(healthcheckPingUrl).filter((u): u is string => !!u))]
   const widgetServices = services.filter(s => s.type && s.url)
 
   const [docker, pingEntries, widgetEntries] = await Promise.all([

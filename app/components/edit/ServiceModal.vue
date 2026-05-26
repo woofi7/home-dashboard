@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
 
-type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; container?: string; server?: string; [key: string]: unknown }
+type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; apiKey?: string; username?: string; password?: string; container?: string; server?: string; healthcheck?: string; [key: string]: unknown }
 type TestResult = { ok: boolean; status?: number; message?: string; fields?: { label: string; value: unknown }[] }
 
 const props = defineProps<{ service: Service | null; group?: string }>()
@@ -18,6 +18,7 @@ const form = reactive<Service>({
   password: props.service?.password ?? '',
   container: props.service?.container ?? '',
   server: props.service?.server ?? '',
+  healthcheck: props.service?.healthcheck ?? '',
 })
 
 const credsLoading = ref(false)
@@ -83,7 +84,10 @@ function submit() {
   errors.container = (form.server && !form.container) ? 'Container is required' : ''
   if (errors.name || errors.container)
     return
-  emit('save', { ...form })
+  const payload = { ...form }
+  if (!payload.healthcheck)
+    delete payload.healthcheck
+  emit('save', payload)
 }
 </script>
 
@@ -113,6 +117,7 @@ function submit() {
             v-model:container="form.container as string"
             :container-error="errors.container"
           />
+          <HealthcheckField v-model="form.healthcheck as string" />
           <WidgetTypeField v-model="form.type as string" />
           <p v-if="credsError" class="text-xs text-danger">{{ credsError }}</p>
           <CredentialFields
