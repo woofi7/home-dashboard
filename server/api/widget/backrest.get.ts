@@ -60,7 +60,7 @@ export async function fetchBackrest(creds: ServiceCredentials) {
     post<DashboardResponse>('/v1.Backrest/GetSummaryDashboard'),
   ])
 
-  const repos = config.repos ?? []
+  const repos = (config.repos ?? []).slice().sort((a, b) => (a.id ?? '').localeCompare(b.id ?? ''))
   if (repos.length === 0)
     return { type: 'backrest', fields: [{ label: 'Repos', value: 'None configured' }] }
 
