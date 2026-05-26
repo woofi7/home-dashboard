@@ -7,6 +7,8 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY . .
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 RUN rm -rf node_modules/.cache/nuxt && pnpm run build
 
 # ---
