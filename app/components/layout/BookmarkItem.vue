@@ -39,8 +39,8 @@ function faviconUrl(url: string) {
     @click="!edit && emit('click')"
   >
     <div
-      class="aspect-square w-full rounded-xl bg-black/60 border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors overflow-hidden relative"
-      :class="pendingDelete ? 'border-danger/70' : pending ? 'border-warning/60' : 'border-border'"
+      class="aspect-square w-full rounded-xl bg-elevated border flex items-center justify-center transition-colors overflow-hidden relative"
+      :class="pendingDelete ? 'border-danger/70' : pending ? 'border-warning/60' : 'border-border hover:border-accent/40'"
     >
       <img
         :src="bookmark.icon || faviconUrl(bookmark.url) || ''"
@@ -48,9 +48,9 @@ function faviconUrl(url: string) {
         class="w-3/5 h-3/5 object-contain"
         @error="($event.target as HTMLImageElement).style.display = 'none'"
       />
-      <span v-if="clickCount" class="absolute top-1 right-1.5 text-[9px] text-white/40 tabular-nums leading-none">{{ clickCount }}</span>
+      <span v-if="clickCount" class="absolute top-1 right-1.5 text-[9px] text-muted tabular-nums leading-none">{{ clickCount }}</span>
     </div>
-    <span class="text-[11px] text-white/70 text-center leading-tight line-clamp-2 w-full px-0.5">{{ bookmark.name }}</span>
+    <span class="text-[11px] text-secondary text-center leading-tight line-clamp-2 w-full px-0.5 transition-colors group-hover/bm:text-accent">{{ bookmark.name }}</span>
 
     <span
       v-if="edit && !pendingDelete"
@@ -60,7 +60,7 @@ function faviconUrl(url: string) {
 
     <div
       v-if="edit"
-      class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-opacity z-10 bg-black/40"
+      class="absolute inset-0 rounded-xl flex flex-col items-center justify-center gap-1.5 transition-opacity z-10 bg-elevated/80"
       :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'"
     >
       <template v-if="pendingDelete">

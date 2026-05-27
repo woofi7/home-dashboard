@@ -151,11 +151,11 @@ function saveService(updated: Service) {
 
 <template>
   <div
-    class="rounded-xl border border-white/10 transition-[opacity,transform] duration-400 ease-out"
+    class="rounded-xl border border-border transition-[opacity,transform] duration-400 ease-out"
     :class="visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'"
     :style="sectionStyle"
   >
-    <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
+    <div class="flex items-center gap-2 px-4 py-2 border-b border-border">
       <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
       <template v-if="edit && editingName">
         <input
@@ -210,7 +210,7 @@ function saveService(updated: Service) {
 
     <div v-if="edit" class="px-3 pb-3">
       <button
-        class="w-full rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm hover:border-accent text-white/60 hover:text-accent-hover text-sm py-2 transition-colors"
+        class="w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
         @click="openAdd"
       >+ Add</button>
     </div>

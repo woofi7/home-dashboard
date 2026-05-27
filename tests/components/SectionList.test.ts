@@ -141,7 +141,7 @@ describe('SectionList.vue', () => {
       expect(buttons.length).toBe(0)
     })
 
-    it('add buttons use white-alpha border and background for visibility over backgrounds', () => {
+    it('add buttons use palette-aware border', () => {
       const w = mountList({
         sectionOrder: [{ type: 'service', name: 'Media' }],
         services: ['Media'],
@@ -149,21 +149,17 @@ describe('SectionList.vue', () => {
       })
       const buttons = w.findAll('button').filter(b => b.text().includes('section') || b.text().includes('group'))
       for (const btn of buttons) {
-        expect(btn.classes()).toContain('border-white/30')
-        expect(btn.classes()).toContain('bg-black/20')
-        expect(btn.classes()).not.toContain('border-border')
-        expect(btn.classes()).not.toContain('text-muted')
+        expect(btn.classes()).toContain('border-border')
+        expect(btn.classes()).not.toContain('border-white/30')
       }
     })
 
-    it('empty-state add buttons use white-alpha border and background', () => {
+    it('empty-state add buttons use palette-aware border', () => {
       const w = mountList({ configLoaded: true, sectionOrder: [], editActive: true })
       const buttons = w.findAll('button').filter(b => b.text().includes('section') || b.text().includes('group'))
       for (const btn of buttons) {
-        expect(btn.classes()).toContain('border-white/30')
-        expect(btn.classes()).toContain('bg-black/20')
-        expect(btn.classes()).not.toContain('border-border')
-        expect(btn.classes()).not.toContain('text-muted')
+        expect(btn.classes()).toContain('border-border')
+        expect(btn.classes()).not.toContain('border-white/30')
       }
     })
   })

@@ -4,16 +4,16 @@ export type AppearanceSettings = {
 }
 
 const SECTION_STYLE_MAP: Record<string, Record<string, string>> = {
-  glass:  { backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)' },
-  dark:   { backgroundColor: 'rgba(0,0,0,0.5)' },
-  darker: { backgroundColor: 'rgba(0,0,0,0.75)' },
+  glass:  { backgroundColor: 'color-mix(in srgb, var(--color-surface) 75%, transparent)', backdropFilter: 'blur(12px)' },
+  dark:   { backgroundColor: 'var(--color-surface)' },
+  darker: { backgroundColor: 'var(--color-base)' },
   none:   { backgroundColor: 'transparent' },
 }
 
 const CARD_STYLE_MAP: Record<string, Record<string, string>> = {
-  glass:  { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' },
-  dark:   { backgroundColor: 'rgba(0,0,0,0.6)' },
-  darker: { backgroundColor: 'rgba(0,0,0,0.8)' },
+  glass:  { backgroundColor: 'color-mix(in srgb, var(--color-elevated) 70%, transparent)', backdropFilter: 'blur(4px)' },
+  dark:   { backgroundColor: 'var(--color-elevated)' },
+  darker: { backgroundColor: 'var(--color-base)' },
   none:   { backgroundColor: 'transparent' },
 }
 

@@ -12,6 +12,18 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/docker': 'Docker',
 }
 
+const headerRef = ref<HTMLElement>()
+
+onMounted(() => {
+  if (!headerRef.value) return
+  const ro = new ResizeObserver(([entry]) => {
+    const h = entry.borderBoxSize?.[0]?.blockSize ?? (headerRef.value?.getBoundingClientRect().height ?? 0)
+    document.documentElement.style.setProperty('--admin-header-h', `${Math.ceil(h)}px`)
+  })
+  ro.observe(headerRef.value)
+  onUnmounted(() => ro.disconnect())
+})
+
 const isRoot = computed(() => route.path === '/admin')
 const pageTitle = computed(() => {
   if (PAGE_TITLES[route.path])
@@ -24,7 +36,7 @@ const pageTitle = computed(() => {
 
 <template>
   <div class="min-h-screen bg-base text-primary">
-    <div class="flex items-center justify-between gap-4 px-4 md:px-6 py-3 border-b border-border bg-surface">
+    <div ref="headerRef" class="sticky top-0 z-50 flex items-center justify-between gap-4 px-4 md:px-6 py-3 border-b border-border bg-surface">
       <div class="flex items-center gap-3 min-w-0">
         <NuxtLink
           v-if="!isRoot"
