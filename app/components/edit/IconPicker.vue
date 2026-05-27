@@ -1,54 +1,27 @@
 <script setup lang="ts">
+import { fuzzyMatch, type Segment } from '~/utils/fuzzy'
+
 const emit = defineEmits<{ select: [url: string]; close: [] }>()
 
 const search = ref('')
 
 const { data: allIcons, pending } = useLazyFetch<{ name: string; url: string }[]>('/api/icons')
 
-type IconResult = { name: string; url: string; label: string }
-
-function fuzzy(str: string, pattern: string): { score: number; indices: number[] } | null {
-  let si = 0, pi = 0, score = 0, lastMatch = -1
-  const s = str.toLowerCase()
-  const p = pattern.toLowerCase()
-  const indices: number[] = []
-  while (si < s.length && pi < p.length) {
-    if (s[si] === p[pi]) {
-      score += lastMatch === si - 1 ? 3 : 1
-      lastMatch = si
-      indices.push(si)
-      pi++
-    }
-    si++
-  }
-  return pi === p.length ? { score, indices } : null
-}
-
-function highlight(name: string, indices: number[]): string {
-  const matched = new Set(indices)
-  return name
-    .split('')
-    .map((ch, i) =>
-      matched.has(i)
-        ? `<mark style="background:transparent;color:var(--color-accent-hover);font-weight:600">${ch}</mark>`
-        : ch
-    )
-    .join('')
-}
+type IconResult = { name: string; url: string; segments: Segment[] }
 
 const icons = computed<IconResult[]>(() => {
   if (!allIcons.value)
     return []
   const q = search.value.trim()
   if (!q)
-    return allIcons.value.slice(0, 120).map((i) => ({ ...i, label: i.name }))
+    return allIcons.value.slice(0, 120).map(i => ({ ...i, segments: [{ text: i.name, highlight: false }] }))
 
   return allIcons.value
-    .map((i) => ({ i, result: fuzzy(i.name, q) }))
-    .filter((x): x is { i: typeof x.i; result: { score: number; indices: number[] } } => x.result !== null)
+    .map(i => ({ i, result: fuzzyMatch(i.name, q) }))
+    .filter((x): x is { i: typeof x.i; result: NonNullable<ReturnType<typeof fuzzyMatch>> } => x.result !== null)
     .sort((a, b) => b.result.score - a.result.score)
     .slice(0, 120)
-    .map(({ i, result }) => ({ ...i, label: highlight(i.name, result.indices) }))
+    .map(({ i, result }) => ({ ...i, segments: result.segments }))
 })
 
 useScrollLock()
@@ -92,7 +65,9 @@ onMounted(() => nextTick(() => input.value?.focus()))
                   @error="($event.target as HTMLImageElement).style.opacity = '0'"
                 />
               </div>
-              <span class="text-xs text-muted text-center leading-tight line-clamp-2 w-full" v-html="icon.label" />
+              <span class="text-xs text-muted text-center leading-tight line-clamp-2 w-full">
+                <span v-for="(seg, i) in icon.segments" :key="i" :class="seg.highlight ? 'text-accent font-semibold' : ''">{{ seg.text }}</span>
+              </span>
             </button>
           </div>
 
