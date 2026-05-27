@@ -70,9 +70,18 @@ const pendingItems = computed(() => {
 })
 
 const dragging = ref(false)
+const collapsed = ref(false)
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
-const { data: config } = useFetch<{ settings?: { bookmarkCounterEnabled?: boolean } }>('/api/config')
+const { data: config } = useFetch<{ settings?: { bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean } }>('/api/config')
 const counterEnabled = computed(() => config.value?.settings?.bookmarkCounterEnabled !== false)
+const autoSortEnabled = computed(() => config.value?.settings?.bookmarkAutoSort === true)
+
+const displayBookmarks = computed(() => {
+  if (!autoSortEnabled.value)
+    return localGroup.value.bookmarks
+  const clks = clicks.value ?? {}
+  return [...localGroup.value.bookmarks].sort((a, b) => (clks[b.name] ?? 0) - (clks[a.name] ?? 0))
+})
 
 async function trackClick(name: string) {
   if (!counterEnabled.value)
@@ -160,11 +169,11 @@ function save(updated: Bookmark) {
 
 <template>
   <div
-    class="rounded-xl border border-border p-4 transition-[opacity,transform] duration-400 ease-out"
+    class="rounded-xl border border-border transition-[opacity,transform] duration-400 ease-out"
     :class="visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'"
     :style="sectionStyle"
   >
-    <div class="flex items-center gap-2 mb-4">
+    <div class="flex items-center gap-2 px-4 py-2 border-b border-border">
       <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
       <template v-if="edit && editingName">
         <input
@@ -188,44 +197,64 @@ function save(updated: Bookmark) {
         <SectionLayoutSettings v-model="layout" />
         <button class="text-xs text-danger" @click="$emit('delete')">Remove</button>
       </template>
+      <button class="text-muted hover:text-secondary ml-1" @click="collapsed = !collapsed">
+        <FaIcon icon="chevron-down" class="text-xs transition-transform" :class="collapsed ? '-rotate-90' : ''" />
+      </button>
     </div>
 
-    <VueDraggable
-      v-model="localGroup.bookmarks"
-      :disabled="!edit"
-      :group="{ name: 'bookmarks', pull: true, put: true }"
-      :animation="300"
-      ghost-class="drag-ghost"
-      chosen-class="drag-chosen"
-      handle=".bookmark-handle"
-      item-key="name"
-      :style="{ ...bookmarkContainerStyle, minHeight: '48px' }"
-      @start="dragging = true"
-      @end="dragging = false; onUpdate()"
-      @add="onUpdate()"
-    >
-      <BookmarkItem
-        v-for="b in localGroup.bookmarks"
-        :key="b.name"
-        :style="bookmarkItemStyle"
-        :bookmark="b"
-        :edit="edit"
-        :pending="pendingItems.has(b.name)"
-        :pending-delete="pendingDeleteNames.has(b.name)"
-        :dragging="dragging"
-        :click-count="counterEnabled ? clicks?.[b.name] : undefined"
-        @click="trackClick(b.name)"
-        @edit="openEdit(b)"
-        @delete="deleteBookmark(b)"
-        @restore="revertBookmark(b.name)"
-      />
-    </VueDraggable>
-
-    <button
-      v-if="edit"
-      class="cursor-pointer mt-3 w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
-      @click="openAdd"
-    >+ Add</button>
+    <div v-show="!collapsed" class="p-4">
+      <template v-if="edit">
+        <VueDraggable
+          v-model="localGroup.bookmarks"
+          :group="{ name: 'bookmarks', pull: true, put: true }"
+          :animation="300"
+          ghost-class="drag-ghost"
+          chosen-class="drag-chosen"
+          handle=".bookmark-handle"
+          item-key="name"
+          :style="{ ...bookmarkContainerStyle, minHeight: '48px' }"
+          @start="dragging = true"
+          @end="dragging = false; onUpdate()"
+          @add="onUpdate()"
+        >
+          <BookmarkItem
+            v-for="b in localGroup.bookmarks"
+            :key="b.name"
+            :style="bookmarkItemStyle"
+            :bookmark="b"
+            :edit="true"
+            :pending="pendingItems.has(b.name)"
+            :pending-delete="pendingDeleteNames.has(b.name)"
+            :dragging="dragging"
+            :click-count="counterEnabled ? clicks?.[b.name] : undefined"
+            @click="trackClick(b.name)"
+            @edit="openEdit(b)"
+            @delete="deleteBookmark(b)"
+            @restore="revertBookmark(b.name)"
+          />
+        </VueDraggable>
+        <button
+          class="cursor-pointer mt-3 w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
+          @click="openAdd"
+        >+ Add</button>
+      </template>
+      <template v-else>
+        <div :style="{ ...bookmarkContainerStyle, minHeight: '48px' }">
+          <BookmarkItem
+            v-for="b in displayBookmarks"
+            :key="b.name"
+            :style="bookmarkItemStyle"
+            :bookmark="b"
+            :edit="false"
+            :pending="false"
+            :pending-delete="false"
+            :dragging="false"
+            :click-count="counterEnabled ? clicks?.[b.name] : undefined"
+            @click="trackClick(b.name)"
+          />
+        </div>
+      </template>
+    </div>
   </div>
 
   <BookmarkModal v-if="showModal" :bookmark="editingBookmark" @save="save" @close="showModal = false" />

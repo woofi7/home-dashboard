@@ -9,10 +9,10 @@ vi.stubGlobal('definePageMeta', vi.fn())
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
+type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
 
 function makeUseFetch(settings: SettingsData = {}, clicks: Record<string, number> = {}) {
-  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, adminToken: '', timezone: '', ...settings })
+  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminToken: '', timezone: '', ...settings })
   const clicksData = ref<Record<string, number>>(clicks)
   const refresh = vi.fn().mockImplementation(() => {
     const lastPost = [...mockFetch.mock.calls].reverse()
@@ -147,6 +147,49 @@ describe('admin/settings.vue', () => {
       expect(w.find('[role="switch"]').attributes('aria-checked')).toBe('false')
       await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
       expect(w.find('[role="switch"]').attributes('aria-checked')).toBe('true')
+    })
+
+    it('renders Auto-sort by clicks label', async () => {
+      const w = await mountPage()
+      expect(w.text()).toContain('Auto-sort by clicks')
+    })
+
+    it('auto-sort toggle is off when bookmarkAutoSort is false', async () => {
+      const w = await mountPage({ bookmarkAutoSort: false })
+      const toggles = w.findAll('[role="switch"]')
+      expect(toggles[1].attributes('aria-checked')).toBe('false')
+    })
+
+    it('auto-sort toggle is on when bookmarkAutoSort is true', async () => {
+      const w = await mountPage({ bookmarkAutoSort: true })
+      const toggles = w.findAll('[role="switch"]')
+      expect(toggles[1].attributes('aria-checked')).toBe('true')
+    })
+
+    it('clicking auto-sort toggle marks form dirty', async () => {
+      const w = await mountPage({ bookmarkAutoSort: false })
+      await w.findAll('[role="switch"]')[1].trigger('click')
+      expect(w.text()).toContain('Unsaved changes')
+    })
+
+    it('Cancel restores the auto-sort toggle state', async () => {
+      const w = await mountPage({ bookmarkAutoSort: false })
+      await w.findAll('[role="switch"]')[1].trigger('click')
+      expect(w.findAll('[role="switch"]')[1].attributes('aria-checked')).toBe('true')
+      await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
+      expect(w.findAll('[role="switch"]')[1].attributes('aria-checked')).toBe('false')
+    })
+
+    it('saves bookmarkAutoSort in POST body', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const w = await mountPage({ bookmarkAutoSort: false })
+      await w.findAll('[role="switch"]')[1].trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/edit/settings',
+        expect.objectContaining({ body: expect.objectContaining({ bookmarkAutoSort: true }) }),
+      )
     })
 
     it('shows total click count', async () => {

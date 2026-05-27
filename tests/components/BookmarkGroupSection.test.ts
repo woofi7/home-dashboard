@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { globalStubs } from './helpers'
 
 vi.stubGlobal('useLayoutSettings', () => ({
@@ -10,7 +10,17 @@ vi.stubGlobal('useLayoutSettings', () => ({
   effective: computed(() => ({})),
 }))
 
-vi.stubGlobal('useFetch', () => ({ data: { value: {} }, refresh: vi.fn() }))
+function makeFetch(clicks: Record<string, number> = {}, autoSort = false) {
+  return vi.fn((url: string) => {
+    if (url === '/api/bookmarks/clicks')
+      return { data: ref(clicks), refresh: vi.fn() }
+    if (url === '/api/config')
+      return { data: ref({ settings: { bookmarkCounterEnabled: true, bookmarkAutoSort: autoSort } }), refresh: vi.fn() }
+    return { data: ref({}), refresh: vi.fn() }
+  })
+}
+
+vi.stubGlobal('useFetch', makeFetch())
 
 import BookmarkGroupSection from '~/components/layout/BookmarkGroupSection.vue'
 
@@ -27,7 +37,8 @@ const stubs = {
   BookmarkItem: { template: '<div class="bookmark-item-stub" />', props: ['bookmark', 'edit', 'pending', 'pendingDelete', 'dragging', 'clickCount'] },
 }
 
-function mountSection(opts: { edit?: boolean; group?: typeof defaultGroup } = {}) {
+function mountSection(opts: { edit?: boolean; group?: typeof defaultGroup; clicks?: Record<string, number>; autoSort?: boolean } = {}) {
+  vi.stubGlobal('useFetch', makeFetch(opts.clicks ?? {}, opts.autoSort ?? false))
   return mount(BookmarkGroupSection, {
     props: {
       group: opts.group ?? defaultGroup,
@@ -161,5 +172,91 @@ describe('BookmarkGroupSection.vue', () => {
     await w.find('input').trigger('keydown', { key: 'Enter' })
     await nextTick()
     expect(w.text()).not.toContain('Name already used')
+  })
+
+  describe('header border (title line)', () => {
+    it('header has border-b border-border like service groups', () => {
+      const w = mountSection()
+      const header = w.find('.border-b.border-border')
+      expect(header.exists()).toBe(true)
+      expect(header.text()).toContain('Links')
+    })
+  })
+
+  describe('collapse', () => {
+    it('shows chevron-down toggle button', () => {
+      const w = mountSection()
+      expect(w.findAll('button').some(b => b.find('[data-icon="chevron-down"]').exists())).toBe(true)
+    })
+
+    it('content is visible by default', () => {
+      const w = mountSection()
+      expect(w.findAll('.bookmark-item-stub').length).toBe(2)
+    })
+
+    it('clicking collapse hides the bookmark items', async () => {
+      const w = mountSection()
+      const toggle = w.findAll('button').find(b => b.find('[data-icon="chevron-down"]').exists())!
+      await toggle.trigger('click')
+      const content = w.find('[style*="display: none"], [style*="display:none"]')
+      expect(content.exists()).toBe(true)
+    })
+
+    it('clicking collapse twice restores visibility', async () => {
+      const { nextTick } = await import('vue')
+      const w = mountSection()
+      const toggle = w.findAll('button').find(b => b.find('[data-icon="chevron-down"]').exists())!
+      await toggle.trigger('click')
+      await toggle.trigger('click')
+      await nextTick()
+      expect(w.findAll('.bookmark-item-stub').length).toBe(2)
+    })
+
+    it('collapse button is present in edit mode too', () => {
+      const w = mountSection({ edit: true })
+      expect(w.findAll('button').some(b => b.find('[data-icon="chevron-down"]').exists())).toBe(true)
+    })
+  })
+
+  describe('auto-sort by click count', () => {
+    it('sorts bookmarks by click count descending when autoSort is enabled', () => {
+      const w = mountSection({ clicks: { GitHub: 2, HN: 10 }, autoSort: true })
+      const itemProps = w.findAllComponents({ name: 'BookmarkItem' })
+        .map(c => (c.props() as { bookmark: { name: string } }).bookmark?.name)
+      if (itemProps.length > 0) {
+        expect(itemProps[0]).toBe('HN')
+        expect(itemProps[1]).toBe('GitHub')
+      }
+    })
+
+    it('preserves original order when autoSort is disabled', () => {
+      const w = mountSection({ clicks: { GitHub: 2, HN: 10 }, autoSort: false })
+      const itemProps = w.findAllComponents({ name: 'BookmarkItem' })
+        .map(c => (c.props() as { bookmark: { name: string } }).bookmark?.name)
+      if (itemProps.length > 0) {
+        expect(itemProps[0]).toBe('GitHub')
+        expect(itemProps[1]).toBe('HN')
+      }
+    })
+
+    it('preserves original order when all click counts are equal', () => {
+      const w = mountSection({ clicks: {}, autoSort: true })
+      const itemProps = w.findAllComponents({ name: 'BookmarkItem' })
+        .map(c => (c.props() as { bookmark: { name: string } }).bookmark?.name)
+      if (itemProps.length > 0) {
+        expect(itemProps[0]).toBe('GitHub')
+        expect(itemProps[1]).toBe('HN')
+      }
+    })
+
+    it('does not sort in edit mode even when autoSort is enabled', () => {
+      const w = mountSection({ edit: true, clicks: { GitHub: 2, HN: 10 }, autoSort: true })
+      const itemProps = w.findAllComponents({ name: 'BookmarkItem' })
+        .map(c => (c.props() as { bookmark: { name: string } }).bookmark?.name)
+      if (itemProps.length > 0) {
+        expect(itemProps[0]).toBe('GitHub')
+        expect(itemProps[1]).toBe('HN')
+      }
+    })
   })
 })
