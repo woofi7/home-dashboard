@@ -1,7 +1,21 @@
 import { loadConfig } from '../utils/config'
 import { createCache } from '../utils/cache'
 
-type CalEvent = { id: string; summary: string; start: string; end: string; allDay: boolean; location?: string; url: string }
+type CalEvent = { id: string; summary: string; start: string; end: string; allDay: boolean; location?: string; url: string; color?: string }
+
+const GCAL_COLORS: Record<string, string> = {
+  '1':  '#7986CB', // Lavender
+  '2':  '#33B679', // Sage
+  '3':  '#8E24AA', // Grape
+  '4':  '#E67C73', // Flamingo
+  '5':  '#F6BF26', // Banana
+  '6':  '#F4511E', // Tangerine
+  '7':  '#039BE5', // Peacock
+  '8':  '#616161', // Graphite
+  '9':  '#3F51B5', // Blueberry
+  '10': '#0F9D58', // Basil
+  '11': '#D50000', // Tomato
+}
 type CalTask  = { id: string; title: string; due?: string; notes?: string; url: string }
 type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
 
@@ -73,7 +87,7 @@ export default defineEventHandler(async () => {
       const endOfRange = new Date(startOfToday)
       endOfRange.setDate(endOfRange.getDate() + daysAhead)
 
-      type GItem = { id: string; summary?: string; htmlLink?: string; start: { dateTime?: string; date?: string }; end: { dateTime?: string; date?: string }; location?: string }
+      type GItem = { id: string; summary?: string; htmlLink?: string; colorId?: string; start: { dateTime?: string; date?: string }; end: { dateTime?: string; date?: string }; location?: string }
       const res = await $fetch<{ items: GItem[] }>(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${startOfToday.toISOString()}&timeMax=${endOfRange.toISOString()}&singleEvents=true&orderBy=startTime`,
         { headers }
@@ -87,6 +101,7 @@ export default defineEventHandler(async () => {
         allDay: !e.start.dateTime,
         location: e.location,
         url: e.htmlLink ?? '',
+        color: e.colorId ? GCAL_COLORS[e.colorId] : undefined,
       })
 
       for (const e of res.items) {
