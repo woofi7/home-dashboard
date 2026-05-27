@@ -1,10 +1,20 @@
 <script setup lang="ts">
-type CalEvent = { id: string; summary: string; url: string; start?: string; end?: string; allDay?: boolean }
+type CalEvent = { id: string; summary: string; url: string; start?: string; end?: string; color?: string }
 type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
 type CalTask  = { id: string; title: string; due?: string; notes?: string; url: string }
 type CalendarData = { authorized: boolean; days: CalDay[]; tasks: CalTask[] }
 
-defineProps<{ calendar?: CalendarData | null }>()
+const props = defineProps<{ calendar?: CalendarData | null }>()
+
+const { sectionStyle, cardStyle } = useAppearanceSettings()
+
+// Filter to days that actually have events. originalIndex tracks position in the full
+// days array so today (index 0) gets distinct styling regardless of empty leading days.
+const visibleDays = computed(() =>
+  (props.calendar?.days ?? [])
+    .map((d, originalIndex) => ({ ...d, originalIndex }))
+    .filter(d => d.timed.length || d.allDay.length)
+)
 
 function formatTime(d: string) {
   return new Date(d).toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -16,70 +26,77 @@ function formatDue(d: string) {
 </script>
 
 <template>
-  <div class="space-y-1.5 order-2 md:order-1">
-    <div>
-      <div v-if="!calendar" class="space-y-2 animate-pulse">
-        <div class="h-2.5 w-8 rounded bg-elevated mb-3" />
-        <div class="h-10 rounded-lg bg-elevated" />
-        <div class="h-10 rounded-lg bg-elevated" />
-        <div class="h-10 rounded-lg bg-elevated" />
+  <div class="order-2 md:order-1">
+
+    <!-- Loading skeleton -->
+    <div v-if="!calendar" class="rounded-xl border border-border overflow-hidden animate-pulse" :style="sectionStyle">
+      <div class="px-4 py-4 space-y-2">
+        <div class="h-2 w-8 rounded bg-elevated/50 mb-3" />
+        <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
+        <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
+        <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
       </div>
-      <div v-else>
+    </div>
+
+    <!-- Loaded -->
+    <div v-else class="rounded-xl border border-border overflow-hidden" :style="sectionStyle">
+      <div class="px-4 py-4">
         <template v-if="calendar.authorized">
 
           <!-- Event days -->
-          <template v-for="(day, i) in calendar.days" :key="day.date">
-            <template v-if="day.timed.length || day.allDay.length">
-              <p class="text-[10px] text-muted uppercase tracking-widest mb-2" :class="i > 0 ? 'mt-3' : ''">{{ day.label }}</p>
-              <a
-                v-for="e in day.allDay"
-                :key="e.id"
-                :href="e.url"
-                target="_blank"
-                rel="noopener"
-                class="flex items-center gap-2 bg-elevated/50 rounded-lg px-3 py-1.5 border border-border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
-              >
-                <div class="w-1 self-stretch rounded-full bg-purple-400/70 shrink-0" />
-                <div class="min-w-0 flex-1">
-                  <p class="text-xs text-secondary font-medium truncate">{{ e.summary }}</p>
-                  <p class="text-[10px] text-muted">All day</p>
-                </div>
-                <svg class="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-              </a>
-              <a
-                v-for="e in day.timed"
-                :key="e.id"
-                :href="e.url"
-                target="_blank"
-                rel="noopener"
-                class="flex items-center gap-2 rounded-lg px-3 py-1.5 border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
-                :class="i === 0 ? 'bg-elevated/50 border-border' : 'bg-elevated/30 border-border/60'"
-              >
-                <div class="w-1 self-stretch rounded-full shrink-0" :class="i === 0 ? 'bg-accent' : 'bg-white/25'" />
-                <div class="min-w-0 flex-1">
-                  <p class="text-xs font-medium truncate" :class="i === 0 ? 'text-secondary' : 'text-secondary'">{{ e.summary }}</p>
-                  <p class="text-[10px]" :class="i === 0 ? 'text-muted' : 'text-muted'">{{ formatTime(e.start!) }} - {{ formatTime(e.end!) }}</p>
-                </div>
-                <svg class="w-3 h-3 transition-colors shrink-0" :class="i === 0 ? 'text-white/20 group-hover:text-white/50' : 'text-white/15 group-hover:text-white/40'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-              </a>
-            </template>
+          <template v-for="(day, i) in visibleDays" :key="day.date">
+            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2" :class="i > 0 ? 'mt-3' : ''">{{ day.label }}</p>
+            <a
+              v-for="e in day.allDay"
+              :key="e.id"
+              :href="e.url"
+              target="_blank"
+              rel="noopener"
+              class="flex items-center gap-2 rounded-lg px-3 py-1.5 border border-border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
+              :style="cardStyle"
+            >
+              <div class="w-1 self-stretch rounded-full shrink-0" :style="{ backgroundColor: e.color ?? 'var(--color-accent)' }" />
+              <div class="min-w-0 flex-1">
+                <p class="text-xs text-secondary font-medium truncate">{{ e.summary }}</p>
+                <p class="text-[10px] text-muted">All day</p>
+              </div>
+              <svg class="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </a>
+            <a
+              v-for="e in day.timed"
+              :key="e.id"
+              :href="e.url"
+              target="_blank"
+              rel="noopener"
+              class="flex items-center gap-2 rounded-lg px-3 py-1.5 border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
+              :class="day.originalIndex === 0 ? 'border-border' : 'border-border/60'"
+              :style="cardStyle"
+            >
+              <div class="w-1 self-stretch rounded-full shrink-0" :style="{ backgroundColor: e.color ?? (day.originalIndex === 0 ? 'var(--color-accent)' : 'rgba(255,255,255,0.25)') }" />
+              <div class="min-w-0 flex-1">
+                <p class="text-xs text-secondary font-medium truncate">{{ e.summary }}</p>
+                <p class="text-[10px] text-muted">{{ formatTime(e.start!) }} - {{ formatTime(e.end!) }}</p>
+              </div>
+              <svg class="w-3 h-3 transition-colors shrink-0" :class="day.originalIndex === 0 ? 'text-white/20 group-hover:text-white/50' : 'text-white/15 group-hover:text-white/40'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+            </a>
           </template>
 
           <p
-            v-if="calendar.days.length && calendar.days.every(d => !d.timed.length && !d.allDay.length)"
+            v-if="calendar.days.length && !visibleDays.length"
             class="text-xs text-muted italic"
           >No events</p>
 
           <!-- Tasks -->
           <template v-if="calendar.tasks?.length">
-            <p class="text-[10px] text-muted uppercase tracking-widest mt-3 mb-2">Tasks</p>
+            <p class="text-[10px] text-secondary uppercase tracking-widest mt-3 mb-2">Tasks</p>
             <a
               v-for="t in calendar.tasks"
               :key="t.id"
               :href="t.url || undefined"
               target="_blank"
               rel="noopener"
-              class="flex items-center gap-2 bg-elevated/50 rounded-lg px-3 py-1.5 border border-border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
+              class="flex items-center gap-2 rounded-lg px-3 py-1.5 border border-border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
+              :style="cardStyle"
             >
               <div class="w-1 self-stretch rounded-full bg-emerald-400/70 shrink-0" />
               <div class="min-w-0 flex-1">
@@ -91,8 +108,10 @@ function formatDue(d: string) {
           </template>
 
         </template>
+
         <NuxtLink v-else-if="calendar.authorized === false" to="/admin/calendar" class="text-xs text-muted hover:text-secondary transition-colors">Set up Google Calendar</NuxtLink>
       </div>
     </div>
+
   </div>
 </template>
