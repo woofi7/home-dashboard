@@ -191,4 +191,39 @@ describe('ServiceGroupSection.vue', () => {
     // Use html() which always reflects current DOM
     expect(wrapper.html()).toContain('opacity-100')
   })
+
+  describe('collapse', () => {
+    it('shows chevron-down toggle button', () => {
+      const wrapper = mountSection()
+      expect(wrapper.findAll('button').some(b => b.find('[data-icon="chevron-down"]').exists())).toBe(true)
+    })
+
+    it('service cards are visible by default', () => {
+      const wrapper = mountSection()
+      expect(wrapper.findAll('.service-card-stub').length).toBe(1)
+    })
+
+    it('clicking collapse hides the service content', async () => {
+      const wrapper = mountSection()
+      const toggle = wrapper.findAll('button').find(b => b.find('[data-icon="chevron-down"]').exists())!
+      await toggle.trigger('click')
+      const hidden = wrapper.find('[style*="display: none"], [style*="display:none"]')
+      expect(hidden.exists()).toBe(true)
+    })
+
+    it('clicking collapse twice restores visibility', async () => {
+      const { nextTick } = await import('vue')
+      const wrapper = mountSection()
+      const toggle = wrapper.findAll('button').find(b => b.find('[data-icon="chevron-down"]').exists())!
+      await toggle.trigger('click')
+      await toggle.trigger('click')
+      await nextTick()
+      expect(wrapper.findAll('.service-card-stub').length).toBe(1)
+    })
+
+    it('collapse button is present in edit mode', () => {
+      const wrapper = mountSection({ edit: true })
+      expect(wrapper.findAll('button').some(b => b.find('[data-icon="chevron-down"]').exists())).toBe(true)
+    })
+  })
 })

@@ -12,6 +12,7 @@ const props = defineProps<{
 }>()
 
 const visible = ref(false)
+const collapsed = ref(false)
 onMounted(() => nextTick(() => { visible.value = true }))
 
 const { sectionStyle } = useAppearanceSettings()
@@ -179,9 +180,13 @@ function saveService(updated: Service) {
         <SectionLayoutSettings v-model="layout" />
         <button class="text-xs text-danger hover:text-red-400" @click="$emit('delete')">Remove</button>
       </template>
+      <button class="text-muted hover:text-secondary ml-1" @click="collapsed = !collapsed">
+        <FaIcon icon="chevron-down" class="text-xs transition-transform" :class="collapsed ? '-rotate-90' : ''" />
+      </button>
     </div>
 
     <VueDraggable
+      v-show="!collapsed"
       v-model="localGroup.services"
       :disabled="!edit"
       :group="{ name: 'services', pull: true, put: true }"
@@ -208,7 +213,7 @@ function saveService(updated: Service) {
       />
     </VueDraggable>
 
-    <div v-if="edit" class="px-3 pb-3">
+    <div v-if="edit" v-show="!collapsed" class="px-3 pb-3">
       <button
         class="w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
         @click="openAdd"

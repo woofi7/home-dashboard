@@ -1,6 +1,7 @@
 export type GlobalSettings = {
   title?: string
   bookmarkCounterEnabled?: boolean
+  bookmarkAutoSort?: boolean
   linkTarget?: 'new-tab' | 'same-tab'
 }
 

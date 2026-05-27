@@ -1,22 +1,23 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false, layout: 'admin', middleware: 'admin' })
 
-type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
+type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
 
 const { data: current, refresh } = await useFetch<SettingsConfig>('/api/admin/settings')
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
 
-const form = ref<SettingsConfig>({ title: '', bookmarkCounterEnabled: true, adminToken: '', timezone: '' })
+const form = ref<SettingsConfig>({ title: '', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminToken: '', timezone: '' })
 
 watch(current, (v) => {
   if (v)
-    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, linkTarget: v.linkTarget ?? 'new-tab', adminToken: v.adminToken ?? '', timezone: v.timezone ?? '' }
+    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, bookmarkAutoSort: v.bookmarkAutoSort ?? false, linkTarget: v.linkTarget ?? 'new-tab', adminToken: v.adminToken ?? '', timezone: v.timezone ?? '' }
 }, { immediate: true })
 
 const isDirty = computed(() => {
   const c = current.value
   return (form.value.title ?? '') !== (c?.title ?? '')
     || (form.value.bookmarkCounterEnabled ?? true) !== (c?.bookmarkCounterEnabled ?? true)
+    || (form.value.bookmarkAutoSort ?? false) !== (c?.bookmarkAutoSort ?? false)
     || (form.value.linkTarget ?? 'new-tab') !== (c?.linkTarget ?? 'new-tab')
     || (form.value.adminToken ?? '') !== (c?.adminToken ?? '')
     || (form.value.timezone ?? '') !== (c?.timezone ?? '')
@@ -24,7 +25,7 @@ const isDirty = computed(() => {
 
 function cancel() {
   if (current.value)
-    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, linkTarget: current.value.linkTarget ?? 'new-tab', adminToken: current.value.adminToken ?? '', timezone: current.value.timezone ?? '' }
+    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, bookmarkAutoSort: current.value.bookmarkAutoSort ?? false, linkTarget: current.value.linkTarget ?? 'new-tab', adminToken: current.value.adminToken ?? '', timezone: current.value.timezone ?? '' }
 }
 
 const saving = ref(false)
@@ -36,7 +37,7 @@ async function save() {
   saveError.value = ''
   saveSuccess.value = false
   try {
-    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, linkTarget: form.value.linkTarget, adminToken: form.value.adminToken, timezone: form.value.timezone } })
+    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, bookmarkAutoSort: form.value.bookmarkAutoSort, linkTarget: form.value.linkTarget, adminToken: form.value.adminToken, timezone: form.value.timezone } })
     await refresh()
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 2000)
@@ -150,6 +151,25 @@ async function resetClicks() {
             <span
               class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform"
               :class="form.bookmarkCounterEnabled ? 'translate-x-5' : 'translate-x-0'"
+            />
+          </button>
+        </label>
+
+        <label class="flex items-center justify-between gap-4 cursor-pointer">
+          <div>
+            <p class="text-sm text-primary">Auto-sort by clicks</p>
+            <p class="text-xs text-muted mt-0.5">Orders bookmarks by most clicked first within each group.</p>
+          </div>
+          <button
+            role="switch"
+            :aria-checked="form.bookmarkAutoSort"
+            class="relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none"
+            :class="form.bookmarkAutoSort ? 'bg-accent' : 'bg-border'"
+            @click="form.bookmarkAutoSort = !form.bookmarkAutoSort"
+          >
+            <span
+              class="pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform"
+              :class="form.bookmarkAutoSort ? 'translate-x-5' : 'translate-x-0'"
             />
           </button>
         </label>
