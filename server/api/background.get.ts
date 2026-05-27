@@ -3,28 +3,36 @@ import { createCache } from '../utils/cache'
 
 type CachedBg = { thumb: string; full: string; author?: string; authorLink?: string; source?: string }
 
-const unsplashCache = createCache<CachedBg>()
-const pexelsCache = createCache<CachedBg>()
-const pixabayCache = createCache<CachedBg>()
+export const unsplashCache = createCache<CachedBg>()
+export const pexelsCache = createCache<CachedBg>()
+export const pixabayCache = createCache<CachedBg>()
 
-function msUntilMidnight(): number {
+function msUntilMidnight(tz: string): number {
   const now = new Date()
-  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
-  return midnight.getTime() - now.getTime()
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: false,
+  }).formatToParts(now)
+  const h = Number(parts.find(p => p.type === 'hour')!.value)
+  const min = Number(parts.find(p => p.type === 'minute')!.value)
+  const sec = Number(parts.find(p => p.type === 'second')!.value)
+  return (24 * 3600 - h * 3600 - min * 60 - sec) * 1000
 }
 
-function todayDateStr(): string {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+function todayDateStr(tz: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date())
 }
 
-function dailyPage(): number {
-  return (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % 50) + 1
+function dailyPage(tz: string): number {
+  const [y, m, d] = todayDateStr(tz).split('-').map(Number)
+  const daysSinceEpoch = Math.floor(Date.UTC(y, m - 1, d) / (24 * 60 * 60 * 1000))
+  return (daysSinceEpoch % 50) + 1
 }
 
 export default defineEventHandler(async () => {
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')
   const bg = settings?.background as Record<string, unknown> | undefined
+  const tz = (settings?.timezone as string | undefined) || Intl.DateTimeFormat().resolvedOptions().timeZone
 
   if (!bg)
     return null
@@ -45,7 +53,7 @@ export default defineEventHandler(async () => {
     return { thumb: '/api/background-file', full: '/api/background-file' }
 
   if (provider === 'picsum') {
-    const date = todayDateStr()
+    const date = todayDateStr(tz)
     return {
       thumb: `https://picsum.photos/seed/${date}/1200/675`,
       full: `https://picsum.photos/seed/${date}/1920/1080`,
@@ -73,7 +81,7 @@ export default defineEventHandler(async () => {
       author: data.user.name,
       authorLink: data.links.html,
       source: 'Unsplash',
-    }, msUntilMidnight())
+    }, msUntilMidnight(tz))
   }
 
   if (provider === 'pexels') {
@@ -87,7 +95,7 @@ export default defineEventHandler(async () => {
 
     const query = (bg.query as string) || 'nature landscape'
     const data = await $fetch<{ photos: Array<{ src: { large2x: string; medium: string }; photographer: string; url: string }> }>(
-      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&page=${dailyPage()}`,
+      `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&page=${dailyPage(tz)}`,
       { headers: { Authorization: apiKey } },
     )
 
@@ -101,7 +109,7 @@ export default defineEventHandler(async () => {
       author: photo.photographer,
       authorLink: photo.url,
       source: 'Pexels',
-    }, msUntilMidnight())
+    }, msUntilMidnight(tz))
   }
 
   if (provider === 'pixabay') {
@@ -115,7 +123,7 @@ export default defineEventHandler(async () => {
 
     const query = (bg.query as string) || 'nature landscape'
     const data = await $fetch<{ hits: Array<{ largeImageURL: string; webformatURL: string; user: string; pageURL: string }> }>(
-      `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3&page=${dailyPage()}`,
+      `https://pixabay.com/api/?key=${apiKey}&q=${encodeURIComponent(query)}&image_type=photo&orientation=horizontal&per_page=3&page=${dailyPage(tz)}`,
     )
 
     const photo = data.hits[0]
@@ -128,7 +136,7 @@ export default defineEventHandler(async () => {
       author: photo.user,
       authorLink: photo.pageURL,
       source: 'Pixabay',
-    }, msUntilMidnight())
+    }, msUntilMidnight(tz))
   }
 
   return null

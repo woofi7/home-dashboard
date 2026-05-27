@@ -93,7 +93,7 @@ watch(() => localConfig.value.settings?.background, (bg) => {
 
     <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 px-4 md:px-6 pt-6 md:pt-8 pb-2 items-start">
       <CalendarPanel :calendar="calendar as any" />
-      <ClockWidget />
+      <ClockWidget :timezone="(localConfig.settings?.timezone as string) || undefined" />
       <WeatherCard :weather="weather as any" />
     </div>
 

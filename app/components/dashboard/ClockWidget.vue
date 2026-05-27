@@ -1,11 +1,16 @@
 <script setup lang="ts">
+const props = defineProps<{ timezone?: string }>()
+
 const now = ref<Date | null>(null)
 onMounted(() => {
   now.value = new Date()
   setInterval(() => { now.value = new Date() }, 1000)
 })
-const timeStr = computed(() => now.value?.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) ?? '')
-const dateStr = computed(() => now.value?.toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) ?? '')
+
+const tz = computed(() => props.timezone || undefined)
+
+const timeStr = computed(() => now.value?.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: tz.value }) ?? '')
+const dateStr = computed(() => now.value?.toLocaleDateString('en', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: tz.value }) ?? '')
 </script>
 
 <template>
