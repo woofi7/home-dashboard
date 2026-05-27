@@ -94,22 +94,22 @@ function onAddKeydown(e: KeyboardEvent) {
 <template>
   <!-- Loading skeleton -->
   <div v-if="!configLoaded" class="px-4 md:px-6 pt-6 pb-28 space-y-6">
-    <div v-for="i in 3" :key="i" class="rounded-xl border border-white/10 bg-white/5 backdrop-blur-md animate-pulse">
-      <div class="h-10 border-b border-white/10 px-4 flex items-center gap-2">
-        <div class="h-3 w-24 rounded bg-white/10" />
+    <div v-for="i in 3" :key="i" class="rounded-xl border border-border bg-surface animate-pulse">
+      <div class="h-10 border-b border-border px-4 flex items-center gap-2">
+        <div class="h-3 w-24 rounded bg-elevated" />
       </div>
       <div class="p-3 flex flex-wrap gap-2">
-        <div v-for="j in 6" :key="j" class="h-16 rounded-lg bg-white/10 flex-1 min-w-[120px]" />
+        <div v-for="j in 6" :key="j" class="h-16 rounded-lg bg-elevated flex-1 min-w-[120px]" />
       </div>
     </div>
   </div>
 
   <!-- Loaded: empty state -->
   <div v-else-if="!sectionOrder.length" class="px-4 md:px-6 pt-6 pb-28">
-    <div class="rounded-xl border border-dashed border-white/15 bg-white/3 p-12 flex flex-col items-center gap-4 text-center">
-      <p class="text-white/40 text-sm">No sections yet</p>
+    <div class="rounded-xl border border-dashed border-border p-12 flex flex-col items-center gap-4 text-center">
+      <p class="text-muted text-sm">No sections yet</p>
       <div v-if="!editActive" class="flex flex-col items-center gap-3 mt-2">
-        <p class="text-white/30 text-xs">Click Edit to add your first service section or bookmark group.</p>
+        <p class="text-muted text-xs">Click Edit to add your first service section or bookmark group.</p>
         <button
           class="px-4 py-2 rounded-lg bg-accent text-white text-sm hover:bg-accent-hover transition-colors"
           @click="$emit('request-edit')"
@@ -117,11 +117,11 @@ function onAddKeydown(e: KeyboardEvent) {
       </div>
       <div v-else class="flex flex-col sm:flex-row gap-2 mt-2">
         <button
-          class="px-4 py-2 rounded-lg border border-white/30 bg-black/20 backdrop-blur-sm text-sm text-white/60 hover:border-accent hover:text-accent transition-colors"
+          class="px-4 py-2 rounded-lg border border-border bg-elevated text-sm text-muted hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('service')"
         >+ Service section</button>
         <button
-          class="px-4 py-2 rounded-lg border border-white/30 bg-black/20 backdrop-blur-sm text-sm text-white/60 hover:border-accent hover:text-accent transition-colors"
+          class="px-4 py-2 rounded-lg border border-border bg-elevated text-sm text-muted hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('bookmark')"
         >+ Bookmark group</button>
       </div>
@@ -183,11 +183,11 @@ function onAddKeydown(e: KeyboardEvent) {
     <div v-if="editActive" class="px-4 md:px-6 pt-4 pb-28">
       <div v-if="!addMode" class="flex gap-2">
         <button
-          class="px-3 py-1.5 rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm text-xs text-white/60 hover:border-accent hover:text-accent transition-colors"
+          class="px-3 py-1.5 rounded-lg border border-dashed border-border bg-elevated text-xs text-muted hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('service')"
         >+ Service section</button>
         <button
-          class="px-3 py-1.5 rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm text-xs text-white/60 hover:border-accent hover:text-accent transition-colors"
+          class="px-3 py-1.5 rounded-lg border border-dashed border-border bg-elevated text-xs text-muted hover:border-accent hover:text-accent transition-colors"
           @click="startAdd('bookmark')"
         >+ Bookmark group</button>
       </div>

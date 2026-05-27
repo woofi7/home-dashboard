@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { ref, defineComponent } from 'vue'
+import { ref, defineComponent, type VNode } from 'vue'
 import { globalStubs } from './helpers'
 
 const mockFetch = vi.fn()
@@ -48,11 +48,17 @@ const APPEARANCE_STUB = {
   emits: ['update:modelValue'],
 }
 
+type PanelState = { isDirty: boolean; saving: boolean; saveError: string; saveSuccess: boolean }
+
 async function mountPanel(config: Config = {}) {
   vi.stubGlobal('useFetch', makeUseFetch(config))
+  const states: PanelState[] = []
   const App = defineComponent({
     components: { BackgroundPanel },
-    template: '<Suspense><BackgroundPanel /></Suspense>',
+    template: '<Suspense><BackgroundPanel @state="onState" /></Suspense>',
+    methods: {
+      onState(s: PanelState) { states.push(s) },
+    },
   })
   const wrapper = mount(App, {
     global: {
@@ -64,7 +70,12 @@ async function mountPanel(config: Config = {}) {
     },
   })
   await flushPromises()
-  return wrapper
+  const panel = wrapper.findComponent(BackgroundPanel)
+  return { wrapper, states, panel }
+}
+
+function lastState(states: PanelState[]): PanelState {
+  return states[states.length - 1] ?? { isDirty: false, saving: false, saveError: '', saveSuccess: false }
 }
 
 // Helpers to find preview layer elements by their distinguishing style content
@@ -80,17 +91,11 @@ const overlayLayer = (w: ReturnType<typeof mount>) => w.findAll('div').find(el =
 const solidLayer   = (w: ReturnType<typeof mount>) => findByStyle(w, 'linear-gradient')
 
 function findPreviewSection(wrapper: ReturnType<typeof mount>) {
-  return wrapper.findAll('div').find(el => {
-    const cls = el.attributes('class') ?? ''
-    return cls.includes('rounded-xl') && cls.includes('border-white/10') && cls.includes('overflow-hidden')
-  })
+  return wrapper.find('[data-testid="preview-section"]')
 }
 
 function findPreviewCard(wrapper: ReturnType<typeof mount>) {
-  return wrapper.findAll('div').find(el => {
-    const cls = el.attributes('class') ?? ''
-    return cls.includes('rounded-lg') && cls.includes('border-white/10')
-  })
+  return wrapper.find('[data-testid="preview-card"]')
 }
 
 beforeEach(() => {
@@ -100,270 +105,324 @@ beforeEach(() => {
 describe('BackgroundPanel.vue', () => {
   describe('layout', () => {
     it('renders provider and appearance panels', async () => {
-      const w = await mountPanel()
-      expect(w.find('.provider-stub').exists()).toBe(true)
-      expect(w.find('.appearance-stub').exists()).toBe(true)
+      const { wrapper } = await mountPanel()
+      expect(wrapper.find('.provider-stub').exists()).toBe(true)
+      expect(wrapper.find('.appearance-stub').exists()).toBe(true)
     })
 
     it('renders Background section heading', async () => {
-      expect((await mountPanel()).text()).toContain('Background')
+      const { wrapper } = await mountPanel()
+      expect(wrapper.text()).toContain('Background')
     })
 
     it('renders Appearance section heading', async () => {
-      expect((await mountPanel()).text()).toContain('Appearance')
+      const { wrapper } = await mountPanel()
+      expect(wrapper.text()).toContain('Appearance')
     })
 
     it('renders the Preview section', async () => {
-      expect((await mountPanel()).text()).toContain('Preview')
+      const { wrapper } = await mountPanel()
+      expect(wrapper.text()).toContain('Preview')
     })
 
     it('passes savedProvider to the provider config', async () => {
-      const w = await mountPanel({ provider: 'upload' })
-      expect(w.find('.provider-stub').exists()).toBe(true)
+      const { wrapper } = await mountPanel({ provider: 'upload' })
+      expect(wrapper.find('.provider-stub').exists()).toBe(true)
     })
   })
 
   describe('dirty state', () => {
-    it('Save and Cancel are disabled when form is not dirty', async () => {
-      const w = await mountPanel()
-      expect(w.findAll('button').find(b => b.text() === 'Save')!.attributes('disabled')).toBeDefined()
-      expect(w.findAll('button').find(b => b.text() === 'Cancel')!.attributes('disabled')).toBeDefined()
+    it('emits isDirty false initially', async () => {
+      const { states } = await mountPanel()
+      expect(lastState(states).isDirty).toBe(false)
     })
 
-    it('shows Unsaved changes when form is dirty', async () => {
-      const w = await mountPanel()
-      await w.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
-      expect(w.text()).toContain('Unsaved changes')
+    it('emits isDirty true when form changes', async () => {
+      const { wrapper, states } = await mountPanel()
+      await wrapper.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
+      expect(lastState(states).isDirty).toBe(true)
     })
 
-    it('enables Save and Cancel when form is dirty', async () => {
-      const w = await mountPanel()
-      await w.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
-      expect(w.findAll('button').find(b => b.text() === 'Save')!.attributes('disabled')).toBeUndefined()
-      expect(w.findAll('button').find(b => b.text() === 'Cancel')!.attributes('disabled')).toBeUndefined()
-    })
-
-    it('Cancel resets form to saved state', async () => {
-      const w = await mountPanel()
-      await w.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
-      expect(w.text()).toContain('Unsaved changes')
-      await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
-      expect(w.text()).not.toContain('Unsaved changes')
+    it('cancel emits isDirty false', async () => {
+      const { wrapper, states, panel } = await mountPanel()
+      await wrapper.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
+      expect(lastState(states).isDirty).toBe(true)
+      ;(panel.vm as unknown as { cancel: () => void }).cancel()
+      await flushPromises()
+      expect(lastState(states).isDirty).toBe(false)
     })
   })
 
   describe('save', () => {
-    async function makeDirty(w: Awaited<ReturnType<typeof mountPanel>>) {
-      await w.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
+    async function makeDirty(wrapper: ReturnType<typeof mount>) {
+      await wrapper.findAll('button').find(b => b.text() === 'switch-provider')!.trigger('click')
     }
 
     it('calls $fetch POST on save', async () => {
       mockFetch.mockResolvedValueOnce({})
-      const w = await mountPanel()
-      await makeDirty(w)
-      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      const { wrapper, panel } = await mountPanel()
+      await makeDirty(wrapper)
+      await (panel.vm as unknown as { save: () => Promise<void> }).save()
       await flushPromises()
       expect(mockFetch).toHaveBeenCalledWith('/api/admin/background', expect.objectContaining({ method: 'POST' }))
     })
 
-    it('shows Saved after successful save', async () => {
+    it('emits saveSuccess true after successful save', async () => {
       mockFetch.mockResolvedValueOnce({})
-      const w = await mountPanel()
-      await makeDirty(w)
-      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      const { wrapper, states, panel } = await mountPanel()
+      await makeDirty(wrapper)
+      await (panel.vm as unknown as { save: () => Promise<void> }).save()
       await flushPromises()
-      expect(w.text()).toContain('Saved')
+      expect(lastState(states).saveSuccess).toBe(true)
     })
 
-    it('shows error message on save failure', async () => {
+    it('emits saveError on save failure', async () => {
       mockFetch.mockRejectedValueOnce({ data: { message: 'Unauthorized' } })
-      const w = await mountPanel()
-      await makeDirty(w)
-      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      const { wrapper, states, panel } = await mountPanel()
+      await makeDirty(wrapper)
+      await (panel.vm as unknown as { save: () => Promise<void> }).save()
       await flushPromises()
-      expect(w.text()).toContain('Unauthorized')
+      expect(lastState(states).saveError).toBe('Unauthorized')
+    })
+  })
+
+  describe('sticky preview positioning', () => {
+    it('preview wrapper has sticky class', async () => {
+      const { wrapper } = await mountPanel()
+      const stickyEl = wrapper.findAll('div').find(el => el.classes().includes('sticky'))
+      expect(stickyEl).toBeTruthy()
+    })
+
+    it('preview wrapper top is calc(var(--admin-header-h, 4rem) + 1rem)', async () => {
+      const { panel } = await mountPanel()
+      // happy-dom strips CSS custom-property values from element.style entirely, so we inspect
+      // the VNode props (pre-DOM) where the bound value is preserved.
+      function findStickyVNodeProps(vnode: VNode | null | undefined): Record<string, unknown> | null {
+        if (!vnode) return null
+        if (typeof vnode.type === 'string' && typeof vnode.props?.class === 'string' && vnode.props.class.includes('sticky')) {
+          return vnode.props as Record<string, unknown>
+        }
+        const children = vnode.children
+        if (Array.isArray(children)) {
+          for (const child of children) {
+            const found = findStickyVNodeProps(child as VNode)
+            if (found) return found
+          }
+        }
+        const subTree = (vnode as unknown as { component?: { subTree?: VNode } }).component?.subTree
+        if (subTree) {
+          return findStickyVNodeProps(subTree)
+        }
+        return null
+      }
+      const vm = panel.vm as unknown as { $: { subTree: VNode } }
+      const props = findStickyVNodeProps(vm.$.subTree)
+      expect((props?.style as Record<string, string>)?.top).toBe('calc(var(--admin-header-h, 4rem) + 1rem)')
+    })
+
+    it('preview wrapper has z-10 to stay in proper stacking order', async () => {
+      const { wrapper } = await mountPanel()
+      const stickyEl = wrapper.findAll('div').find(el => el.classes().includes('sticky'))!
+      expect(stickyEl.classes()).toContain('z-10')
+    })
+
+    it('preview is ordered last on large screens (lg:order-2)', async () => {
+      const { wrapper } = await mountPanel()
+      const stickyEl = wrapper.findAll('div').find(el => el.classes().includes('sticky'))!
+      expect(stickyEl.classes()).toContain('lg:order-2')
     })
   })
 
   describe('preview', () => {
     describe('background layers', () => {
       it('shows image layer for image provider', async () => {
-        const w = await mountPanel({ provider: 'picsum' })
-        expect(imageLayer(w)).toBeTruthy()
+        const { wrapper } = await mountPanel({ provider: 'picsum' })
+        expect(imageLayer(wrapper)).toBeTruthy()
       })
 
       it('shows overlay layer for image provider', async () => {
-        const w = await mountPanel({ provider: 'picsum' })
-        expect(overlayLayer(w)).toBeTruthy()
+        const { wrapper } = await mountPanel({ provider: 'picsum' })
+        expect(overlayLayer(wrapper)).toBeTruthy()
       })
 
       it('shows no image layer when provider is none', async () => {
-        const w = await mountPanel({ provider: 'none' })
-        expect(imageLayer(w)).toBeFalsy()
+        const { wrapper } = await mountPanel({ provider: 'none' })
+        expect(imageLayer(wrapper)).toBeFalsy()
       })
 
       it('shows no overlay layer when provider is none', async () => {
-        const w = await mountPanel({ provider: 'none' })
-        expect(overlayLayer(w)).toBeFalsy()
+        const { wrapper } = await mountPanel({ provider: 'none' })
+        expect(overlayLayer(wrapper)).toBeFalsy()
       })
 
       it('shows solid color layer when provider is none', async () => {
-        const w = await mountPanel({ provider: 'none' })
-        expect(solidLayer(w)).toBeTruthy()
+        const { wrapper } = await mountPanel({ provider: 'none' })
+        expect(solidLayer(wrapper)).toBeTruthy()
       })
 
       it('shows no solid layer for image provider', async () => {
-        const w = await mountPanel({ provider: 'picsum' })
-        expect(solidLayer(w)).toBeFalsy()
+        const { wrapper } = await mountPanel({ provider: 'picsum' })
+        expect(solidLayer(wrapper)).toBeFalsy()
       })
     })
 
     describe('image URL', () => {
       it('uses picsum for picsum provider', async () => {
-        const w = await mountPanel({ provider: 'picsum' })
-        expect(imageLayer(w)!.attributes('style')).toContain('picsum.photos')
+        const { wrapper } = await mountPanel({ provider: 'picsum' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('picsum.photos')
       })
 
       it('uses picsum placeholder for unsplash provider', async () => {
-        const w = await mountPanel({ provider: 'unsplash' })
-        expect(imageLayer(w)!.attributes('style')).toContain('picsum.photos')
+        const { wrapper } = await mountPanel({ provider: 'unsplash' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('picsum.photos')
       })
 
       it('uses picsum placeholder for pexels provider', async () => {
-        const w = await mountPanel({ provider: 'pexels' })
-        expect(imageLayer(w)!.attributes('style')).toContain('picsum.photos')
+        const { wrapper } = await mountPanel({ provider: 'pexels' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('picsum.photos')
       })
 
       it('uses picsum placeholder for pixabay provider', async () => {
-        const w = await mountPanel({ provider: 'pixabay' })
-        expect(imageLayer(w)!.attributes('style')).toContain('picsum.photos')
+        const { wrapper } = await mountPanel({ provider: 'pixabay' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('picsum.photos')
       })
 
       it('uses the configured URL for url provider', async () => {
-        const w = await mountPanel({ provider: 'url', url: 'https://example.com/photo.jpg' })
-        expect(imageLayer(w)!.attributes('style')).toContain('example.com/photo.jpg')
+        const { wrapper } = await mountPanel({ provider: 'url', url: 'https://example.com/photo.jpg' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('example.com/photo.jpg')
       })
 
       it('uses /api/background-file for upload provider', async () => {
-        const w = await mountPanel({ provider: 'upload' })
-        expect(imageLayer(w)!.attributes('style')).toContain('background-file')
+        const { wrapper } = await mountPanel({ provider: 'upload' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('background-file')
       })
     })
 
     describe('image appearance', () => {
       it('applies no filter when blur is none', async () => {
-        const w = await mountPanel({ provider: 'picsum', blur: 'none' })
-        expect(imageLayer(w)!.attributes('style')).not.toContain('blur')
+        const { wrapper } = await mountPanel({ provider: 'picsum', blur: 'none' })
+        expect(imageLayer(wrapper)!.attributes('style')).not.toContain('blur')
       })
 
       it('applies blur(4px) for sm blur', async () => {
-        const w = await mountPanel({ provider: 'picsum', blur: 'sm' })
-        expect(imageLayer(w)!.attributes('style')).toContain('blur(4px)')
+        const { wrapper } = await mountPanel({ provider: 'picsum', blur: 'sm' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('blur(4px)')
       })
 
       it('applies blur(12px) for md blur', async () => {
-        const w = await mountPanel({ provider: 'picsum', blur: 'md' })
-        expect(imageLayer(w)!.attributes('style')).toContain('blur(12px)')
+        const { wrapper } = await mountPanel({ provider: 'picsum', blur: 'md' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('blur(12px)')
       })
 
       it('applies blur(24px) for lg blur', async () => {
-        const w = await mountPanel({ provider: 'picsum', blur: 'lg' })
-        expect(imageLayer(w)!.attributes('style')).toContain('blur(24px)')
+        const { wrapper } = await mountPanel({ provider: 'picsum', blur: 'lg' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('blur(24px)')
       })
 
       it('applies center top position for top setting', async () => {
-        const w = await mountPanel({ provider: 'picsum', position: 'top' })
-        expect(imageLayer(w)!.attributes('style')).toContain('center top')
+        const { wrapper } = await mountPanel({ provider: 'picsum', position: 'top' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('center top')
       })
 
       it('applies center bottom position for bottom setting', async () => {
-        const w = await mountPanel({ provider: 'picsum', position: 'bottom' })
-        expect(imageLayer(w)!.attributes('style')).toContain('center bottom')
+        const { wrapper } = await mountPanel({ provider: 'picsum', position: 'bottom' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('center bottom')
       })
 
       it('applies left center position for left setting', async () => {
-        const w = await mountPanel({ provider: 'picsum', position: 'left' })
-        expect(imageLayer(w)!.attributes('style')).toContain('left center')
+        const { wrapper } = await mountPanel({ provider: 'picsum', position: 'left' })
+        expect(imageLayer(wrapper)!.attributes('style')).toContain('left center')
       })
 
       it('reflects overlay opacity in overlay layer', async () => {
-        const w = await mountPanel({ provider: 'picsum', overlay: 60 })
-        expect(overlayLayer(w)!.attributes('style')).toContain('0.6)')
+        const { wrapper } = await mountPanel({ provider: 'picsum', overlay: 60 })
+        expect(overlayLayer(wrapper)!.attributes('style')).toContain('0.6)')
       })
 
       it('reflects zero overlay opacity', async () => {
-        const w = await mountPanel({ provider: 'picsum', overlay: 0 })
-        expect(overlayLayer(w)!.attributes('style')).toContain(', 0)')
+        const { wrapper } = await mountPanel({ provider: 'picsum', overlay: 0 })
+        expect(overlayLayer(wrapper)!.attributes('style')).toContain(', 0)')
       })
     })
 
     describe('solid color layer', () => {
       it('includes the configured color in the gradient', async () => {
-        const w = await mountPanel({ provider: 'none', color: '#ff0000' })
-        expect(solidLayer(w)!.attributes('style')).toContain('#ff0000')
+        const { wrapper } = await mountPanel({ provider: 'none', color: '#ff0000' })
+        expect(solidLayer(wrapper)!.attributes('style')).toContain('#ff0000')
       })
     })
 
     describe('section and card mockup', () => {
       it('renders section mockup with My Services label', async () => {
-        const w = await mountPanel()
-        expect(w.text()).toContain('My Services')
+        const { wrapper } = await mountPanel()
+        expect(wrapper.text()).toContain('My Services')
       })
 
       it('applies glass section style by default', async () => {
-        const w = await mountPanel({ sectionStyle: 'glass' })
-        const section = findPreviewSection(w)
-        expect(section!.attributes('style')).toContain('rgba(0, 0, 0, 0.3)')
+        const { wrapper } = await mountPanel({ sectionStyle: 'glass' })
+        const section = findPreviewSection(wrapper)
+        expect(section.exists()).toBe(true)
+        expect(section.attributes('style')).toContain('blur(12px)')
       })
 
       it('applies dark section style', async () => {
-        const w = await mountPanel({ sectionStyle: 'dark' })
-        const section = findPreviewSection(w)
-        expect(section!.attributes('style')).toContain('rgba(0, 0, 0, 0.5)')
+        const { wrapper } = await mountPanel({ sectionStyle: 'dark' })
+        const section = findPreviewSection(wrapper)
+        expect(section.exists()).toBe(true)
+        expect(section.attributes('style')).toContain('var(--color-surface)')
       })
 
       it('applies darker section style', async () => {
-        const w = await mountPanel({ sectionStyle: 'darker' })
-        const section = findPreviewSection(w)
-        expect(section!.attributes('style')).toContain('rgba(0, 0, 0, 0.75)')
+        const { wrapper } = await mountPanel({ sectionStyle: 'darker' })
+        const section = findPreviewSection(wrapper)
+        expect(section.exists()).toBe(true)
+        expect(section.attributes('style')).toContain('var(--color-base)')
       })
 
       it('applies none section style (transparent)', async () => {
-        const w = await mountPanel({ sectionStyle: 'none' })
-        const section = findPreviewSection(w)
-        expect(section!.attributes('style')).toContain('transparent')
+        const { wrapper } = await mountPanel({ sectionStyle: 'none' })
+        const section = findPreviewSection(wrapper)
+        expect(section.exists()).toBe(true)
+        expect(section.attributes('style')).toContain('transparent')
       })
 
       it('applies dark card style by default', async () => {
-        const w = await mountPanel({ cardStyle: 'dark' })
-        const card = findPreviewCard(w)
-        expect(card!.attributes('style')).toContain('rgba(0, 0, 0, 0.6)')
+        const { wrapper } = await mountPanel({ cardStyle: 'dark' })
+        const card = findPreviewCard(wrapper)
+        expect(card.exists()).toBe(true)
+        expect(card.attributes('style')).toContain('var(--color-elevated)')
       })
 
       it('applies glass card style', async () => {
-        const w = await mountPanel({ cardStyle: 'glass' })
-        const card = findPreviewCard(w)
-        expect(card!.attributes('style')).toContain('rgba(0, 0, 0, 0.4)')
+        const { wrapper } = await mountPanel({ cardStyle: 'glass' })
+        const card = findPreviewCard(wrapper)
+        expect(card.exists()).toBe(true)
+        expect(card.attributes('style')).toContain('blur(4px)')
       })
 
       it('applies darker card style', async () => {
-        const w = await mountPanel({ cardStyle: 'darker' })
-        const card = findPreviewCard(w)
-        expect(card!.attributes('style')).toContain('rgba(0, 0, 0, 0.8)')
+        const { wrapper } = await mountPanel({ cardStyle: 'darker' })
+        const card = findPreviewCard(wrapper)
+        expect(card.exists()).toBe(true)
+        expect(card.attributes('style')).toContain('var(--color-base)')
       })
 
       it('updates section style when appearance form emits change', async () => {
-        const w = await mountPanel({ sectionStyle: 'glass' })
-        await w.findAll('button').find(b => b.text() === 'change-section')!.trigger('click')
-        const section = findPreviewSection(w)
-        expect(section!.attributes('style')).toContain('rgba(0, 0, 0, 0.75)')
+        const { wrapper } = await mountPanel({ sectionStyle: 'glass' })
+        await wrapper.findAll('button').find(b => b.text() === 'change-section')!.trigger('click')
+        await flushPromises()
+        const section = findPreviewSection(wrapper)
+        expect(section.exists()).toBe(true)
+        expect(section.attributes('style')).toContain('var(--color-base)')
       })
 
       it('updates card style when appearance form emits change', async () => {
-        const w = await mountPanel({ cardStyle: 'dark' })
-        await w.findAll('button').find(b => b.text() === 'change-card')!.trigger('click')
-        const card = findPreviewCard(w)
-        expect(card!.attributes('style')).toContain('rgba(0, 0, 0, 0.4)')
+        const { wrapper } = await mountPanel({ cardStyle: 'dark' })
+        await wrapper.findAll('button').find(b => b.text() === 'change-card')!.trigger('click')
+        await flushPromises()
+        const card = findPreviewCard(wrapper)
+        expect(card.exists()).toBe(true)
+        expect(card.attributes('style')).toContain('blur(4px)')
       })
     })
   })

@@ -94,13 +94,11 @@ describe('ServiceGroupSection.vue', () => {
     expect(wrapper.find('.service-modal-stub').exists()).toBe(true)
   })
 
-  it('Add button uses white-alpha border and background for visibility over backgrounds', () => {
+  it('Add button uses palette-aware border', () => {
     const wrapper = mountSection({ edit: true })
     const addBtn = wrapper.findAll('button').find(b => b.text().includes('Add'))!
-    expect(addBtn.classes()).toContain('border-white/30')
-    expect(addBtn.classes()).toContain('bg-black/20')
-    expect(addBtn.classes()).not.toContain('border-border')
-    expect(addBtn.classes()).not.toContain('text-muted')
+    expect(addBtn.classes()).toContain('border-border')
+    expect(addBtn.classes()).not.toContain('border-white/30')
   })
 
   it('shows pencil button next to group name in edit mode', () => {

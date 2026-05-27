@@ -68,13 +68,11 @@ describe('BookmarkGroupSection.vue', () => {
     expect(w.emitted('delete')).toBeTruthy()
   })
 
-  it('Add button uses white-alpha border and background for visibility over backgrounds', () => {
+  it('Add button uses palette-aware border', () => {
     const w = mountSection({ edit: true })
     const addBtn = w.findAll('button').find(b => b.text().includes('Add'))!
-    expect(addBtn.classes()).toContain('border-white/30')
-    expect(addBtn.classes()).toContain('bg-black/20')
-    expect(addBtn.classes()).not.toContain('border-border')
-    expect(addBtn.classes()).not.toContain('text-muted')
+    expect(addBtn.classes()).toContain('border-border')
+    expect(addBtn.classes()).not.toContain('border-white/30')
   })
 
   it('shows grip handle when edit=true', () => {

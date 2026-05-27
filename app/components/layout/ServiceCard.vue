@@ -82,7 +82,7 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
     :style="cardStyle"
     :class="[
       !edit && service.url ? 'cursor-pointer' : 'cursor-default',
-      pendingDelete ? 'border-danger/60 opacity-50' : pending ? 'border-warning/60 hover:border-warning/80' : 'border-white/10 hover:border-white/20',
+      pendingDelete ? 'border-danger/60 opacity-50' : pending ? 'border-warning/60 hover:border-warning/80' : 'border-border hover:border-accent/40',
     ]"
   >
     <div class="flex items-start gap-3">
@@ -104,7 +104,7 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
       />
 
       <div class="flex-1 min-w-0">
-        <span class="text-sm font-medium text-primary truncate block" :class="!edit && service.url ? 'hover:text-accent-hover' : ''">{{ service.name }}</span>
+        <span class="text-sm font-medium text-primary truncate block transition-colors" :class="!edit && service.url ? 'group-hover/card:text-accent' : ''">{{ service.name }}</span>
         <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
       </div>
 

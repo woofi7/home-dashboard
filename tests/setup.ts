@@ -6,8 +6,8 @@ import { onClickOutside, useEventListener } from '@vueuse/core'
 vi.stubGlobal('useState', (_key: string, init?: () => unknown) => ref(init ? init() : undefined))
 vi.stubGlobal('useAppearanceSettings', () => ({
   settings: ref({ sectionStyle: 'glass', cardStyle: 'dark' }),
-  sectionStyle: computed(() => ({ backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)' })),
-  cardStyle: computed(() => ({ backgroundColor: 'rgba(0,0,0,0.6)' })),
+  sectionStyle: computed(() => ({ backgroundColor: 'color-mix(in srgb, var(--color-surface) 75%, transparent)', backdropFilter: 'blur(12px)' })),
+  cardStyle: computed(() => ({ backgroundColor: 'var(--color-elevated)' })),
 }))
 
 // Nitro server globals

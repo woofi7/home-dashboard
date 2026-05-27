@@ -8,6 +8,8 @@ type BookmarkGroup = { name: string; bookmarks: Bookmark[]; layout?: LayoutSetti
 const props = defineProps<{ group: BookmarkGroup; edit: boolean; existingNames?: string[] }>()
 const emit = defineEmits<{ update: [group: BookmarkGroup]; dirty: []; delete: [] }>()
 
+const { sectionStyle } = useAppearanceSettings()
+
 const visible = ref(false)
 onMounted(() => nextTick(() => { visible.value = true }))
 
@@ -158,8 +160,9 @@ function save(updated: Bookmark) {
 
 <template>
   <div
-    class="rounded-xl border border-white/10 bg-black/30 backdrop-blur-md p-4 transition-[opacity,transform] duration-400 ease-out"
+    class="rounded-xl border border-border p-4 transition-[opacity,transform] duration-400 ease-out"
     :class="visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3'"
+    :style="sectionStyle"
   >
     <div class="flex items-center gap-2 mb-4">
       <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
@@ -220,7 +223,7 @@ function save(updated: Bookmark) {
 
     <button
       v-if="edit"
-      class="cursor-pointer mt-3 w-full rounded-lg border border-dashed border-white/30 bg-black/20 backdrop-blur-sm hover:border-accent text-white/60 hover:text-accent-hover text-sm py-2 transition-colors"
+      class="cursor-pointer mt-3 w-full rounded-lg border border-dashed border-border hover:border-accent text-muted hover:text-accent-hover text-sm py-2 transition-colors"
       @click="openAdd"
     >+ Add</button>
   </div>

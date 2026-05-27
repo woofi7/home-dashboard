@@ -6,20 +6,21 @@ type BackgroundConfig = ProviderForm & AppearanceForm & { color?: string }
 type CSSVars = Record<string, string>
 
 const SECTION_STYLE_MAP: Record<string, CSSVars> = {
-  glass:   { backgroundColor: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(12px)' },
-  dark:    { backgroundColor: 'rgba(0,0,0,0.5)' },
-  darker:  { backgroundColor: 'rgba(0,0,0,0.75)' },
+  glass:   { backgroundColor: 'color-mix(in srgb, var(--color-surface) 75%, transparent)', backdropFilter: 'blur(12px)' },
+  dark:    { backgroundColor: 'var(--color-surface)' },
+  darker:  { backgroundColor: 'var(--color-base)' },
   none:    { backgroundColor: 'transparent' },
 }
 
 const CARD_STYLE_MAP: Record<string, CSSVars> = {
-  glass:   { backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' },
-  dark:    { backgroundColor: 'rgba(0,0,0,0.6)' },
-  darker:  { backgroundColor: 'rgba(0,0,0,0.8)' },
+  glass:   { backgroundColor: 'color-mix(in srgb, var(--color-elevated) 70%, transparent)', backdropFilter: 'blur(4px)' },
+  dark:    { backgroundColor: 'var(--color-elevated)' },
+  darker:  { backgroundColor: 'var(--color-base)' },
   none:    { backgroundColor: 'transparent' },
 }
 
-const emit = defineEmits<{ saved: [] }>()
+type PanelState = { isDirty: boolean; saving: boolean; saveError: string; saveSuccess: boolean }
+const emit = defineEmits<{ saved: []; state: [PanelState] }>()
 
 const { data: current, refresh: refreshCurrent } = await useFetch<BackgroundConfig>('/api/admin/background')
 
@@ -69,6 +70,14 @@ async function save() {
     saving.value = false
   }
 }
+
+watch(
+  () => ({ isDirty: isDirty.value, saving: saving.value, saveError: saveError.value, saveSuccess: saveSuccess.value }),
+  (val) => emit('state', val),
+  { deep: true, immediate: true },
+)
+
+defineExpose({ save, cancel })
 
 const providerForm = computed({
   get: () => ({
@@ -139,20 +148,63 @@ const previewCardStyle    = computed((): CSSVars => CARD_STYLE_MAP[form.value.ca
 </script>
 
 <template>
-  <AdminSaveBar
-    :is-dirty="isDirty"
-    :saving="saving"
-    :save-error="saveError"
-    :save-success="saveSuccess"
-    @save="save"
-    @cancel="cancel"
-  />
-
   <div class="space-y-4">
     <div class="flex flex-col lg:flex-row gap-6 items-start">
 
-      <!-- Left: stacked section cards -->
-      <div class="w-full lg:flex-1 lg:min-w-0 space-y-4">
+      <!-- Preview: top on small screens, right on large (always sticky) -->
+      <div class="w-full lg:w-72 lg:shrink-0 sticky lg:order-2 z-10" :style="{ top: 'calc(var(--admin-header-h, 4rem) + 1rem)' }">
+        <div class="rounded-xl border border-border overflow-hidden">
+          <div class="px-4 py-3 border-b border-border bg-surface">
+            <p class="text-xs text-muted uppercase tracking-widest">Preview</p>
+          </div>
+          <!-- layered preview: bg image / overlay / content -->
+          <div class="relative overflow-hidden min-h-40">
+
+            <!-- image background -->
+            <div v-if="isImageProvider" class="absolute" :style="previewImageStyle" />
+
+            <!-- overlay on top of image -->
+            <div v-if="isImageProvider" class="absolute inset-0" :style="previewOverlayStyle" />
+
+            <!-- solid color background -->
+            <div v-else class="absolute inset-0" :style="previewSolidStyle" />
+
+            <!-- section + card mockup -->
+            <div class="relative p-4">
+              <div
+                data-testid="preview-section"
+                class="rounded-xl border border-border overflow-hidden"
+                :style="previewSectionStyle"
+              >
+                <div class="flex items-center gap-2 px-4 py-2 border-b border-border">
+                  <span class="text-xs font-semibold text-secondary">My Services</span>
+                </div>
+                <div class="p-3">
+                  <div
+                    data-testid="preview-card"
+                    class="rounded-lg border border-border p-3"
+                    :style="previewCardStyle"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div class="w-7 h-7 rounded bg-white/10 shrink-0" />
+                      <div class="flex-1 min-w-0">
+                        <div class="h-2.5 bg-white/30 rounded w-16 mb-1.5" />
+                        <div class="h-2 bg-white/15 rounded w-24" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Form panels: below preview on small screens, left on large -->
+      <div class="w-full lg:flex-1 lg:min-w-0 space-y-4 lg:order-1">
+
+        <slot />
 
         <!-- Background -->
         <div class="rounded-xl border border-border bg-surface overflow-hidden">
@@ -177,54 +229,6 @@ const previewCardStyle    = computed((): CSSVars => CARD_STYLE_MAP[form.value.ca
           </div>
         </div>
 
-      </div>
-
-      <!-- Right: preview (sticky) -->
-      <div class="w-full lg:w-72 lg:shrink-0 lg:sticky lg:top-6">
-        <div class="rounded-xl border border-border overflow-hidden">
-          <div class="px-4 py-3 border-b border-border bg-surface">
-            <p class="text-xs text-muted uppercase tracking-widest">Preview</p>
-          </div>
-          <!-- layered preview: bg image / overlay / content -->
-          <div class="relative overflow-hidden min-h-40">
-
-            <!-- image background -->
-            <div v-if="isImageProvider" class="absolute" :style="previewImageStyle" />
-
-            <!-- overlay on top of image -->
-            <div v-if="isImageProvider" class="absolute inset-0" :style="previewOverlayStyle" />
-
-            <!-- solid color background -->
-            <div v-else class="absolute inset-0" :style="previewSolidStyle" />
-
-            <!-- section + card mockup -->
-            <div class="relative p-4">
-              <div
-                class="rounded-xl border border-white/10 overflow-hidden"
-                :style="previewSectionStyle"
-              >
-                <div class="flex items-center gap-2 px-4 py-2 border-b border-white/10">
-                  <span class="text-xs font-semibold text-white/60">My Services</span>
-                </div>
-                <div class="p-3">
-                  <div
-                    class="rounded-lg border border-white/10 p-3"
-                    :style="previewCardStyle"
-                  >
-                    <div class="flex items-center gap-3">
-                      <div class="w-7 h-7 rounded bg-white/10 shrink-0" />
-                      <div class="flex-1 min-w-0">
-                        <div class="h-2.5 bg-white/30 rounded w-16 mb-1.5" />
-                        <div class="h-2 bg-white/15 rounded w-24" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
       </div>
 
     </div>

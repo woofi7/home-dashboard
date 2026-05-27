@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { applyPalette, getPaletteById } from '~/utils/colorPalettes'
+
 definePageMeta({ ssr: false })
 
 const { data: background } = useFetch('/api/background', { lazy: true, server: false })
@@ -85,6 +87,15 @@ watch(() => localConfig.value.settings?.background, (bg) => {
     cardStyle:    (b?.cardStyle    as string) ?? 'dark',
   }
 }, { immediate: true })
+
+watch(
+  () => localConfig.value.settings?.colorPalette,
+  (id) => { applyPalette(getPaletteById((id as string) ?? 'indigo')) },
+)
+
+onMounted(() => {
+  applyPalette(getPaletteById((localConfig.value.settings?.colorPalette as string) ?? 'indigo'))
+})
 </script>
 
 <template>
