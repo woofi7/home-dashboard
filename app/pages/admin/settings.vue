@@ -1,16 +1,16 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false, layout: 'admin', middleware: 'admin' })
 
-type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab' }
+type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
 
 const { data: current, refresh } = await useFetch<SettingsConfig>('/api/admin/settings')
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
 
-const form = ref<SettingsConfig>({ title: '', bookmarkCounterEnabled: true })
+const form = ref<SettingsConfig>({ title: '', bookmarkCounterEnabled: true, adminToken: '', timezone: '' })
 
 watch(current, (v) => {
   if (v)
-    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, linkTarget: v.linkTarget ?? 'new-tab' }
+    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, linkTarget: v.linkTarget ?? 'new-tab', adminToken: v.adminToken ?? '', timezone: v.timezone ?? '' }
 }, { immediate: true })
 
 const isDirty = computed(() => {
@@ -18,11 +18,13 @@ const isDirty = computed(() => {
   return (form.value.title ?? '') !== (c?.title ?? '')
     || (form.value.bookmarkCounterEnabled ?? true) !== (c?.bookmarkCounterEnabled ?? true)
     || (form.value.linkTarget ?? 'new-tab') !== (c?.linkTarget ?? 'new-tab')
+    || (form.value.adminToken ?? '') !== (c?.adminToken ?? '')
+    || (form.value.timezone ?? '') !== (c?.timezone ?? '')
 })
 
 function cancel() {
   if (current.value)
-    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, linkTarget: current.value.linkTarget ?? 'new-tab' }
+    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, linkTarget: current.value.linkTarget ?? 'new-tab', adminToken: current.value.adminToken ?? '', timezone: current.value.timezone ?? '' }
 }
 
 const saving = ref(false)
@@ -34,7 +36,7 @@ async function save() {
   saveError.value = ''
   saveSuccess.value = false
   try {
-    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, linkTarget: form.value.linkTarget } })
+    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, linkTarget: form.value.linkTarget, adminToken: form.value.adminToken, timezone: form.value.timezone } })
     await refresh()
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 2000)
@@ -107,6 +109,23 @@ async function resetClicks() {
           </div>
           <p class="text-xs text-muted/60 mt-1">Where service and bookmark links open.</p>
         </div>
+        <div>
+          <label class="text-xs text-muted block mb-2">Timezone</label>
+          <TimezoneSelect v-model="form.timezone as string" />
+          <p class="text-xs text-muted/60 mt-1">Used for background rotation and the clock. Defaults to server time.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security section -->
+    <div class="rounded-xl border border-border bg-surface overflow-hidden">
+      <div class="px-4 py-3 border-b border-border">
+        <p class="text-xs text-muted uppercase tracking-widest">Security</p>
+      </div>
+      <div class="p-6">
+        <label class="text-xs text-muted block mb-2">Admin token</label>
+        <SecretInput v-model="form.adminToken" placeholder="Enter admin token" />
+        <p class="text-xs text-muted/60 mt-1">Required to access the admin panel. Keep this secret.</p>
       </div>
     </div>
 

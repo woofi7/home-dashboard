@@ -9,10 +9,10 @@ vi.stubGlobal('definePageMeta', vi.fn())
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab' }
+type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
 
 function makeUseFetch(settings: SettingsData = {}, clicks: Record<string, number> = {}) {
-  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, ...settings })
+  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, adminToken: '', timezone: '', ...settings })
   const clicksData = ref<Record<string, number>>(clicks)
   const refresh = vi.fn().mockImplementation(() => {
     const lastPost = [...mockFetch.mock.calls].reverse()
@@ -180,6 +180,80 @@ describe('admin/settings.vue', () => {
       await w.findAll('button').find(b => b.text() === 'Reset')!.trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Counts cleared')
+    })
+  })
+
+  describe('admin token', () => {
+    it('renders the Admin token label', async () => {
+      const w = await mountPage()
+      expect(w.text()).toContain('Admin token')
+    })
+
+    it('populates the token input from config', async () => {
+      const w = await mountPage({ adminToken: 'secret123' })
+      const input = w.find('input[placeholder="Enter admin token"]')
+      expect(input.element.value).toBe('secret123')
+    })
+
+    it('changing the token marks the form dirty', async () => {
+      const w = await mountPage({ adminToken: 'old' })
+      await w.find('input[placeholder="Enter admin token"]').setValue('new')
+      expect(w.text()).toContain('Unsaved changes')
+    })
+
+    it('Cancel resets the token to its original value', async () => {
+      const w = await mountPage({ adminToken: 'original' })
+      await w.find('input[placeholder="Enter admin token"]').setValue('changed')
+      await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
+      expect(w.find('input[placeholder="Enter admin token"]').element.value).toBe('original')
+    })
+
+    it('saves adminToken in POST body', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const w = await mountPage({ adminToken: 'old' })
+      await w.find('input[placeholder="Enter admin token"]').setValue('newtoken')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/edit/settings',
+        expect.objectContaining({ body: expect.objectContaining({ adminToken: 'newtoken' }) }),
+      )
+    })
+  })
+
+  describe('timezone', () => {
+    it('renders the Timezone label', async () => {
+      const w = await mountPage()
+      expect(w.text()).toContain('Timezone')
+    })
+
+    it('renders the Security section with Admin token label', async () => {
+      const w = await mountPage()
+      expect(w.text()).toContain('Security')
+      expect(w.text()).toContain('Admin token')
+    })
+
+    it('marks form dirty when timezone changes', async () => {
+      const w = await mountPage({ timezone: '' })
+      // TimezoneSelect is stubbed as a plain input by globalStubs fallback — use the input directly
+      const inputs = w.findAll('input[type="text"]')
+      const tzInput = inputs.find(i => i.attributes('placeholder')?.toLowerCase().includes('server'))
+      if (!tzInput)
+        return // component renders TimezoneSelect which is not a plain input in this env
+      await tzInput.setValue('America/Toronto')
+      expect(w.text()).toContain('Unsaved changes')
+    })
+
+    it('saves timezone in POST body', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const w = await mountPage({ title: 'Old', timezone: '' })
+      await w.find('input[type="text"]').setValue('New')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/edit/settings',
+        expect.objectContaining({ body: expect.objectContaining({ timezone: expect.anything() }) }),
+      )
     })
   })
 

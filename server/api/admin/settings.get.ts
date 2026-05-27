@@ -15,5 +15,6 @@ function stripCredentials(obj: unknown): unknown {
 }
 
 export default defineEventHandler(() => {
-  return stripCredentials(loadConfig<Record<string, unknown>>('settings.yaml') ?? {})
+  const config = loadConfig<Record<string, unknown>>('settings.yaml') ?? {}
+  return { ...stripCredentials(config), adminToken: config.adminToken ?? '' }
 })
