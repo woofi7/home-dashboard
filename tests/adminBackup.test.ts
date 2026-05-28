@@ -10,7 +10,7 @@ vi.mock('node:fs', async (importOriginal) => {
       { name: 'services.yaml', isDirectory: () => false },
       { name: 'bookmarks.yaml', isDirectory: () => false },
       { name: 'settings.yaml', isDirectory: () => false },
-      { name: 'services.yaml.bak', isDirectory: () => false },
+      { name: 'backup', isDirectory: () => true },
       { name: 'tmp', isDirectory: () => true },
       { name: 'image.png', isDirectory: () => false },
     ]),
@@ -53,10 +53,10 @@ describe('GET /api/admin/backup', () => {
     expect(Object.keys(files)).toContain('settings.yaml')
   })
 
-  it('zip does not include .bak files', async () => {
+  it('zip does not include the backup directory', async () => {
     const result = await (handler as (e: unknown) => Promise<Uint8Array>)({})
     const files = unzipSync(result)
-    expect(Object.keys(files).some(k => k.endsWith('.bak'))).toBe(false)
+    expect(Object.keys(files).some(k => k === 'backup' || k.startsWith('backup/'))).toBe(false)
   })
 
   it('zip does not include non-config files (e.g. image.png)', async () => {

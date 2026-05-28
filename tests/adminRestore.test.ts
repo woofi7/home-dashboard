@@ -7,6 +7,7 @@ vi.mock('node:fs', async (importOriginal) => {
     ...actual,
     writeFileSync: vi.fn(),
     copyFileSync: vi.fn(),
+    mkdirSync: vi.fn(),
     existsSync: vi.fn().mockReturnValue(false),
   }
 })
@@ -34,11 +35,13 @@ function makeZip(files: Record<string, string>): Uint8Array {
   return zipSync(entries)
 }
 
-function makeEvent(zip: Uint8Array | null) {
+function makeEvent(zip: Uint8Array | null, selectedFiles?: string) {
   const file = zip
     ? { arrayBuffer: async () => zip.buffer, name: 'backup.zip' } as unknown as File
     : null
-  ;(readFormData as ReturnType<typeof vi.fn>).mockResolvedValue({ get: () => file })
+  ;(readFormData as ReturnType<typeof vi.fn>).mockResolvedValue({
+    get: (key: string) => key === 'files' ? (selectedFiles ?? null) : file,
+  })
   return {}
 }
 
@@ -74,14 +77,15 @@ describe('POST /api/admin/restore', () => {
     expect(result.restored).toContain('settings.yaml')
   })
 
-  it('backs up existing files before overwriting', async () => {
+  it('backs up existing files into backup/ folder before overwriting', async () => {
     vi.mocked(fs.existsSync).mockReturnValue(true)
     const zip = makeZip({ 'services.yaml': 'new data' })
     makeEvent(zip)
     await (handler as (e: unknown) => Promise<unknown>)({})
+    expect(fs.mkdirSync).toHaveBeenCalledWith('/fake/config/backup', { recursive: true })
     expect(fs.copyFileSync).toHaveBeenCalledWith(
       '/fake/config/services.yaml',
-      '/fake/config/services.yaml.bak',
+      '/fake/config/backup/services.yaml.bak',
     )
   })
 
@@ -106,6 +110,23 @@ describe('POST /api/admin/restore', () => {
     await expect(
       (handler as (e: unknown) => Promise<unknown>)({}),
     ).rejects.toThrow('no valid config files')
+  })
+
+  it('restores only selected files when files field is provided', async () => {
+    const zip = makeZip({ 'services.yaml': 'svc data', 'bookmarks.yaml': 'bkm data' })
+    makeEvent(zip, 'services.yaml')
+    const result = await (handler as (e: unknown) => Promise<{ ok: boolean; restored: string[] }>)({})
+    expect(result.restored).toContain('services.yaml')
+    expect(result.restored).not.toContain('bookmarks.yaml')
+    expect(fs.writeFileSync).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws 400 when selected files list does not match any zip entries', async () => {
+    const zip = makeZip({ 'services.yaml': 'data' })
+    makeEvent(zip, 'bookmarks.yaml')
+    await expect(
+      (handler as (e: unknown) => Promise<unknown>)({}),
+    ).rejects.toThrow('No files selected')
   })
 
   it('throws 400 for corrupt zip data', async () => {

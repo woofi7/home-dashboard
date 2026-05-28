@@ -4,7 +4,7 @@ import { zipSync, strToU8 } from 'fflate'
 import { getConfigDir } from '../../utils/config'
 
 const ALLOWED_EXTENSIONS = new Set(['.yaml', '.yml', '.json', '.env'])
-const EXCLUDED_DIRS = new Set(['tmp'])
+const EXCLUDED_DIRS = new Set(['tmp', 'backup'])
 
 export default defineEventHandler((event) => {
   const configDir = getConfigDir()
