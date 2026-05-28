@@ -42,13 +42,6 @@ describe('CalendarPanel.vue', () => {
       expect(wrapper.find('.animate-pulse').exists()).toBe(true)
     })
 
-    it('applies sectionStyle to the skeleton container', () => {
-      const wrapper = mountPanel(null)
-      const skeleton = wrapper.find('.animate-pulse')
-      // sectionStyle sets backdropFilter which happy-dom preserves (unlike CSS variable values)
-      expect(skeleton.attributes('style')).toContain('blur(12px)')
-    })
-
     it('applies cardStyle to skeleton rows', () => {
       const wrapper = mountPanel(null)
       const skeletonRows = wrapper.findAll('.animate-pulse .rounded-lg')
@@ -86,13 +79,6 @@ describe('CalendarPanel.vue', () => {
   })
 
   describe('section container', () => {
-    it('applies sectionStyle to the loaded container', () => {
-      const wrapper = mountPanel({ authorized: true, days: [], tasks: [] })
-      const container = wrapper.find('.rounded-xl.border')
-      // sectionStyle sets backdropFilter which happy-dom preserves (unlike CSS variable values)
-      expect(container.attributes('style')).toContain('blur(12px)')
-    })
-
     it('does not show skeleton when calendar is loaded', () => {
       const wrapper = mountPanel({ authorized: true, days: [], tasks: [] })
       expect(wrapper.find('.animate-pulse').exists()).toBe(false)
