@@ -12,6 +12,20 @@ export type ColorPalette = {
   accentHover: string
 }
 
+export type CustomPaletteColors = Omit<ColorPalette, 'id' | 'name'>
+
+export const CUSTOM_PALETTE_DEFAULTS: CustomPaletteColors = {
+  base: '#0f1117',
+  surface: '#1a1d27',
+  elevated: '#22263a',
+  border: '#2e3347',
+  primary: '#e2e8f0',
+  secondary: '#94a3b8',
+  muted: '#64748b',
+  accent: '#6366f1',
+  accentHover: '#818cf8',
+}
+
 export const COLOR_PALETTES: ColorPalette[] = [
   {
     id: 'indigo',
@@ -79,17 +93,9 @@ export const COLOR_PALETTES: ColorPalette[] = [
     accentHover: '#fb7185',
   },
   {
-    id: 'amber',
-    name: 'Amber',
-    base: '#120f0a',
-    surface: '#1e190f',
-    elevated: '#2a2415',
-    border: '#3d3520',
-    primary: '#f5efe0',
-    secondary: '#c4a96a',
-    muted: '#8a7040',
-    accent: '#f59e0b',
-    accentHover: '#fbbf24',
+    id: 'custom',
+    name: 'Custom',
+    ...CUSTOM_PALETTE_DEFAULTS,
   },
 ]
 
@@ -108,6 +114,8 @@ export function applyPalette(palette: ColorPalette) {
   el.style.setProperty('--color-accent-hover', palette.accentHover)
 }
 
-export function getPaletteById(id: string): ColorPalette {
+export function getPaletteById(id: string, custom?: Partial<CustomPaletteColors>): ColorPalette {
+  if (id === 'custom')
+    return { ...CUSTOM_PALETTE_DEFAULTS, ...custom, id: 'custom', name: 'Custom' }
   return COLOR_PALETTES.find(p => p.id === id) ?? COLOR_PALETTES[0]
 }

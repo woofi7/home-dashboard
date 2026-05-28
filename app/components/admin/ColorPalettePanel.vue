@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { COLOR_PALETTES, applyPalette, getPaletteById } from '~/utils/colorPalettes'
+import { COLOR_PALETTES, applyPalette, getPaletteById, CUSTOM_PALETTE_DEFAULTS } from '~/utils/colorPalettes'
+import type { CustomPaletteColors } from '~/utils/colorPalettes'
 
 type PanelState = { isDirty: boolean; saving: boolean; saveError: string; saveSuccess: boolean }
 const emit = defineEmits<{ state: [PanelState] }>()
@@ -9,28 +10,72 @@ const { data: settings, refresh } = useFetch<Record<string, unknown>>('/api/admi
 const active = ref<string>('indigo')
 const saved = ref<string>('indigo')
 
-// Initialize once the fetch resolves; using watch avoids async setup so template refs
-// on this component work correctly when it is rendered inside another component's slot.
+const customColors = ref<CustomPaletteColors>({ ...CUSTOM_PALETTE_DEFAULTS })
+const savedCustomColors = ref<CustomPaletteColors>({ ...CUSTOM_PALETTE_DEFAULTS })
+
 watch(settings, (val) => {
   const palette = (val?.colorPalette as string) ?? 'indigo'
   active.value = palette
   saved.value = palette
-  applyPalette(getPaletteById(palette))
+  if (val?.customPalette) {
+    const c = { ...CUSTOM_PALETTE_DEFAULTS, ...(val.customPalette as Partial<CustomPaletteColors>) }
+    customColors.value = c
+    savedCustomColors.value = { ...c }
+  }
+  applyPalette(getPaletteById(palette, customColors.value))
 }, { immediate: true })
+
 const saving = ref(false)
 const saveSuccess = ref(false)
 const saveError = ref('')
 
-const isDirty = computed(() => active.value !== saved.value)
+const isDirty = computed(() => {
+  if (active.value !== saved.value)
+    return true
+  if (active.value === 'custom') {
+    const keys = Object.keys(CUSTOM_PALETTE_DEFAULTS) as (keyof CustomPaletteColors)[]
+    return keys.some(k => customColors.value[k] !== savedCustomColors.value[k])
+  }
+  return false
+})
+
+const allPalettes = computed(() =>
+  COLOR_PALETTES.map(p => p.id === 'custom' ? { ...p, ...customColors.value } : p),
+)
+
+const COLOR_FIELDS: { key: keyof CustomPaletteColors; label: string }[][] = [
+  [
+    { key: 'base', label: 'Base' },
+    { key: 'surface', label: 'Surface' },
+    { key: 'elevated', label: 'Elevated' },
+    { key: 'border', label: 'Border' },
+  ],
+  [
+    { key: 'primary', label: 'Primary text' },
+    { key: 'secondary', label: 'Secondary text' },
+    { key: 'muted', label: 'Muted text' },
+  ],
+  [
+    { key: 'accent', label: 'Accent' },
+    { key: 'accentHover', label: 'Accent hover' },
+  ],
+]
 
 function select(id: string) {
   active.value = id
-  applyPalette(getPaletteById(id))
+  applyPalette(getPaletteById(id, customColors.value))
+}
+
+function updateCustomColor(key: keyof CustomPaletteColors, value: string) {
+  customColors.value = { ...customColors.value, [key]: value }
+  if (active.value === 'custom')
+    applyPalette(getPaletteById('custom', customColors.value))
 }
 
 function cancel() {
   active.value = saved.value
-  applyPalette(getPaletteById(saved.value))
+  customColors.value = { ...savedCustomColors.value }
+  applyPalette(getPaletteById(saved.value, savedCustomColors.value))
 }
 
 async function save() {
@@ -40,9 +85,10 @@ async function save() {
   try {
     await $fetch('/api/edit/settings', {
       method: 'POST',
-      body: { colorPalette: active.value },
+      body: { colorPalette: active.value, customPalette: { ...customColors.value } },
     })
     saved.value = active.value
+    savedCustomColors.value = { ...customColors.value }
     saveSuccess.value = true
     await refresh()
   }
@@ -68,10 +114,10 @@ defineExpose({ save, cancel })
     <div class="px-4 py-3 border-b border-border">
       <p class="text-xs text-muted uppercase tracking-widest">Color Palette</p>
     </div>
-    <div class="p-6">
+    <div class="p-6 space-y-6">
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
         <button
-          v-for="palette in COLOR_PALETTES"
+          v-for="palette in allPalettes"
           :key="palette.id"
           class="relative rounded-xl border-2 p-3 flex flex-col gap-2 transition-all cursor-pointer"
           :class="active === palette.id ? 'border-accent' : 'border-border hover:border-accent/40'"
@@ -104,6 +150,28 @@ defineExpose({ save, cancel })
         </button>
       </div>
 
+      <!-- Custom color editor -->
+      <div v-if="active === 'custom'" class="space-y-4">
+        <p class="text-xs text-muted uppercase tracking-widest">Custom Colors</p>
+        <div v-for="(group, gi) in COLOR_FIELDS" :key="gi" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <label
+            v-for="field in group"
+            :key="field.key"
+            class="flex flex-col gap-1.5 cursor-pointer"
+          >
+            <span class="text-xs text-muted">{{ field.label }}</span>
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border bg-elevated hover:border-accent/40 transition-colors">
+              <input
+                type="color"
+                :value="customColors[field.key]"
+                class="w-5 h-5 rounded cursor-pointer border-0 bg-transparent p-0"
+                @input="updateCustomColor(field.key, ($event.target as HTMLInputElement).value)"
+              />
+              <span class="text-xs text-secondary font-mono">{{ customColors[field.key] }}</span>
+            </div>
+          </label>
+        </div>
+      </div>
     </div>
   </div>
 </template>

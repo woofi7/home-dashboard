@@ -89,12 +89,16 @@ watch(() => localConfig.value.settings?.background, (bg) => {
 }, { immediate: true })
 
 watch(
-  () => localConfig.value.settings?.colorPalette,
-  (id) => { applyPalette(getPaletteById((id as string) ?? 'indigo')) },
+  () => [localConfig.value.settings?.colorPalette, localConfig.value.settings?.customPalette],
+  ([id]) => {
+    const custom = localConfig.value.settings?.customPalette as Record<string, string> | undefined
+    applyPalette(getPaletteById((id as string) ?? 'indigo', custom))
+  },
 )
 
 onMounted(() => {
-  applyPalette(getPaletteById((localConfig.value.settings?.colorPalette as string) ?? 'indigo'))
+  const custom = localConfig.value.settings?.customPalette as Record<string, string> | undefined
+  applyPalette(getPaletteById((localConfig.value.settings?.colorPalette as string) ?? 'indigo', custom))
 })
 </script>
 
