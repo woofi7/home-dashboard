@@ -6,7 +6,7 @@ type CalendarData = { authorized: boolean; days: CalDay[]; tasks: CalTask[] }
 
 const props = defineProps<{ calendar?: CalendarData | null }>()
 
-const { sectionStyle, cardStyle } = useAppearanceSettings()
+const { cardStyle } = useAppearanceSettings()
 
 // Filter to days that actually have events. originalIndex tracks position in the full
 // days array so today (index 0) gets distinct styling regardless of empty leading days.
@@ -29,19 +29,16 @@ function formatDue(d: string) {
   <div class="order-2 md:order-1">
 
     <!-- Loading skeleton -->
-    <div v-if="!calendar" class="rounded-xl border border-border overflow-hidden animate-pulse" :style="sectionStyle">
-      <div class="px-4 py-4 space-y-2">
-        <div class="h-2 w-8 rounded bg-elevated/50 mb-3" />
-        <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
-        <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
-        <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
-      </div>
+    <div v-if="!calendar" class="animate-pulse space-y-2">
+      <div class="h-2 w-8 rounded bg-elevated/50 mb-3" />
+      <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
+      <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
+      <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
     </div>
 
     <!-- Loaded -->
-    <div v-else class="rounded-xl border border-border overflow-hidden" :style="sectionStyle">
-      <div class="px-4 py-4">
-        <template v-if="calendar.authorized">
+    <div v-else>
+      <template v-if="calendar.authorized">
 
           <!-- Event days -->
           <template v-for="(day, i) in visibleDays" :key="day.date">
@@ -110,7 +107,6 @@ function formatDue(d: string) {
         </template>
 
         <NuxtLink v-else-if="calendar.authorized === false" to="/admin/calendar" class="text-xs text-muted hover:text-secondary transition-colors">Set up Google Calendar</NuxtLink>
-      </div>
     </div>
 
   </div>
