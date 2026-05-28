@@ -391,3 +391,35 @@ describe('ServiceCard.vue — Healthcheck', () => {
     expect(wrapper.find('span.rounded-full').attributes('title')).toContain('Unreachable')
   })
 })
+
+describe('ServiceCard.vue — Drag handle', () => {
+  it('shows handle when edit=true', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
+    expect(wrapper.find('.service-handle').exists()).toBe(true)
+  })
+
+  it('does not show handle when edit=false', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('.service-handle').exists()).toBe(false)
+  })
+
+  it('handle has hover background class', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
+    expect(wrapper.find('.service-handle').classes()).toContain('hover:bg-elevated')
+  })
+
+  it('handle has hover text class', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
+    expect(wrapper.find('.service-handle').classes()).toContain('hover:text-primary')
+  })
+
+  it('handle has transition-colors class', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
+    expect(wrapper.find('.service-handle').classes()).toContain('transition-colors')
+  })
+
+  it('handle renders grip-vertical icon', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
+    expect(wrapper.find('.service-handle').find('[data-icon="grip-vertical"]').exists()).toBe(true)
+  })
+})

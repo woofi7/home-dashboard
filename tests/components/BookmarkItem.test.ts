@@ -84,3 +84,134 @@ describe('BookmarkItem.vue — Settings page', () => {
     expect(wrapper.element.getAttribute('rel')).toBe('noopener')
   })
 })
+
+describe('BookmarkItem.vue — Edit mode buttons', () => {
+  it('shows edit (pencil) button in edit mode when not pendingDelete', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.findAll('button').some(b => b.find('[data-icon="pencil"]').exists())).toBe(true)
+  })
+
+  it('shows delete (xmark) button in edit mode when not pendingDelete', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.findAll('button').some(b => b.find('[data-icon="xmark"]').exists())).toBe(true)
+  })
+
+  it('pencil button emits edit', async () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    await wrapper.findAll('button').find(b => b.find('[data-icon="pencil"]').exists())!.trigger('click')
+    expect(wrapper.emitted('edit')).toBeTruthy()
+  })
+
+  it('xmark button emits delete', async () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    await wrapper.findAll('button').find(b => b.find('[data-icon="xmark"]').exists())!.trigger('click')
+    expect(wrapper.emitted('delete')).toBeTruthy()
+  })
+
+  it('shows revert button when pending=true', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: true, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.text()).toContain('Revert')
+  })
+
+  it('revert button emits restore', async () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: true, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    await wrapper.findAll('button').find(b => b.text().includes('Revert'))!.trigger('click')
+    expect(wrapper.emitted('restore')).toBeTruthy()
+  })
+
+  it('shows Restore button when pendingDelete=true', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: true, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.text()).toContain('Restore')
+  })
+
+  it('Restore button emits restore when pendingDelete=true', async () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: true, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.emitted('restore')).toBeTruthy()
+  })
+
+  it('does not show pencil/xmark buttons when pendingDelete=true', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: true, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.findAll('button').some(b => b.find('[data-icon="pencil"]').exists())).toBe(false)
+    expect(wrapper.findAll('button').some(b => b.find('[data-icon="xmark"]').exists())).toBe(false)
+  })
+
+  it('no edit buttons when edit=false', () => {
+    const wrapper = mountItem({ name: 'GitHub', url: 'https://github.com' })
+    expect(wrapper.findAll('button').length).toBe(0)
+  })
+})
+
+describe('BookmarkItem.vue — Drag handle', () => {
+  it('shows handle when edit=true and not pendingDelete', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.find('.bookmark-handle').exists()).toBe(true)
+  })
+
+  it('does not show handle when edit=false', () => {
+    const wrapper = mountItem({ name: 'GitHub', url: 'https://github.com' })
+    expect(wrapper.find('.bookmark-handle').exists()).toBe(false)
+  })
+
+  it('does not show handle when pendingDelete=true', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: true, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.find('.bookmark-handle').exists()).toBe(false)
+  })
+
+  it('handle has hover background class', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.find('.bookmark-handle').classes()).toContain('hover:bg-elevated')
+  })
+
+  it('handle has hover text class', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.find('.bookmark-handle').classes()).toContain('hover:text-primary')
+  })
+
+  it('handle has transition-opacity for show/hide animation', () => {
+    const wrapper = mount(BookmarkItem, {
+      props: { bookmark: { name: 'GitHub', url: 'https://github.com' }, edit: true, pending: false, pendingDelete: false, dragging: false },
+      global: { stubs: globalStubs },
+    })
+    expect(wrapper.find('.bookmark-handle').classes()).toContain('transition-opacity')
+  })
+})

@@ -54,7 +54,7 @@ function faviconUrl(url: string) {
 
     <span
       v-if="edit && !pendingDelete"
-      class="bookmark-handle absolute top-1 left-1 cursor-grab text-muted select-none text-sm z-20 transition-opacity"
+      class="bookmark-handle absolute top-1 left-1 cursor-grab text-muted select-none text-sm z-20 transition-opacity rounded p-0.5 hover:bg-elevated hover:text-primary"
       :class="dragging ? 'opacity-0' : 'opacity-0 group-hover/bm:opacity-100'"
     ><FaIcon icon="grip-vertical" /></span>
 

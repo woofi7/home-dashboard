@@ -174,6 +174,23 @@ describe('BookmarkGroupSection.vue', () => {
     expect(w.text()).not.toContain('Name already used')
   })
 
+  describe('drag handle', () => {
+    it('handle has hover background class', () => {
+      const w = mountSection({ edit: true })
+      expect(w.find('.section-handle').classes()).toContain('hover:bg-elevated')
+    })
+
+    it('handle has hover text class', () => {
+      const w = mountSection({ edit: true })
+      expect(w.find('.section-handle').classes()).toContain('hover:text-primary')
+    })
+
+    it('handle has transition-colors class', () => {
+      const w = mountSection({ edit: true })
+      expect(w.find('.section-handle').classes()).toContain('transition-colors')
+    })
+  })
+
   describe('header border (title line)', () => {
     it('header has border-b border-border like service groups', () => {
       const w = mountSection()
