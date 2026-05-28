@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, copyFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { resolve, join } from 'node:path'
 import { load as parseYaml, dump as dumpYaml } from 'js-yaml'
 import { config as loadDotenv } from 'dotenv'
@@ -78,7 +78,9 @@ export function writeConfig(filename: string, data: unknown): void {
   const dir = getConfigDir()
   const filePath = join(dir, filename)
   if (existsSync(filePath)) {
-    copyFileSync(filePath, filePath + '.bak')
+    const backupDir = join(dir, 'backup')
+    mkdirSync(backupDir, { recursive: true })
+    copyFileSync(filePath, join(backupDir, filename + '.bak'))
   }
   writeFileSync(filePath, dumpYaml(data, { lineWidth: -1 }), 'utf-8')
 }
