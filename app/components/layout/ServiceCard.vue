@@ -86,7 +86,7 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
     ]"
   >
     <div class="flex items-start gap-3">
-      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-muted select-none text-xs"><FaIcon icon="grip-vertical" /></span>
+      <span v-if="edit" class="service-handle absolute left-1 top-1/2 -translate-y-1/2 cursor-grab text-muted select-none text-xs rounded p-0.5 hover:bg-elevated hover:text-primary transition-colors"><FaIcon icon="grip-vertical" /></span>
 
       <img
         v-if="service.icon"

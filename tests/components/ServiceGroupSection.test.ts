@@ -192,6 +192,23 @@ describe('ServiceGroupSection.vue', () => {
     expect(wrapper.html()).toContain('opacity-100')
   })
 
+  describe('drag handle', () => {
+    it('handle has hover background class', () => {
+      const wrapper = mountSection({ edit: true })
+      expect(wrapper.find('.section-handle').classes()).toContain('hover:bg-elevated')
+    })
+
+    it('handle has hover text class', () => {
+      const wrapper = mountSection({ edit: true })
+      expect(wrapper.find('.section-handle').classes()).toContain('hover:text-primary')
+    })
+
+    it('handle has transition-colors class', () => {
+      const wrapper = mountSection({ edit: true })
+      expect(wrapper.find('.section-handle').classes()).toContain('transition-colors')
+    })
+  })
+
   describe('collapse', () => {
     it('shows chevron-down toggle button', () => {
       const wrapper = mountSection()

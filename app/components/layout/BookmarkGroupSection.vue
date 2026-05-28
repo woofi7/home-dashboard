@@ -174,7 +174,7 @@ function save(updated: Bookmark) {
     :style="sectionStyle"
   >
     <div class="flex items-center gap-2 px-4 py-2 border-b border-border">
-      <span v-if="edit" class="section-handle cursor-grab text-muted select-none"><FaIcon icon="grip-vertical" /></span>
+      <span v-if="edit" class="section-handle cursor-grab text-muted select-none rounded p-1 -m-1 hover:bg-elevated hover:text-primary transition-colors"><FaIcon icon="grip-vertical" /></span>
       <template v-if="edit && editingName">
         <input
           ref="nameInput"
