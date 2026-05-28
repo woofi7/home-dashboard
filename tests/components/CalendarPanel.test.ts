@@ -268,6 +268,34 @@ describe('CalendarPanel.vue', () => {
     })
   })
 
+  describe('scroll container', () => {
+    it('root element has cal-scroll class for left-side scrollbar', () => {
+      const wrapper = mountPanel(null)
+      expect(wrapper.element.classList.contains('cal-scroll')).toBe(true)
+    })
+
+    it('root element has max-h-[250px] class', () => {
+      const wrapper = mountPanel(null)
+      expect(wrapper.element.classList.contains('max-h-[250px]')).toBe(true)
+    })
+
+    it('root element has overflow-y-auto class', () => {
+      const wrapper = mountPanel(null)
+      expect(wrapper.element.classList.contains('overflow-y-auto')).toBe(true)
+    })
+
+    it('loading skeleton inner div has ltr class', () => {
+      const wrapper = mountPanel(null)
+      expect(wrapper.find('.animate-pulse').classes()).toContain('ltr')
+    })
+
+    it('loaded content inner div has ltr class', () => {
+      const wrapper = mountPanel({ authorized: true, days: [], tasks: [] })
+      const inner = wrapper.find('.ltr')
+      expect(inner.exists()).toBe(true)
+    })
+  })
+
   describe('tasks', () => {
     it('renders task title', () => {
       const wrapper = mountPanel({

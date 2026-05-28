@@ -26,10 +26,10 @@ function formatDue(d: string) {
 </script>
 
 <template>
-  <div class="order-2 md:order-1">
+  <div class="cal-scroll order-2 md:order-1 max-h-[250px] overflow-y-auto">
 
     <!-- Loading skeleton -->
-    <div v-if="!calendar" class="animate-pulse space-y-2">
+    <div v-if="!calendar" class="animate-pulse space-y-2 ltr">
       <div class="h-2 w-8 rounded bg-elevated/50 mb-3" />
       <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
       <div class="h-10 rounded-lg border border-border/40" :style="cardStyle" />
@@ -37,7 +37,7 @@ function formatDue(d: string) {
     </div>
 
     <!-- Loaded -->
-    <div v-else>
+    <div v-else class="ltr">
       <template v-if="calendar.authorized">
 
           <!-- Event days -->
@@ -111,3 +111,27 @@ function formatDue(d: string) {
 
   </div>
 </template>
+
+<style scoped>
+.cal-scroll {
+  direction: rtl;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+.cal-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.cal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cal-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--color-border);
+  border-radius: 2px;
+}
+.cal-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-accent);
+}
+.ltr {
+  direction: ltr;
+}
+</style>
