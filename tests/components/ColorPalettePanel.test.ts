@@ -3,25 +3,29 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { ref, defineComponent } from 'vue'
 import { globalStubs } from './helpers'
-import { COLOR_PALETTES } from '~/utils/colorPalettes'
+import { COLOR_PALETTES, CUSTOM_PALETTE_DEFAULTS } from '~/utils/colorPalettes'
+import type { CustomPaletteColors } from '~/utils/colorPalettes'
 
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-// Mock applyPalette so we can verify it's called without touching the DOM
 const mockApplyPalette = vi.fn()
-const mockGetPaletteById = vi.fn((id: string) => COLOR_PALETTES.find(p => p.id === id) ?? COLOR_PALETTES[0])
+const mockGetPaletteById = vi.fn((id: string, custom?: Partial<CustomPaletteColors>) => {
+  if (id === 'custom')
+    return { ...CUSTOM_PALETTE_DEFAULTS, ...custom, id: 'custom', name: 'Custom' }
+  return COLOR_PALETTES.find(p => p.id === id) ?? COLOR_PALETTES[0]
+})
 vi.mock('~/utils/colorPalettes', async (importOriginal) => {
   const actual = await importOriginal<typeof import('~/utils/colorPalettes')>()
   return {
     ...actual,
     applyPalette: (...args: unknown[]) => mockApplyPalette(...args),
-    getPaletteById: (id: string) => mockGetPaletteById(id),
+    getPaletteById: (id: string, custom?: Partial<CustomPaletteColors>) => mockGetPaletteById(id, custom),
   }
 })
 
-function makeUseFetch(colorPalette = 'indigo') {
-  const data = ref<Record<string, unknown>>({ colorPalette })
+function makeUseFetch(colorPalette = 'indigo', customPalette?: Partial<CustomPaletteColors>) {
+  const data = ref<Record<string, unknown>>({ colorPalette, ...(customPalette ? { customPalette } : {}) })
   const refresh = vi.fn()
   return vi.fn(() => ({ data, refresh }))
 }
@@ -32,8 +36,8 @@ import ColorPalettePanel from '~/components/admin/ColorPalettePanel.vue'
 
 type PanelState = { isDirty: boolean; saving: boolean; saveError: string; saveSuccess: boolean }
 
-async function mountPanel(colorPalette = 'indigo') {
-  vi.stubGlobal('useFetch', makeUseFetch(colorPalette))
+async function mountPanel(colorPalette = 'indigo', customPalette?: Partial<CustomPaletteColors>) {
+  vi.stubGlobal('useFetch', makeUseFetch(colorPalette, customPalette))
   const states: PanelState[] = []
   const App = defineComponent({
     components: { ColorPalettePanel },
@@ -102,6 +106,16 @@ describe('ColorPalettePanel.vue', () => {
       const violetAa = violetCard.findAll('span').find(s => s.text() === 'Aa')!
       expect(indigoAa.attributes('style')).not.toBe(violetAa.attributes('style'))
     })
+
+    it('has a Custom palette card', async () => {
+      const { wrapper } = await mountPanel()
+      expect(wrapper.text()).toContain('Custom')
+    })
+
+    it('does not have an Amber palette card', async () => {
+      const { wrapper } = await mountPanel()
+      expect(wrapper.findAll('button').some(b => b.text() === 'Amber')).toBe(false)
+    })
   })
 
   describe('initialization', () => {
@@ -114,6 +128,12 @@ describe('ColorPalettePanel.vue', () => {
       const { wrapper } = await mountPanel('rose')
       const roseBtn = wrapper.findAll('button').find(b => b.text().includes('Rose'))!
       expect(roseBtn.find('[data-icon="check"]').exists()).toBe(true)
+    })
+
+    it('loads saved customPalette colors from settings', async () => {
+      const { wrapper } = await mountPanel('custom', { accent: '#ff0000' })
+      await wrapper.findAll('button').find(b => b.text().includes('Custom'))!.trigger('click')
+      expect(wrapper.text()).toContain('#ff0000')
     })
   })
 
@@ -165,10 +185,50 @@ describe('ColorPalettePanel.vue', () => {
     })
   })
 
+  describe('custom palette editor', () => {
+    it('does not show color editor when a preset palette is active', async () => {
+      const { wrapper } = await mountPanel('indigo')
+      expect(wrapper.find('input[type="color"]').exists()).toBe(false)
+    })
+
+    it('shows color editor when Custom palette is selected', async () => {
+      const { wrapper } = await mountPanel('indigo')
+      await wrapper.findAll('button').find(b => b.text().includes('Custom'))!.trigger('click')
+      expect(wrapper.find('input[type="color"]').exists()).toBe(true)
+    })
+
+    it('shows 9 color inputs for the custom palette', async () => {
+      const { wrapper } = await mountPanel('custom')
+      expect(wrapper.findAll('input[type="color"]').length).toBe(9)
+    })
+
+    it('emits isDirty true when a custom color is changed', async () => {
+      const { wrapper, states } = await mountPanel('custom')
+      const colorInput = wrapper.find('input[type="color"]')
+      await colorInput.setValue('#aabbcc')
+      await colorInput.trigger('input')
+      expect(lastState(states).isDirty).toBe(true)
+    })
+
+    it('calls applyPalette with custom colors on input change', async () => {
+      const { wrapper } = await mountPanel('custom')
+      mockApplyPalette.mockClear()
+      const colorInput = wrapper.find('input[type="color"]')
+      await colorInput.setValue('#aabbcc')
+      await colorInput.trigger('input')
+      expect(mockApplyPalette).toHaveBeenCalledWith(expect.objectContaining({ id: 'custom' }))
+    })
+
+    it('shows hex color values as text next to each input', async () => {
+      const { wrapper } = await mountPanel('custom')
+      expect(wrapper.text()).toContain(CUSTOM_PALETTE_DEFAULTS.accent)
+    })
+  })
+
   describe('cancel', () => {
     it('resets selection to saved palette', async () => {
       const { wrapper, states, panel } = await mountPanel('indigo')
-      await wrapper.findAll('button').find(b => b.text().includes('Amber'))!.trigger('click')
+      await wrapper.findAll('button').find(b => b.text().includes('Sky'))!.trigger('click')
       ;(panel.vm as unknown as { cancel: () => void }).cancel()
       await flushPromises()
       const indigoBtn = wrapper.findAll('button').find(b => b.text().includes('Indigo'))!
@@ -186,6 +246,17 @@ describe('ColorPalettePanel.vue', () => {
       const appliedPalette = mockApplyPalette.mock.calls[0][0]
       expect(appliedPalette.id).toBe('sky')
     })
+
+    it('reverts custom colors on cancel', async () => {
+      const { wrapper, panel, states } = await mountPanel('custom', { accent: '#ff0000' })
+      const colorInput = wrapper.find('input[type="color"]')
+      await colorInput.setValue('#00ff00')
+      await colorInput.trigger('input')
+      expect(lastState(states).isDirty).toBe(true)
+      ;(panel.vm as unknown as { cancel: () => void }).cancel()
+      await flushPromises()
+      expect(lastState(states).isDirty).toBe(false)
+    })
   })
 
   describe('save', () => {
@@ -199,6 +270,32 @@ describe('ColorPalettePanel.vue', () => {
         method: 'POST',
         body: expect.objectContaining({ colorPalette: 'emerald' }),
       }))
+    })
+
+    it('always POSTs customPalette alongside colorPalette', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const { wrapper, panel } = await mountPanel('indigo')
+      await wrapper.findAll('button').find(b => b.text().includes('Sky'))!.trigger('click')
+      await (panel.vm as unknown as { save: () => Promise<void> }).save()
+      await flushPromises()
+      expect(mockFetch).toHaveBeenCalledWith('/api/edit/settings', expect.objectContaining({
+        body: expect.objectContaining({ customPalette: expect.any(Object) }),
+      }))
+    })
+
+    it('POSTs updated custom colors when saving custom palette', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const { wrapper, panel } = await mountPanel('custom')
+      const colorInput = wrapper.findAll('input[type="color"]').find(
+        (_, i) => i === 0,
+      )!
+      await colorInput.setValue('#123456')
+      await colorInput.trigger('input')
+      await (panel.vm as unknown as { save: () => Promise<void> }).save()
+      await flushPromises()
+      const body = (mockFetch.mock.calls[0][1] as { body: Record<string, unknown> }).body
+      const custom = body.customPalette as Record<string, string>
+      expect(Object.values(custom)).toContain('#123456')
     })
 
     it('emits saveSuccess true after successful save', async () => {

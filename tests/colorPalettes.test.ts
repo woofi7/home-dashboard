@@ -6,9 +6,20 @@ import type { ColorPalette } from '../app/utils/colorPalettes'
 
 describe('getPaletteById', () => {
   it('returns the matching palette by id', () => {
-    for (const palette of COLOR_PALETTES) {
+    for (const palette of COLOR_PALETTES.filter(p => p.id !== 'custom')) {
       expect(getPaletteById(palette.id)).toBe(palette)
     }
+  })
+
+  it('returns a custom palette object for the custom id', () => {
+    const result = getPaletteById('custom')
+    expect(result.id).toBe('custom')
+    expect(result.name).toBe('Custom')
+  })
+
+  it('merges provided custom colors when id is custom', () => {
+    const result = getPaletteById('custom', { accent: '#ff0000' })
+    expect(result.accent).toBe('#ff0000')
   })
 
   it('returns the first palette (indigo) for unknown ids', () => {
@@ -27,14 +38,18 @@ describe('COLOR_PALETTES', () => {
     expect(COLOR_PALETTES).toHaveLength(6)
   })
 
-  it('includes indigo, violet, sky, emerald, rose, amber', () => {
+  it('includes indigo, violet, sky, emerald, rose, custom', () => {
     const ids = COLOR_PALETTES.map(p => p.id)
     expect(ids).toContain('indigo')
     expect(ids).toContain('violet')
     expect(ids).toContain('sky')
     expect(ids).toContain('emerald')
     expect(ids).toContain('rose')
-    expect(ids).toContain('amber')
+    expect(ids).toContain('custom')
+  })
+
+  it('does not include amber', () => {
+    expect(COLOR_PALETTES.map(p => p.id)).not.toContain('amber')
   })
 
   it('each palette has all required color fields', () => {
@@ -51,8 +66,8 @@ describe('COLOR_PALETTES', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
-  it('each palette id matches its name (lowercase)', () => {
-    for (const palette of COLOR_PALETTES) {
+  it('each preset palette id matches its name (lowercase)', () => {
+    for (const palette of COLOR_PALETTES.filter(p => p.id !== 'custom')) {
       expect(palette.id).toBe(palette.name.toLowerCase())
     }
   })
