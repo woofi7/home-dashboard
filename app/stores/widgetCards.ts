@@ -1,9 +1,8 @@
 import { defineStore } from 'pinia'
 import { useConfigStore } from './config'
+import { isWidgetError, type WidgetErrorInfo, type WidgetOutcome, type WidgetResult } from '~/utils/widgetError'
 
-type WidgetField = { label: string; value: unknown; suffix?: string }
-type WidgetResult = { fields: WidgetField[] }
-type CardState = { status: 'loading' | 'ok' | 'error'; data: WidgetResult | null }
+type CardState = { status: 'loading' | 'ok' | 'error'; data: WidgetResult | null; error?: WidgetErrorInfo }
 
 export const useWidgetCardsStore = defineStore('widgetCards', {
   state: () => ({
@@ -26,11 +25,18 @@ export const useWidgetCardsStore = defineStore('widgetCards', {
         if (!this.cards[name])
           this.cards[name] = { status: 'loading', data: null }
         try {
-          const data = await $fetch<WidgetResult>(`/api/widget/${type}?url=${encodeURIComponent(url)}`)
-          this.cards[name] = { status: 'ok', data }
+          const outcome = await $fetch<WidgetOutcome>(`/api/widget/${type}?url=${encodeURIComponent(url)}`)
+          if (isWidgetError(outcome))
+            this.cards[name] = { status: 'error', data: this.cards[name]?.data ?? null, error: outcome.error }
+          else
+            this.cards[name] = { status: 'ok', data: outcome }
           this.lastUpdated = Date.now()
         } catch {
-          this.cards[name] = { status: this.cards[name]?.data ? 'ok' : 'error', data: this.cards[name]?.data ?? null }
+          this.cards[name] = {
+            status: this.cards[name]?.data ? 'ok' : 'error',
+            data: this.cards[name]?.data ?? null,
+            error: { kind: 'unreachable', message: 'Dashboard server unreachable' },
+          }
         }
       }))
     },

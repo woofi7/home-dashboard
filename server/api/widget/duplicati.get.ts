@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatBytes } from '../../utils/formatBytes'
@@ -72,9 +73,5 @@ export async function fetchDuplicati(creds: ServiceCredentials) {
 }
 
 export { fetchDuplicati as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchDuplicati(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchDuplicati, ['url']))

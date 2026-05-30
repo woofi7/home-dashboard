@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatBytes, formatKilobytes } from '../../utils/formatBytes'
@@ -49,11 +50,5 @@ export async function fetchUnraid(creds: ServiceCredentials) {
 }
 
 export { fetchUnraid as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey)
-    throw createError({ statusCode: 400, message: 'apiKey is required' })
-  return fetchUnraid(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchUnraid, ['url', 'apiKey']))

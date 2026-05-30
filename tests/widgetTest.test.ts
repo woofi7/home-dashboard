@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockFetchWidget = vi.fn()
-vi.mock('../server/utils/widgetDispatch', () => ({
-  fetchWidgetForService: (...args: unknown[]) => mockFetchWidget(...args),
+vi.mock('../server/utils/widgetError', () => ({
+  fetchWidgetStatus: (...args: unknown[]) => mockFetchWidget(...args),
 }))
 
 vi.mock('../server/utils/widgetRegistry', () => ({
@@ -45,12 +45,11 @@ describe('POST /api/edit/widget-test', () => {
     expect(result).toMatchObject({ ok: true })
   })
 
-  it('returns ok:false with message when widget returns null', async () => {
+  it('returns ok:false with status and message when the widget errors', async () => {
     readBody.mockResolvedValue({ type: 'sonarr', url: 'http://10.0.1.2:8989/', apiKey: 'abc' })
-    mockFetchWidget.mockResolvedValue(null)
+    mockFetchWidget.mockResolvedValue({ error: { kind: 'auth', status: 401, message: 'Credentials refused' } })
     const result = await (handler as Function)(null)
-    expect(result).toMatchObject({ ok: false })
-    expect((result as { message: string }).message).toBeTruthy()
+    expect(result).toMatchObject({ ok: false, status: 401, message: 'Credentials refused' })
   })
 
   it('only passes allowed credential fields to the widget fetcher', async () => {

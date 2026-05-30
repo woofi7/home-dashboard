@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { formatSpeed } from '../../utils/formatBytes'
@@ -38,9 +39,5 @@ export async function fetchQbittorrent(creds: ServiceCredentials) {
 }
 
 export { fetchQbittorrent as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchQbittorrent(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchQbittorrent, ['url']))

@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
@@ -29,9 +30,5 @@ export async function fetchTraefik(creds: ServiceCredentials) {
 }
 
 export { fetchTraefik as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchTraefik(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchTraefik, ['url']))

@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getActiveFields } from '../../utils/widget-fields'
 import definition from '#shared/widgetDefinitions/tugtainer'
@@ -68,9 +69,5 @@ export async function fetchTugtainer(creds: ServiceCredentials) {
 }
 
 export { fetchTugtainer as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchTugtainer(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchTugtainer, ['url']))

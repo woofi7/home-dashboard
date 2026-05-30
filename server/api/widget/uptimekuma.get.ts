@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 
@@ -122,11 +123,5 @@ export async function fetchUptimekuma(creds: ServiceCredentials) {
 }
 
 export { fetchUptimekuma as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey)
-    throw createError({ statusCode: 400, message: 'apiKey is required' })
-  return fetchUptimekuma(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchUptimekuma, ['url', 'apiKey']))

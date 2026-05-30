@@ -75,6 +75,13 @@ describe('useStatusStore', () => {
     await store.refresh(true)
     expect(fetchMock).toHaveBeenCalledWith('/api/refresh', { headers: { 'x-refresh-force': '1' } })
   })
+
+  it('passes widget error outcomes through unchanged', async () => {
+    fetchMock.mockResolvedValue({ docker: {}, ping: {}, widgets: { Sonarr: { error: { kind: 'auth', status: 401 } } } })
+    const store = useStatusStore()
+    await store.refresh()
+    expect(store.widgetData.Sonarr).toEqual({ error: { kind: 'auth', status: 401 } })
+  })
 })
 
 describe('useWidgetCardsStore', () => {
@@ -93,6 +100,15 @@ describe('useWidgetCardsStore', () => {
     const store = useWidgetCardsStore()
     await store.refresh()
     expect(store.byName('CPU')?.status).toBe('error')
+  })
+
+  it('maps a widget error body to an error card with the reason', async () => {
+    useConfigStore().config = { services: [], bookmarks: [], widgets: [{ name: 'CPU', type: 'beszel', url: 'http://b' }], settings: {} }
+    fetchMock.mockResolvedValue({ error: { kind: 'auth', status: 401, message: 'Credentials refused' } })
+    const store = useWidgetCardsStore()
+    await store.refresh()
+    expect(store.byName('CPU')?.status).toBe('error')
+    expect(store.byName('CPU')?.error?.kind).toBe('auth')
   })
 })
 

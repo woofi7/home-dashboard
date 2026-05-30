@@ -1,4 +1,4 @@
-import { fetchWidgetForService } from '../../utils/widgetDispatch'
+import { fetchWidgetStatus } from '../../utils/widgetError'
 import { WIDGETS } from '../../utils/widgetRegistry'
 import { CRED_FIELDS } from '../../utils/credentialMerge'
 
@@ -18,13 +18,8 @@ export default defineEventHandler(async (event) => {
   )
   const effectiveUrl = widgetUrl?.trim() || url
 
-  try {
-    const result = await fetchWidgetForService(type, { url: effectiveUrl, ...credentials })
-    if (result !== null)
-      return { ok: true, fields: result.fields }
-    return { ok: false, message: 'Connected but returned no data — check credentials' }
-  } catch (err: unknown) {
-    const status = (err as { response?: { status?: number } })?.response?.status
-    return { ok: false, status }
-  }
+  const outcome = await fetchWidgetStatus(type, { url: effectiveUrl, ...credentials })
+  if ('error' in outcome)
+    return { ok: false, status: outcome.error.status, message: outcome.error.message }
+  return { ok: true, fields: outcome.fields }
 })

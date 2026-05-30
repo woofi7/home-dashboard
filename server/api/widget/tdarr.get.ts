@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
@@ -33,9 +34,5 @@ export async function fetchTdarr(creds: ServiceCredentials) {
 }
 
 export { fetchTdarr as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchTdarr(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchTdarr, ['url']))

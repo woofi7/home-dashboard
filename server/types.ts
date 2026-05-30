@@ -12,4 +12,7 @@ export type PingStatus = Record<string, boolean>
 
 export type WidgetField = { label: string; value: unknown; suffix?: string }
 export type WidgetResult = { type?: string; fields: WidgetField[] }
-export type WidgetStatusMap = Record<string, WidgetResult | null>
+
+export type { WidgetError, WidgetErrorInfo, WidgetErrorKind, WidgetOutcome } from './utils/widgetError'
+import type { WidgetOutcome } from './utils/widgetError'
+export type WidgetStatusMap = Record<string, WidgetOutcome>

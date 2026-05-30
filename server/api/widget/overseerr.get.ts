@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import type { ServiceCredentials } from '../../utils/auth'
 
@@ -37,11 +38,5 @@ export async function fetchOverseerr(creds: ServiceCredentials) {
 }
 
 export { fetchOverseerr as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.apiKey)
-    throw createError({ statusCode: 400, message: 'apiKey is required' })
-  return fetchOverseerr(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchOverseerr, ['url', 'apiKey']))

@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { formatBytes } from '../../utils/formatBytes'
 
@@ -114,9 +115,5 @@ export async function fetchBackrest(creds: ServiceCredentials) {
 }
 
 export { fetchBackrest as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchBackrest(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchBackrest, ['url']))
