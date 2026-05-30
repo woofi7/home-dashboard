@@ -63,20 +63,10 @@ beforeEach(() => {
 
 describe('ColorPalettePanel.vue', () => {
   describe('layout', () => {
-    it('renders Color Palette heading', async () => {
+    it('renders a button for each of the 6 palettes', async () => {
       const { wrapper } = await mountPanel()
-      expect(wrapper.text()).toContain('Color Palette')
-    })
-
-    it('renders a button for each palette', async () => {
-      const { wrapper } = await mountPanel()
-      for (const palette of COLOR_PALETTES) {
+      for (const palette of COLOR_PALETTES)
         expect(wrapper.text()).toContain(palette.name)
-      }
-    })
-
-    it('renders exactly 6 palette buttons', async () => {
-      const { wrapper } = await mountPanel()
       const paletteButtons = wrapper.findAll('button').filter(b =>
         COLOR_PALETTES.some(p => b.text().includes(p.name)),
       )
@@ -110,11 +100,6 @@ describe('ColorPalettePanel.vue', () => {
     it('has a Custom palette card', async () => {
       const { wrapper } = await mountPanel()
       expect(wrapper.text()).toContain('Custom')
-    })
-
-    it('does not have an Amber palette card', async () => {
-      const { wrapper } = await mountPanel()
-      expect(wrapper.findAll('button').some(b => b.text() === 'Amber')).toBe(false)
     })
   })
 

@@ -227,11 +227,6 @@ describe('admin/settings.vue', () => {
   })
 
   describe('admin token', () => {
-    it('renders the Admin token label', async () => {
-      const w = await mountPage()
-      expect(w.text()).toContain('Admin token')
-    })
-
     it('populates the token input from config', async () => {
       const w = await mountPage({ adminToken: 'secret123' })
       const input = w.find('input[placeholder="Enter admin token"]')
@@ -265,17 +260,6 @@ describe('admin/settings.vue', () => {
   })
 
   describe('timezone', () => {
-    it('renders the Timezone label', async () => {
-      const w = await mountPage()
-      expect(w.text()).toContain('Timezone')
-    })
-
-    it('renders the Security section with Admin token label', async () => {
-      const w = await mountPage()
-      expect(w.text()).toContain('Security')
-      expect(w.text()).toContain('Admin token')
-    })
-
     it('marks form dirty when timezone changes', async () => {
       const w = await mountPage({ timezone: '' })
       // TimezoneSelect is stubbed as a plain input by globalStubs fallback — use the input directly

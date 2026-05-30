@@ -67,41 +67,25 @@ describe('DashboardBackground.vue', () => {
   })
 
   describe('appearance - position', () => {
-    it('applies center position by default', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('background-position: center')
-    })
-
-    it('applies center top for position top', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { position: 'top' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('center top')
-    })
-
-    it('applies center bottom for position bottom', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { position: 'bottom' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('center bottom')
-    })
-
-    it('applies left center for position left', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { position: 'left' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('left center')
+    it.each([
+      [undefined, 'background-position: center'],
+      ['top', 'center top'],
+      ['bottom', 'center bottom'],
+      ['left', 'left center'],
+    ])('position %s applies %s', (position, expected) => {
+      const w = mountBg({ thumb: 'https://img.jpg' }, position ? { position } : {})
+      expect(thumbDiv(w)?.attributes('style')).toContain(expected)
     })
   })
 
   describe('appearance - overlay', () => {
-    it('applies 40% overlay by default', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' })
-      expect(overlayDiv(w)?.attributes('style')).toContain('rgba(0, 0, 0, 0.4)')
-    })
-
-    it('applies custom overlay opacity', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { overlay: 60 })
-      expect(overlayDiv(w)?.attributes('style')).toContain('rgba(0, 0, 0, 0.6)')
-    })
-
-    it('applies zero overlay when set to 0', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { overlay: 0 })
-      expect(overlayDiv(w)?.attributes('style')).toContain('rgba(0, 0, 0, 0)')
+    it.each([
+      [undefined, 'rgba(0, 0, 0, 0.4)'],
+      [60, 'rgba(0, 0, 0, 0.6)'],
+      [0, 'rgba(0, 0, 0, 0)'],
+    ])('overlay %s applies %s', (overlay, expected) => {
+      const w = mountBg({ thumb: 'https://img.jpg' }, overlay === undefined ? {} : { overlay })
+      expect(overlayDiv(w)?.attributes('style')).toContain(expected)
     })
   })
 
@@ -111,41 +95,25 @@ describe('DashboardBackground.vue', () => {
       expect(thumbDiv(w)?.attributes('style')).not.toContain('blur')
     })
 
-    it('applies 4px blur for sm', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { blur: 'sm' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('blur(4px)')
-    })
-
-    it('applies 12px blur for md', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { blur: 'md' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('blur(12px)')
-    })
-
-    it('applies 24px blur for lg', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { blur: 'lg' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('blur(24px)')
+    it.each([
+      ['sm', 'blur(4px)'],
+      ['md', 'blur(12px)'],
+      ['lg', 'blur(24px)'],
+    ])('blur %s applies %s', (blur, expected) => {
+      const w = mountBg({ thumb: 'https://img.jpg' }, { blur })
+      expect(thumbDiv(w)?.attributes('style')).toContain(expected)
     })
   })
 
   describe('appearance - fade speed', () => {
-    it('applies 1000ms transition duration by default', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('transition-duration: 1000ms')
-    })
-
-    it('applies 400ms for fast', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { fadeSpeed: 'fast' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('transition-duration: 400ms')
-    })
-
-    it('applies 2000ms for slow', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { fadeSpeed: 'slow' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('transition-duration: 2000ms')
-    })
-
-    it('applies 0ms for none', () => {
-      const w = mountBg({ thumb: 'https://img.jpg' }, { fadeSpeed: 'none' })
-      expect(thumbDiv(w)?.attributes('style')).toContain('transition-duration: 0ms')
+    it.each([
+      [undefined, 'transition-duration: 1000ms'],
+      ['fast', 'transition-duration: 400ms'],
+      ['slow', 'transition-duration: 2000ms'],
+      ['none', 'transition-duration: 0ms'],
+    ])('fadeSpeed %s applies %s', (fadeSpeed, expected) => {
+      const w = mountBg({ thumb: 'https://img.jpg' }, fadeSpeed ? { fadeSpeed } : {})
+      expect(thumbDiv(w)?.attributes('style')).toContain(expected)
     })
   })
 
