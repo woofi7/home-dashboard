@@ -1,3 +1,6 @@
+import { storeToRefs } from 'pinia'
+import { useConfigStore } from '~/stores/config'
+
 export type GlobalSettings = {
   title?: string
   bookmarkCounterEnabled?: boolean
@@ -6,10 +9,7 @@ export type GlobalSettings = {
 }
 
 export function useGlobalSettings() {
-  const { data } = useAsyncData<GlobalSettings>(
-    'globalSettings',
-    () => $fetch<GlobalSettings>('/api/admin/settings'),
-    { default: () => ({}) },
-  )
-  return { settings: data }
+  const { config } = storeToRefs(useConfigStore())
+  const settings = computed(() => (config.value.settings ?? {}) as GlobalSettings)
+  return { settings }
 }

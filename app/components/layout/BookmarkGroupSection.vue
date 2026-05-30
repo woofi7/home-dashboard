@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { VueDraggable } from 'vue-draggable-plus'
+import { useBookmarkClicksStore } from '~/stores/bookmarkClicks'
 import type { LayoutSettings } from './SectionLayoutSettings.vue'
 
 type Bookmark = { name: string; url: string; icon?: string }
@@ -71,10 +73,11 @@ const pendingItems = computed(() => {
 
 const dragging = ref(false)
 const collapsed = ref(false)
-const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
-const { data: config } = useFetch<{ settings?: { bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean } }>('/api/config')
-const counterEnabled = computed(() => config.value?.settings?.bookmarkCounterEnabled !== false)
-const autoSortEnabled = computed(() => config.value?.settings?.bookmarkAutoSort === true)
+const { settings } = useGlobalSettings()
+const clicksStore = useBookmarkClicksStore()
+const { clicks } = storeToRefs(clicksStore)
+const counterEnabled = computed(() => settings.value?.bookmarkCounterEnabled !== false)
+const autoSortEnabled = computed(() => settings.value?.bookmarkAutoSort === true)
 
 const displayBookmarks = computed(() => {
   if (!autoSortEnabled.value)
@@ -86,8 +89,7 @@ const displayBookmarks = computed(() => {
 async function trackClick(name: string) {
   if (!counterEnabled.value)
     return
-  await $fetch('/api/bookmarks/clicks', { method: 'POST', body: { name } })
-  await refreshClicks()
+  await clicksStore.increment(name)
 }
 
 const editingName = ref(false)

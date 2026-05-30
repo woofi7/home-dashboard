@@ -1,6 +1,12 @@
-import { vi } from 'vitest'
+import { vi, beforeEach } from 'vitest'
 import { ref, computed, watch, reactive, nextTick, onMounted, onUnmounted } from 'vue'
 import { onClickOutside, useEventListener } from '@vueuse/core'
+import { createPinia, setActivePinia } from 'pinia'
+
+// Fresh Pinia per test so stores start clean and `useXStore()` works outside components
+beforeEach(() => {
+  setActivePinia(createPinia())
+})
 
 // Nuxt state / composables
 vi.stubGlobal('useState', (_key: string, init?: () => unknown) => ref(init ? init() : undefined))

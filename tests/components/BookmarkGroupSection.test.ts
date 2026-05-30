@@ -10,18 +10,10 @@ vi.stubGlobal('useLayoutSettings', () => ({
   effective: computed(() => ({})),
 }))
 
-function makeFetch(clicks: Record<string, number> = {}, autoSort = false) {
-  return vi.fn((url: string) => {
-    if (url === '/api/bookmarks/clicks')
-      return { data: ref(clicks), refresh: vi.fn() }
-    if (url === '/api/config')
-      return { data: ref({ settings: { bookmarkCounterEnabled: true, bookmarkAutoSort: autoSort } }), refresh: vi.fn() }
-    return { data: ref({}), refresh: vi.fn() }
-  })
-}
+const settingsData = ref<{ bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean }>({})
+vi.stubGlobal('useGlobalSettings', () => ({ settings: computed(() => settingsData.value) }))
 
-vi.stubGlobal('useFetch', makeFetch())
-
+import { useBookmarkClicksStore } from '~/stores/bookmarkClicks'
 import BookmarkGroupSection from '~/components/layout/BookmarkGroupSection.vue'
 
 const defaultGroup = {
@@ -38,7 +30,8 @@ const stubs = {
 }
 
 function mountSection(opts: { edit?: boolean; group?: typeof defaultGroup; clicks?: Record<string, number>; autoSort?: boolean } = {}) {
-  vi.stubGlobal('useFetch', makeFetch(opts.clicks ?? {}, opts.autoSort ?? false))
+  settingsData.value = { bookmarkCounterEnabled: true, bookmarkAutoSort: opts.autoSort ?? false }
+  useBookmarkClicksStore().clicks = opts.clicks ?? {}
   return mount(BookmarkGroupSection, {
     props: {
       group: opts.group ?? defaultGroup,

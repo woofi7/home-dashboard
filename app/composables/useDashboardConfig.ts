@@ -1,3 +1,6 @@
+import { storeToRefs } from 'pinia'
+import { useConfigStore } from '~/stores/config'
+
 type Service = { name: string; [key: string]: unknown }
 type ServiceGroup = { name: string; services: Service[] }
 type Bookmark = { name: string; url: string; icon?: string }
@@ -11,8 +14,10 @@ type Config = {
 
 export function useDashboardConfig() {
   const { active: editActive, dirty, snapshot, enter, exit } = useEditMode()
-  const { data: config, refresh, status } = useFetch<Config>('/api/config', { lazy: true, server: false })
-  const configLoaded = computed(() => status.value === 'success' || status.value === 'error')
+  const configStore = useConfigStore()
+  const { config } = storeToRefs(configStore)
+  const refresh = () => configStore.refresh()
+  const configLoaded = computed(() => configStore.loaded)
 
   const localConfig = ref<Config>({ services: [], bookmarks: [], widgets: [], settings: {} })
   const sectionOrder = ref<Array<{ type: 'service' | 'bookmark'; name: string }>>([])
