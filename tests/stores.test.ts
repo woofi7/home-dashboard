@@ -146,6 +146,12 @@ describe('useConnectivityStore', () => {
     expect(store.online).toBe(false)
   })
 
+  it('ping uses a short timeout so an unreachable server is detected quickly', async () => {
+    fetchMock.mockResolvedValue({ status: 'ok' })
+    await useConnectivityStore().ping()
+    expect(fetchMock).toHaveBeenCalledWith('/api/healthcheck', expect.objectContaining({ timeout: 2000 }))
+  })
+
   it('lastSnapshotAt is the newest store timestamp', () => {
     useConfigStore().lastUpdated = 100
     useViewStore().lastUpdated = 500

@@ -100,7 +100,7 @@ export default defineNuxtConfig({
           handler: 'NetworkFirst',
           options: {
             cacheName: 'api-cache',
-            networkTimeoutSeconds: 5,
+            networkTimeoutSeconds: 2,
             expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
             cacheableResponse: { statuses: [0, 200] },
           },

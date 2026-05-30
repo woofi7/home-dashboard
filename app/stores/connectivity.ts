@@ -26,7 +26,7 @@ export const useConnectivityStore = defineStore('connectivity', {
   actions: {
     async ping() {
       try {
-        await $fetch('/api/healthcheck', { cache: 'no-store' })
+        await $fetch('/api/healthcheck', { cache: 'no-store', timeout: 2000 })
         this.online = true
       } catch {
         this.online = false
