@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 import { createCache } from '../../utils/cache'
@@ -51,9 +52,5 @@ export async function fetchPihole(creds: ServiceCredentials) {
 }
 
 export { fetchPihole as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  return fetchPihole(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchPihole, ['url']))

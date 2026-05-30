@@ -1,5 +1,5 @@
 import {type DockerStatus, fetchDockerStatus} from '../utils/docker'
-import {fetchWidgetForService} from '../utils/widgetDispatch'
+import {fetchWidgetStatus, type WidgetOutcome} from '../utils/widgetError'
 import {loadConfig} from '../utils/config'
 import {CRED_FIELDS} from '../utils/credentialMerge'
 import {createCache} from '../utils/cache'
@@ -26,8 +26,11 @@ async function pingUrl(url: string): Promise<boolean> {
   }
 }
 
-function withTimeout<T>(p: Promise<T | null>, ms: number): Promise<T | null> {
-  return Promise.race([p, new Promise<null>(resolve => setTimeout(() => resolve(null), ms))])
+function withTimeout(p: Promise<WidgetOutcome>, ms: number): Promise<WidgetOutcome> {
+  const timeout = new Promise<WidgetOutcome>(resolve =>
+    setTimeout(() => resolve({ error: { kind: 'timeout', message: `Timed out after ${ms / 1000}s` } }), ms),
+  )
+  return Promise.race([p, timeout])
 }
 
 function healthcheckPingUrl(service: ServiceGroup['services'][number]): string | null {
@@ -55,7 +58,7 @@ async function doRefresh(): Promise<RefreshResponse> {
           Object.entries(s).filter(([k, v]) => passFields.has(k) && typeof v === 'string'),
         ) as Record<string, string>
         const effectiveUrl = credentials.widgetUrl?.trim() || credentials.url
-        const result = await withTimeout(fetchWidgetForService(s.type as string, { ...credentials, url: effectiveUrl }), WIDGET_TIMEOUT)
+        const result = await withTimeout(fetchWidgetStatus(s.type as string, { ...credentials, url: effectiveUrl }), WIDGET_TIMEOUT)
         return [s.name, result] as const
       }),
     ),

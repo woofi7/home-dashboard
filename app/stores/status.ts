@@ -1,20 +1,19 @@
 import { defineStore } from 'pinia'
+import type { WidgetOutcome } from '~/utils/widgetError'
 
 type DockerContainerStatus = { state: string; status: string }
 type DockerStatus = Record<string, Record<string, DockerContainerStatus>>
-type WidgetField = { label: string; value: unknown; suffix?: string }
-type WidgetResult = { fields: WidgetField[] }
 type RefreshData = {
   docker: DockerStatus
   ping: Record<string, boolean>
-  widgets: Record<string, WidgetResult | null>
+  widgets: Record<string, WidgetOutcome>
 }
 
 export const useStatusStore = defineStore('status', {
   state: () => ({
     dockerStatus: {} as DockerStatus,
     pingStatus: {} as Record<string, boolean>,
-    widgetData: {} as Record<string, WidgetResult | null>,
+    widgetData: {} as Record<string, WidgetOutcome>,
     lastUpdated: 0,
   }),
   actions: {

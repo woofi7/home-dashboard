@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { resolveContainerState } from '~/utils/dockerLookup'
+import { isWidgetError, widgetErrorLabel, widgetErrorTooltip } from '~/utils/widgetError'
 import { useStatusStore } from '~/stores/status'
 import { useConnectivityStore } from '~/stores/connectivity'
 
@@ -78,8 +79,10 @@ const statusTitle = computed(() => {
 })
 
 const widgetResult = computed(() => widgetData.value[props.service.name])
-const widgetLoading = computed(() => props.service.type && !(props.service.name in widgetData.value))
-const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] | undefined)
+const widgetError = computed(() => (isWidgetError(widgetResult.value) ? widgetResult.value.error : null))
+const widgetFields = computed(() =>
+  widgetResult.value && !isWidgetError(widgetResult.value) ? (widgetResult.value.fields as WidgetField[]) : undefined,
+)
 </script>
 
 <template>
@@ -152,6 +155,10 @@ const widgetFields = computed(() => widgetResult.value?.fields as WidgetField[] 
         {{ f.value ?? '-' }}{{ (f.suffix) ? ' ' + f.suffix : '' }}
       </span>
     </div>
-    <div v-else-if="!edit && service.type && widgetResult === null" class="text-xs text-danger/60">Widget unavailable</div>
+    <div
+      v-else-if="!edit && widgetError"
+      class="text-xs text-danger/70 cursor-help"
+      :title="widgetErrorTooltip(widgetError)"
+    >{{ widgetErrorLabel(widgetError) }}</div>
   </component>
 </template>

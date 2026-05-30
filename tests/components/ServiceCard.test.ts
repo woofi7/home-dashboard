@@ -6,7 +6,7 @@ import { globalStubs } from './helpers'
 
 const dockerStatus = ref<Record<string, Record<string, { state: string; status: string }>>>({})
 const pingStatus = ref<Record<string, boolean>>({})
-const widgetData = ref<Record<string, { fields: { label: string; value: unknown }[] } | null>>({})
+const widgetData = ref<Record<string, { fields: { label: string; value: unknown }[] } | { error: { kind: string; status?: number; message?: string } }>>({})
 
 const globalSettingsData = ref<{ linkTarget?: 'new-tab' | 'same-tab' }>({})
 vi.stubGlobal('useGlobalSettings', () => ({ settings: computed(() => globalSettingsData.value) }))
@@ -204,10 +204,24 @@ describe('ServiceCard.vue — Widget data', () => {
     expect(wrapper.text()).toContain('5')
   })
 
-  it('shows widget error when widgetData has null for service name', () => {
-    widgetData.value = { Sonarr: null }
+  it('shows the inline reason and tooltip when the widget errors', () => {
+    widgetData.value = { Sonarr: { error: { kind: 'auth', status: 401, message: 'Credentials refused' } } }
     const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
-    expect(wrapper.text()).toContain('Widget unavailable')
+    const el = wrapper.find('.cursor-help')
+    expect(el.text()).toBe('Auth failed (401)')
+    expect(el.attributes('title')).toContain('Credentials refused')
+  })
+
+  it('labels an unreachable widget error', () => {
+    widgetData.value = { Sonarr: { error: { kind: 'unreachable', message: 'Server not responding (ECONNREFUSED)' } } }
+    const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
+    expect(wrapper.text()).toContain('Unreachable')
+  })
+
+  it('shows no error label while the widget result is still loading', () => {
+    widgetData.value = {}
+    const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
+    expect(wrapper.find('.cursor-help').exists()).toBe(false)
   })
 })
 

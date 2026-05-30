@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
 
@@ -70,13 +71,5 @@ export async function fetchBeszel(creds: ServiceCredentials) {
 }
 
 export { fetchBeszel as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required' })
-  if (!creds.username)
-    throw createError({ statusCode: 400, message: 'username is required' })
-  if (!creds.password)
-    throw createError({ statusCode: 400, message: 'password is required' })
-  return fetchBeszel(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchBeszel, ['url', 'username', 'password']))

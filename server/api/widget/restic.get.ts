@@ -1,3 +1,4 @@
+import { widgetEndpoint } from '../../utils/widgetError'
 import { readFileSync } from 'node:fs'
 import type { ServiceCredentials } from '../../utils/auth'
 import { getOrderedActiveFields } from '../../utils/widget-fields'
@@ -64,9 +65,5 @@ export async function fetchRestic(creds: ServiceCredentials) {
 }
 
 export { fetchRestic as fetch }
-export default defineEventHandler(async (event) => {
-  const creds = getQuery(event) as ServiceCredentials
-  if (!creds.url)
-    throw createError({ statusCode: 400, message: 'url is required (file path or HTTP URL to restic snapshots JSON)' })
-  return fetchRestic(creds)
-})
+
+export default defineEventHandler(event => widgetEndpoint(event, fetchRestic, ['url']))
