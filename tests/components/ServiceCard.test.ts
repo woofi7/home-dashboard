@@ -8,18 +8,11 @@ const dockerStatus = ref<Record<string, Record<string, { state: string; status: 
 const pingStatus = ref<Record<string, boolean>>({})
 const widgetData = ref<Record<string, { fields: { label: string; value: unknown }[] } | null>>({})
 
-vi.stubGlobal('useRefreshData', () => ({
-  dockerStatus: computed(() => dockerStatus.value),
-  pingStatus: computed(() => pingStatus.value),
-  widgetData: computed(() => widgetData.value),
-}))
-
-// widgetRefresh stub so useRefreshData's internal composable doesn't fail
-vi.stubGlobal('useWidgetRefresh', () => ({ refreshKey: ref(0), forceKey: ref(0) }))
-
 const globalSettingsData = ref<{ linkTarget?: 'new-tab' | 'same-tab' }>({})
 vi.stubGlobal('useGlobalSettings', () => ({ settings: computed(() => globalSettingsData.value) }))
 
+import { useStatusStore } from '~/stores/status'
+import { useConnectivityStore } from '~/stores/connectivity'
 import ServiceCard from '~/components/layout/ServiceCard.vue'
 
 type Service = {
@@ -34,6 +27,10 @@ type Service = {
 }
 
 function mountCard(service: Partial<Service> & { name: string }, overrides: { edit?: boolean; pending?: boolean; pendingDelete?: boolean } = {}) {
+  const store = useStatusStore()
+  store.dockerStatus = dockerStatus.value
+  store.pingStatus = pingStatus.value
+  store.widgetData = widgetData.value
   return mount(ServiceCard, {
     props: {
       service: service as Service,
@@ -389,6 +386,48 @@ describe('ServiceCard.vue — Healthcheck', () => {
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http://sonarr/health' })
     expect(wrapper.find('span.rounded-full').attributes('title')).toContain('http://sonarr/health')
     expect(wrapper.find('span.rounded-full').attributes('title')).toContain('Unreachable')
+  })
+})
+
+describe('ServiceCard.vue — Offline mode', () => {
+  beforeEach(() => {
+    dockerStatus.value = {}
+    pingStatus.value = {}
+    widgetData.value = {}
+  })
+
+  it('forces a yellow dot when offline, overriding a green container status', () => {
+    useConnectivityStore().online = false
+    dockerStatus.value = { nas: { sonarr: { state: 'running', status: 'Up 2 hours' } } }
+    const wrapper = mountCard({ name: 'Sonarr' })
+    expect(wrapper.find('span.bg-yellow-400').exists()).toBe(true)
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(false)
+  })
+
+  it('forces a yellow dot when offline, overriding a red ping status', () => {
+    useConnectivityStore().online = false
+    pingStatus.value = { 'http://sonarr': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-yellow-400').exists()).toBe(true)
+    expect(wrapper.find('span.bg-red-400').exists()).toBe(false)
+  })
+
+  it('shows a yellow dot when offline even with no cached status data', () => {
+    useConnectivityStore().online = false
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-yellow-400').exists()).toBe(true)
+  })
+
+  it('still hides the dot for healthcheck:none when offline', () => {
+    useConnectivityStore().online = false
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'none' })
+    expect(wrapper.find('span.rounded-full').exists()).toBe(false)
+  })
+
+  it('offline dot title reports status is unavailable', () => {
+    useConnectivityStore().online = false
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toContain('Offline')
   })
 })
 

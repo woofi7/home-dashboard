@@ -18,32 +18,30 @@ vi.stubGlobal('useEditMode', () => ({
 
 const fetchMock = vi.fn()
 vi.stubGlobal('$fetch', fetchMock)
-vi.stubGlobal('useFetch', (url: string) => {
-  if (url === '/api/config') {
-    return {
-      data: ref({
-        services: [
-          { name: 'Media', services: [{ name: 'Sonarr', url: 'http://sonarr' }] },
-        ],
-        bookmarks: [
-          { name: 'Links', bookmarks: [{ name: 'GitHub', url: 'https://github.com' }] },
-        ],
-        widgets: [],
-        settings: {},
-      }),
-      refresh: vi.fn(),
-      status: ref('success'),
-    }
-  }
-  return { data: ref(null), refresh: vi.fn(), status: ref('idle') }
-})
 
 import { useDashboardConfig } from '../app/composables/useDashboardConfig'
+import { useConfigStore } from '../app/stores/config'
+
+const initialConfig = () => ({
+  services: [
+    { name: 'Media', services: [{ name: 'Sonarr', url: 'http://sonarr' }] },
+  ],
+  bookmarks: [
+    { name: 'Links', bookmarks: [{ name: 'GitHub', url: 'https://github.com' }] },
+  ],
+  widgets: [],
+  settings: {},
+})
 
 beforeEach(() => {
   stateStore.clear()
   fetchMock.mockReset()
-  fetchMock.mockResolvedValue({ ok: true })
+  fetchMock.mockImplementation((url: string) =>
+    Promise.resolve(url === '/api/config' ? initialConfig() : { ok: true }),
+  )
+  const store = useConfigStore()
+  store.config = initialConfig()
+  store.loaded = true
 })
 
 // ─── updateServiceGroup — rename ──────────────────────────────────────────────

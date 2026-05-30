@@ -35,6 +35,7 @@ vi.stubGlobal('useDashboardConfig', () => ({
   handleCancel: vi.fn(),
 }))
 vi.stubGlobal('useWidgetRefresh', () => ({ countdown: ref(0), forceRefresh: vi.fn() }))
+vi.stubGlobal('useDashboardData', vi.fn())
 
 import IndexPage from '~/pages/index.vue'
 

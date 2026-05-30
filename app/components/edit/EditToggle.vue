@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; locked?: boolean }>()
+defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; locked?: boolean; offline?: boolean }>()
 defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
 </script>
 
@@ -12,9 +12,15 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
     ><FaIcon icon="rotate-right" /> {{ countdown }}s</button>
     <template v-if="active">
       <NuxtLink
+        v-if="!offline"
         to="/admin"
         class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-secondary text-xs md:text-sm hover:border-accent hover:text-accent-hover transition-colors"
       >Admin</NuxtLink>
+      <span
+        v-else
+        class="px-3 md:px-4 py-2 rounded-xl bg-elevated border border-border text-muted text-xs md:text-sm cursor-not-allowed select-none"
+        title="Unavailable while offline"
+      >Admin</span>
       <button
         class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-muted text-xs md:text-sm hover:border-danger hover:text-danger transition-colors"
         title="Logout"
@@ -25,11 +31,12 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
         @click="$emit('rollback')"
       >Cancel</button>
       <button
-        :disabled="!dirty"
+        :disabled="!dirty || offline"
         class="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-medium transition-colors"
-        :class="dirty
+        :class="(dirty && !offline)
           ? 'cursor-pointer bg-accent text-white hover:bg-accent-hover'
           : 'bg-elevated text-muted border border-border cursor-not-allowed'"
+        :title="offline ? 'Cannot save while offline' : undefined"
         @click="$emit('save')"
       >
         Save
@@ -38,7 +45,12 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
     </template>
     <template v-else>
       <button
-        class="cursor-pointer px-3 md:px-4 py-2 rounded-xl bg-surface border border-border text-muted text-xs md:text-sm hover:border-accent hover:text-accent-hover transition-colors"
+        :disabled="offline"
+        class="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm transition-colors"
+        :class="offline
+          ? 'bg-elevated border border-border text-muted cursor-not-allowed select-none'
+          : 'cursor-pointer bg-surface border border-border text-muted hover:border-accent hover:text-accent-hover'"
+        :title="offline ? 'Editing unavailable while offline' : undefined"
         @click="$emit('edit')"
       >Edit</button>
     </template>

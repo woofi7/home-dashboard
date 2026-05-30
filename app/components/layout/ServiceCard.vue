@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { resolveContainerState } from '~/utils/dockerLookup'
+import { useStatusStore } from '~/stores/status'
+import { useConnectivityStore } from '~/stores/connectivity'
 
 type Service = { name: string; url?: string; icon?: string; description?: string; type?: string; container?: string; server?: string; healthcheck?: string; [key: string]: unknown }
 type WidgetField = { label: string; value: unknown; suffix?: string }
 const props = defineProps<{ service: Service; edit: boolean; pending?: boolean; pendingDelete?: boolean }>()
 defineEmits<{ edit: []; delete: []; revert: [] }>()
 
-const { dockerStatus, pingStatus, widgetData } = useRefreshData()
+const { dockerStatus, pingStatus, widgetData } = storeToRefs(useStatusStore())
+const { online } = storeToRefs(useConnectivityStore())
 const { cardStyle } = useAppearanceSettings()
 const { settings } = useGlobalSettings()
 const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
@@ -35,6 +39,8 @@ const containerState = computed(() => {
 const statusColor = computed(() => {
   if (hc.value === 'none')
     return null
+  if (!online.value)
+    return 'bg-yellow-400'
   if (containerState.value) {
     const { state, status } = containerState.value
     if (state === 'running')
@@ -56,6 +62,8 @@ const statusColor = computed(() => {
 const statusTitle = computed(() => {
   if (hc.value === 'none')
     return null
+  if (!online.value)
+    return 'Offline: status unavailable'
   if (containerState.value)
     return containerState.value.status
   if (pingUrl.value !== null) {

@@ -1,11 +1,14 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { applyPalette, getPaletteById } from '~/utils/colorPalettes'
+import { useViewStore } from '~/stores/view'
+import { useConnectivityStore } from '~/stores/connectivity'
 
 definePageMeta({ ssr: false })
 
-const { data: background } = useFetch('/api/background', { lazy: true, server: false })
-const { data: weather } = useFetch('/api/weather', { lazy: true, server: false })
-const { data: calendar } = useFetch('/api/calendar', { lazy: true, server: false })
+const { weather, calendar, background } = storeToRefs(useViewStore())
+const { online } = storeToRefs(useConnectivityStore())
+useDashboardData()
 
 const {
   localConfig, sectionOrder, saveError,
@@ -42,6 +45,8 @@ function confirmLeave() {
 }
 
 function handleEdit() {
+  if (!online.value)
+    return
   if (!tokenConfigured.value) {
     setupVisible.value = true
     return
@@ -106,6 +111,8 @@ onMounted(() => {
   <div class="min-h-screen text-primary relative">
     <DashboardBackground :background="background as any" :appearance="bgAppearance" />
 
+    <OfflineBanner />
+
     <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 px-4 md:px-6 pt-6 md:pt-8 pb-2 items-start">
       <CalendarPanel :calendar="calendar as any" />
       <ClockWidget :timezone="(localConfig.settings?.timezone as string) || undefined" />
@@ -129,6 +136,7 @@ onMounted(() => {
       :pending-count="pendingCount"
       :countdown="countdown"
       :locked="needsLogin"
+      :offline="!online"
       @edit="handleEdit"
       @save="save"
       @rollback="handleCancel"

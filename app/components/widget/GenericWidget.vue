@@ -1,12 +1,12 @@
 <script setup lang="ts">
-const props = defineProps<{ widget: Record<string, unknown> }>()
-const type = computed(() => props.widget.type as string)
-const url = computed(() => props.widget.url as string)
+import { useWidgetCardsStore } from '~/stores/widgetCards'
 
-const { data, pending, error } = await useFetch(() =>
-  `/api/widget/${type.value}?url=${encodeURIComponent(url.value)}`,
-  { key: `widget-${props.widget.name}` }
-)
+const props = defineProps<{ widget: Record<string, unknown> }>()
+const store = useWidgetCardsStore()
+const card = computed(() => store.byName(props.widget.name as string))
+const pending = computed(() => !card.value || card.value.status === 'loading')
+const error = computed(() => card.value?.status === 'error')
+const data = computed(() => card.value?.data)
 </script>
 
 <template>

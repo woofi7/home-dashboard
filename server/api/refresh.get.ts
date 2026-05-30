@@ -70,5 +70,6 @@ async function doRefresh(): Promise<RefreshResponse> {
 
 export default defineEventHandler((event): Promise<RefreshResponse> => {
   const { force } = getQuery(event) as { force?: string }
-  return refreshCache.fetch(doRefresh, TTL, !!force)
+  const forceHeader = getHeader(event, 'x-refresh-force')
+  return refreshCache.fetch(doRefresh, TTL, !!force || forceHeader === '1')
 })

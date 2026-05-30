@@ -103,4 +103,25 @@ describe('EditToggle.vue', () => {
     await logoutBtn.trigger('click')
     expect(wrapper.emitted('logout')).toBeTruthy()
   })
+
+  it('Edit button is disabled and does not emit when offline', async () => {
+    const wrapper = mountToggle({ offline: true })
+    const editBtn = wrapper.findAll('button').find(b => b.text().includes('Edit'))!
+    expect(editBtn.attributes('disabled')).toBeDefined()
+    await editBtn.trigger('click')
+    expect(wrapper.emitted('edit')).toBeFalsy()
+  })
+
+  it('Admin link is replaced by a disabled label when offline and active', () => {
+    const wrapper = mountToggle({ active: true, offline: true })
+    expect(wrapper.find('a').exists()).toBe(false)
+    const adminLabel = wrapper.findAll('span').find(s => s.text() === 'Admin')
+    expect(adminLabel?.classes()).toContain('cursor-not-allowed')
+  })
+
+  it('Save button is disabled when offline even if dirty', () => {
+    const wrapper = mountToggle({ active: true, dirty: true, offline: true })
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Save'))
+    expect(saveBtn!.attributes('disabled')).toBeDefined()
+  })
 })

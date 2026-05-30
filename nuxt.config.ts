@@ -30,7 +30,86 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  modules: ['@pinia/nuxt', '@vite-pwa/nuxt'],
+
+  // Pure SPA: Nitro still serves /api/*, but no SSR/payload so the client-only
+  // stores (hydrated from localStorage) render once without a flash, and the
+  // app shell works offline without fetching /_payload.json.
+  ssr: false,
+
+  // The PWA manifest link + install/iOS meta are declared here (not left to the
+  // vite-pwa HTML transform) because our shell is prerendered by Nitro, so the
+  // module's index.html transform never runs.
+  app: {
+    head: {
+      link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
+      ],
+      meta: [
+        { name: 'theme-color', content: '#0f1117' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black' },
+        { name: 'apple-mobile-web-app-title', content: 'Dashboard' },
+      ],
+    },
+  },
+
   css: ['~/assets/css/main.css'],
+
+  // Emit a static index.html SPA shell so the PWA can precache it and serve
+  // navigations offline (navigateFallback '/').
+  nitro: {
+    prerender: {
+      routes: ['/'],
+    },
+  },
+
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      id: '/',
+      name: 'Dashboard',
+      short_name: 'Dashboard',
+      description: 'Self-hosted personal dashboard',
+      theme_color: '#0f1117',
+      background_color: '#0f1117',
+      display: 'standalone',
+      start_url: '/',
+      icons: [
+        { src: 'pwa-64x64.png', sizes: '64x64', type: 'image/png' },
+        { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+        { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+        { src: 'maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+      ],
+    },
+    workbox: {
+      navigateFallback: '/',
+      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+      runtimeCaching: [
+        {
+          // Reachability probe must always hit the network so offline is detected.
+          urlPattern: ({ url }: { url: URL }) => url.pathname === '/api/healthcheck',
+          handler: 'NetworkOnly',
+        },
+        {
+          urlPattern: ({ url }: { url: URL }) => url.pathname.startsWith('/api/'),
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'api-cache',
+            networkTimeoutSeconds: 5,
+            expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
+            cacheableResponse: { statuses: [0, 200] },
+          },
+        },
+      ],
+    },
+    client: {
+      installPrompt: true,
+    },
+  },
 
   vite: {
     plugins: [tailwindcss()],
