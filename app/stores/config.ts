@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { apiFetch } from '~/utils/apiFetch'
 
 type Service = { name: string; [key: string]: unknown }
 type ServiceGroup = { name: string; services: Service[] }
@@ -25,8 +26,9 @@ export const useConfigStore = defineStore('config', {
     },
     async refresh() {
       try {
-        this.config = await $fetch<Config>('/api/config')
-        this.lastUpdated = Date.now()
+        const { data, at } = await apiFetch<Config>('/api/config')
+        this.config = data
+        this.lastUpdated = at
         this.loaded = true
       } catch { /* keep last snapshot */ }
     },

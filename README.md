@@ -1,6 +1,6 @@
 # Home Dashboard
 
-A personal homelab dashboard built with **Nuxt 4** and **Vue 3**. Displays services, bookmarks, weather, and Google Calendar \- all configured through YAML files, with a full in-browser edit mode and Docker deployment.
+A personal homelab dashboard built with **Nuxt 4** and **Vue 3**. Displays services, bookmarks, weather, and Google Calendar \- all configured through YAML files, with a full in-browser edit mode, an installable offline-capable PWA, and Docker deployment.
 
 ---
 
@@ -11,8 +11,8 @@ A personal homelab dashboard built with **Nuxt 4** and **Vue 3**. Displays servi
 Each service shows as a card with:
 
 - **Icon** \- any URL (works great with [Dashboard Icons](https://dashboardicons.com/))
-- **Status dot** \- green/yellow/red based on Docker container health or HTTP ping
-- **Widget data** \- live stats fetched from the service's own API (see [Supported widgets](#supported-widgets))
+- **Status dot** \- green/yellow/red based on Docker container health or HTTP ping (all dots turn yellow when the dashboard is offline, since cached status is no longer current)
+- **Widget data** \- live stats fetched from the service's own API (see [Supported widgets](#supported-widgets)). When a widget fails, the card shows the reason inline \- **Auth failed**, **Unreachable**, **Timed out**, **Not found**, **No data**, **Not configured** \- with the HTTP status and message in the tooltip
 - **Click-through** \- the card links directly to the service URL
 
 Services are grouped into sections (e.g. Media, System, Tools). Groups and their order are fully configurable.
@@ -48,6 +48,17 @@ A full in-browser edit mode \- no config file editing needed for day-to-day chan
 - Add and remove service groups
 - All changes are saved back to the YAML files on disk
 - Password-protected (set `ADMIN_TOKEN` in your `.env`)
+
+### Progressive Web App & offline
+
+Installable on desktop and mobile (web manifest, icon set, service worker). The app shell and the last successful data snapshot are cached, so the dashboard opens instantly and keeps working when the server can't be reached:
+
+- **Offline banner** appears (within ~2s) when the server is unreachable, showing how old the cached snapshot is
+- The **last snapshot** (config, weather, calendar, widget/status data) is persisted to `localStorage` and rendered offline; status dots turn yellow
+- **Edit mode and the admin pages are disabled while offline** (they require the server)
+- Live data resumes automatically once the server is reachable again
+
+> Service workers require a secure origin. The PWA installs and runs over **HTTPS** (or `http://localhost`); served over a plain `http://<ip>:3000` LAN address it still works as a normal site but won't install or register the worker. See [HTTPS / PWA](#https-required-for-the-pwa).
 
 ---
 
@@ -177,6 +188,10 @@ The image is published to Docker Hub on every version tag via GitHub Actions CI.
 | `PUID` / `PGID` | User/group for config file writes | `1000` / `1000` |
 | `PORT` | Port the server listens on | `3000` |
 
+### HTTPS (required for the PWA)
+
+The dashboard runs fine over plain HTTP, but the **service worker and "install"** only work on a secure origin (`https://` or `http://localhost`). For a LAN-only deployment, put the container behind a reverse proxy that holds a real certificate \- for example Caddy or Traefik using a **Cloudflare DNS-01** challenge, which issues a valid cert without exposing anything to the internet (point a public DNS record at the private IP, don't forward any ports). Devices on a tailnet can alternatively use `tailscale serve` for an automatic trusted cert. Once it's HTTPS, load it once to register the worker, then it works offline.
+
 ### Development
 
 ```bash
@@ -192,13 +207,15 @@ Requires Node 24 and pnpm 9.
 
 ## Architecture
 
-- **Nuxt 4** with `app/` srcDir, SSR disabled on the admin page, client-side SPA for the dashboard
+- **Nuxt 4** built as a client-side SPA (`ssr: false`) with a prerendered app-shell; Nitro still serves all API routes
+- **Pinia stores** own all dashboard data loading (config, weather, calendar, status, widget cards, bookmark clicks, auth, connectivity) \- components read from stores instead of fetching themselves; the read-path stores persist to `localStorage` so the last snapshot restores instantly and is available offline
+- **PWA** via `@vite-pwa/nuxt`: precached app shell plus `NetworkFirst` caching for `/api/*` (and `NetworkOnly` for the `/api/healthcheck` reachability probe), making the dashboard installable and offline-capable
 - **Nitro** server handles all API routes: config read/write, Docker socket queries, widget API calls, weather, calendar, background
 - **Server-side caching** for all external calls \- refresh data (30s TTL), weather (30 min), background (until midnight), OAuth tokens
+- **Widget failure classification** \- a shared server helper maps fetch failures (HTTP status, connection errors, timeouts) to a typed reason that the UI renders, instead of swallowing every error to "unavailable"
 - **YAML + dotenv** config: files are read on each request from `CONFIG_DIR`, with `${VAR}` interpolated from the `.env` file in the same directory or from process environment
 - **Widget registry** is auto-generated at build time from `shared/widgetDefinitions/` \- adding a new widget means adding one `.ts` file with the API call and field definitions
-- **`shallowRef`** used for refresh data to avoid Vue walking large nested objects on every poll
-- **Tailwind CSS v4** with a fixed dark-mode color palette defined as CSS custom properties
+- **Tailwind CSS v4** with a configurable color palette defined as CSS custom properties
 
 ---
 

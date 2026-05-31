@@ -30,6 +30,13 @@ const snapshotLabel = computed(() => {
   const days = Math.floor(hrs / 24)
   return `${days} day${days > 1 ? 's' : ''} ago`
 })
+
+const snapshotTime = computed(() => {
+  const ts = store.lastSnapshotAt
+  if (!ts)
+    return ''
+  return new Date(ts).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })
+})
 </script>
 
 <template>
@@ -39,7 +46,7 @@ const snapshotLabel = computed(() => {
       class="fixed top-0 inset-x-0 z-60 flex items-center justify-center gap-2 px-4 py-1.5 bg-danger/90 text-white text-xs backdrop-blur-sm"
     >
       <FaIcon icon="circle-exclamation" />
-      <span>Offline - showing last snapshot from {{ snapshotLabel }}</span>
+      <span>Offline - showing last snapshot from {{ snapshotLabel }}<template v-if="snapshotTime"> ({{ snapshotTime }})</template></span>
     </div>
   </Transition>
 </template>

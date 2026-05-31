@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { apiFetch } from '~/utils/apiFetch'
 
 export const useBookmarkClicksStore = defineStore('bookmarkClicks', {
   state: () => ({
@@ -11,8 +12,9 @@ export const useBookmarkClicksStore = defineStore('bookmarkClicks', {
     },
     async refresh() {
       try {
-        this.clicks = await $fetch<Record<string, number>>('/api/bookmarks/clicks')
-        this.lastUpdated = Date.now()
+        const { data, at } = await apiFetch<Record<string, number>>('/api/bookmarks/clicks')
+        this.clicks = data
+        this.lastUpdated = at
       } catch { /* keep last snapshot */ }
     },
     async increment(name: string) {

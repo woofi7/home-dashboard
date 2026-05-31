@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { apiFetch } from '~/utils/apiFetch'
 import type { WidgetOutcome } from '~/utils/widgetError'
 
 type DockerContainerStatus = { state: string; status: string }
@@ -22,11 +23,11 @@ export const useStatusStore = defineStore('status', {
     },
     async refresh(force = false) {
       try {
-        const result = await $fetch<RefreshData>('/api/refresh', force ? { headers: { 'x-refresh-force': '1' } } : {})
-        this.dockerStatus = result.docker
-        this.pingStatus = result.ping
-        this.widgetData = result.widgets
-        this.lastUpdated = Date.now()
+        const { data, at } = await apiFetch<RefreshData>('/api/refresh', force ? { headers: { 'x-refresh-force': '1' } } : {})
+        this.dockerStatus = data.docker
+        this.pingStatus = data.ping
+        this.widgetData = data.widgets
+        this.lastUpdated = at
       } catch { /* keep last snapshot */ }
     },
   },
