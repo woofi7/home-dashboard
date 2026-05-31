@@ -86,6 +86,20 @@ describe('ServiceGroupSection.vue', () => {
     expect(wrapper.findAll('.service-card-stub').length).toBe(2)
   })
 
+  it('drops a service deleted during edit once edit mode ends', async () => {
+    const wrapper = mountSection({
+      edit: true,
+      group: { name: 'Media', services: [{ name: 'Sonarr', url: 'http://sonarr' }, { name: 'Radarr', url: 'http://radarr' }] },
+    })
+    expect(wrapper.findAll('.service-card-stub').length).toBe(2)
+    // Parent removed Sonarr from the group while still editing (no prop reset on its own)
+    await wrapper.setProps({ group: { name: 'Media', services: [{ name: 'Radarr', url: 'http://radarr' }] } })
+    expect(wrapper.findAll('.service-card-stub').length).toBe(2)
+    // Leaving edit mode must re-sync from props instead of keeping the stale local copy
+    await wrapper.setProps({ edit: false })
+    expect(wrapper.findAll('.service-card-stub').length).toBe(1)
+  })
+
   it('clicking Add button shows ServiceModal', async () => {
     const wrapper = mountSection({ edit: true })
     expect(wrapper.find('.service-modal-stub').exists()).toBe(false)

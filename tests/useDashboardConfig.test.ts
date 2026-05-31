@@ -8,10 +8,11 @@ vi.stubGlobal('useState', <T>(key: string, init: () => T) => {
 })
 
 const dirtyRef = ref(false)
+const snapshotRef = ref<unknown>(null)
 vi.stubGlobal('useEditMode', () => ({
   active: ref(false),
   dirty: dirtyRef,
-  snapshot: ref(null),
+  snapshot: snapshotRef,
   enter: vi.fn(),
   exit: vi.fn(),
 }))
@@ -35,6 +36,7 @@ const initialConfig = () => ({
 
 beforeEach(() => {
   stateStore.clear()
+  snapshotRef.value = null
   fetchMock.mockReset()
   fetchMock.mockImplementation((url: string) =>
     Promise.resolve(url === '/api/config' ? initialConfig() : { ok: true }),
@@ -84,6 +86,56 @@ describe('updateServiceGroup rename', () => {
     const body = fetchMock.mock.calls.find(c => c[1]?.body?.action === 'reorderGroups')?.[1].body
     expect(body.groups.some((g: { name: string }) => g.name === 'Arr')).toBe(true)
     expect(body.groups.some((g: { name: string }) => g.name === 'Media')).toBe(false)
+  })
+})
+
+// ─── deleting an item — explicit delete payload ──────────────────────────────
+
+describe('save reports deleted items so the orphan guard keeps them removed', () => {
+  it('lists a service removed from a surviving group under `deleted`', async () => {
+    snapshotRef.value = initialConfig()
+    const { updateServiceGroup, save } = useDashboardConfig()
+    await nextTick()
+
+    // Remove Sonarr from the Media group (group survives)
+    updateServiceGroup('Media', { name: 'Media', services: [] })
+    await save()
+
+    const body = fetchMock.mock.calls.find(c =>
+      c[1]?.body?.action === 'reorderGroups' && c[0].includes('services')
+    )?.[1].body
+    expect(body.deleted).toContain('Sonarr')
+  })
+
+  it('lists a removed bookmark under `deleted`', async () => {
+    snapshotRef.value = initialConfig()
+    const { updateBookmarkGroup, save } = useDashboardConfig()
+    await nextTick()
+
+    updateBookmarkGroup('Links', { name: 'Links', bookmarks: [] })
+    await save()
+
+    const body = fetchMock.mock.calls.find(c =>
+      c[1]?.body?.action === 'reorderGroups' && c[0].includes('bookmarks')
+    )?.[1].body
+    expect(body.deleted).toContain('GitHub')
+  })
+
+  it('does not flag a service that merely moved groups', async () => {
+    snapshotRef.value = initialConfig()
+    const { localConfig, updateServiceGroup, addServiceGroup, save } = useDashboardConfig()
+    await nextTick()
+
+    addServiceGroup('New')
+    updateServiceGroup('Media', { name: 'Media', services: [] })
+    updateServiceGroup('New', { name: 'New', services: [{ name: 'Sonarr', url: 'http://sonarr' }] })
+    expect(localConfig.value.services.find(g => g.name === 'New')?.services[0]?.name).toBe('Sonarr')
+    await save()
+
+    const body = fetchMock.mock.calls.find(c =>
+      c[1]?.body?.action === 'reorderGroups' && c[0].includes('services')
+    )?.[1].body
+    expect(body.deleted).not.toContain('Sonarr')
   })
 })
 

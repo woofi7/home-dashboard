@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
     originalName?: string
     bookmarks?: Bookmark[]
     groups?: BookmarkGroup[]
+    deleted?: string[]
   }>(event)
 
   const groups = loadConfig<BookmarkGroup[]>('bookmarks.yaml') ?? []
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
     if (raw.length > 0 && (!body.groups || body.groups.length === 0)) {
       throw createError({ statusCode: 400, statusMessage: 'Refusing to wipe all bookmark groups: incoming list is empty' })
     }
-    updated = recoverOrphanedItems<Bookmark>(raw, updated, 'bookmarks') as BookmarkGroup[]
+    updated = recoverOrphanedItems<Bookmark>(raw, updated, 'bookmarks', body.deleted ?? []) as BookmarkGroup[]
   }
 
   writeConfig('bookmarks.yaml', updated)

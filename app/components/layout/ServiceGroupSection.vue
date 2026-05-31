@@ -50,6 +50,9 @@ watch(() => props.edit, (editing) => {
   } else {
     editSnapshot.value = null
     pendingDeleteNames.value = new Set()
+    // Re-sync from the saved group so soft-deleted services don't reappear:
+    // localGroup is only refreshed from props while not editing.
+    localGroup.value = JSON.parse(JSON.stringify(props.group))
   }
 }, { immediate: true })
 
