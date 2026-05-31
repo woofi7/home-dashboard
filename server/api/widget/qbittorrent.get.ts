@@ -7,22 +7,34 @@ import definition from '#shared/widgetDefinitions/qbittorrent'
 export const meta = definition
 
 
+async function login(base: string, username: string, password: string): Promise<string> {
+  let cookie = ''
+  await $fetch<void>(`${base}/api/v2/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`,
+    onResponse({ response }) {
+      const raw = response.headers.get('set-cookie') ?? ''
+      // qBittorrent 5.1.x uses SID, 5.2.x uses QBT_SID_<port>
+      const match = raw.match(/(QBT_SID_\d+|SID)=([^;]+)/)
+      if (match)
+        cookie = `${match[1]}=${match[2]}`
+    },
+  })
+  return cookie
+}
+
 export async function fetchQbittorrent(creds: ServiceCredentials) {
   const { url, username, password } = creds
   if (!url)
     return null
 
   const base = url.replace(/\/$/, '')
-  const loginRes = await $fetch.raw(`${base}/api/v2/auth/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: `username=${encodeURIComponent(username ?? '')}&password=${encodeURIComponent(password ?? '')}`,
-  })
-  const match = (loginRes.headers.get('set-cookie') ?? '').match(/SID=([^;]+)/)
-  if (!match)
+  const cookie = await login(base, username ?? '', password ?? '')
+  if (!cookie)
     return null
 
-  const headers = { Cookie: `SID=${match[1]}` }
+  const headers = { Cookie: cookie }
   const [torrents, transfer] = await Promise.all([
     $fetch<Array<{ state: string }>>(`${base}/api/v2/torrents/info`, { headers }),
     $fetch<{ dl_info_speed: number; up_info_speed: number; dl_rate_limit: number; up_rate_limit: number }>(`${base}/api/v2/transfer/info`, { headers }),
