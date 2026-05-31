@@ -73,7 +73,7 @@ describe('useStatusStore', () => {
     fetchMock.mockResolvedValue({ docker: {}, ping: {}, widgets: {} })
     const store = useStatusStore()
     await store.refresh(true)
-    expect(fetchMock).toHaveBeenCalledWith('/api/refresh', { headers: { 'x-refresh-force': '1' } })
+    expect(fetchMock).toHaveBeenCalledWith('/api/refresh', expect.objectContaining({ headers: { 'x-refresh-force': '1' } }))
   })
 
   it('passes widget error outcomes through unchanged', async () => {

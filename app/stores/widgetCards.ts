@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { useConfigStore } from './config'
+import { apiFetch } from '~/utils/apiFetch'
 import { isWidgetError, type WidgetErrorInfo, type WidgetOutcome, type WidgetResult } from '~/utils/widgetError'
 
 type CardState = { status: 'loading' | 'ok' | 'error'; data: WidgetResult | null; error?: WidgetErrorInfo }
@@ -25,12 +26,12 @@ export const useWidgetCardsStore = defineStore('widgetCards', {
         if (!this.cards[name])
           this.cards[name] = { status: 'loading', data: null }
         try {
-          const outcome = await $fetch<WidgetOutcome>(`/api/widget/${type}?url=${encodeURIComponent(url)}`)
+          const { data: outcome, at } = await apiFetch<WidgetOutcome>(`/api/widget/${type}?url=${encodeURIComponent(url)}`)
           if (isWidgetError(outcome))
             this.cards[name] = { status: 'error', data: this.cards[name]?.data ?? null, error: outcome.error }
           else
             this.cards[name] = { status: 'ok', data: outcome }
-          this.lastUpdated = Date.now()
+          this.lastUpdated = Math.max(this.lastUpdated, at)
         } catch {
           this.cards[name] = {
             status: this.cards[name]?.data ? 'ok' : 'error',
