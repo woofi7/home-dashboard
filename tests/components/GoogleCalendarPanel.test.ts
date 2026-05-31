@@ -14,11 +14,13 @@ type Config = {
   showEvents: boolean
   showTasks: boolean
   daysAhead: number
+  taskMode: string
 }
 
 let lastAdminRefresh = vi.fn()
+let lastCalendarRefresh = vi.fn()
 
-function makeUseFetch(config: Partial<Config> = {}) {
+function makeUseFetch(config: Partial<Config> = {}, calendar: { tasksError?: string | null } = {}) {
   const adminData = ref<Config>({
     clientId:        config.clientId        ?? '',
     clientSecret:    config.clientSecret    ?? '',
@@ -26,8 +28,9 @@ function makeUseFetch(config: Partial<Config> = {}) {
     showEvents:      config.showEvents      ?? true,
     showTasks:       config.showTasks       ?? false,
     daysAhead:       config.daysAhead       ?? 2,
+    taskMode:        config.taskMode        ?? 'all',
   })
-  const calendarData = ref({ authorized: false, days: [], tasks: [] })
+  const calendarData = ref({ authorized: false, days: [], tasks: [], tasksError: calendar.tasksError ?? null })
   const refresh = vi.fn().mockImplementation(() => {
     const last = [...mockFetch.mock.calls].reverse()
       .find((c) => (c[1] as { method?: string })?.method === 'POST')
@@ -39,8 +42,9 @@ function makeUseFetch(config: Partial<Config> = {}) {
     }
   })
   lastAdminRefresh = refresh
+  lastCalendarRefresh = vi.fn()
   return vi.fn((url: string) => {
-    if (url === '/api/calendar') return { data: calendarData, refresh: vi.fn() }
+    if (url === '/api/calendar') return { data: calendarData, refresh: lastCalendarRefresh }
     return { data: adminData, refresh }
   })
 }
@@ -50,8 +54,8 @@ vi.stubGlobal('useRoute', vi.fn(() => ({ query: {} })))
 
 import GoogleCalendarPanel from '~/components/admin/GoogleCalendarPanel.vue'
 
-async function mountPanel(config: Partial<Config> = {}, query: Record<string, string> = {}) {
-  vi.stubGlobal('useFetch', makeUseFetch(config))
+async function mountPanel(config: Partial<Config> = {}, query: Record<string, string> = {}, calendar: { tasksError?: string | null } = {}) {
+  vi.stubGlobal('useFetch', makeUseFetch(config, calendar))
   vi.stubGlobal('useRoute', vi.fn(() => ({ query })))
   const App = defineComponent({
     components: { GoogleCalendarPanel },
@@ -326,6 +330,65 @@ describe('GoogleCalendarPanel.vue', () => {
       await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
       await flushPromises()
       expect(w.text()).toContain('Saved')
+    })
+
+    it('refreshes the calendar preview after saving display settings', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPanel({ daysAhead: 2 })
+      await w.findAll('button').filter(b => b.text() === '7')[0].trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      expect(lastCalendarRefresh).toHaveBeenCalled()
+    })
+
+    it('shows the task mode selector only when tasks are enabled', async () => {
+      const off = await mountPanel({ showTasks: false })
+      expect(off.findAll('button').some(b => b.text() === 'Overdue')).toBe(false)
+      const on = await mountPanel({ showTasks: true })
+      expect(on.findAll('button').some(b => b.text() === 'Overdue')).toBe(true)
+    })
+
+    it('saves the chosen task mode', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPanel({ showTasks: true, taskMode: 'all' })
+      await w.findAll('button').find(b => b.text() === 'Overdue')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      const call = mockFetch.mock.calls.find(c => c[0] === '/api/admin/calendar')!
+      expect((call[1] as { body: Record<string, unknown> }).body).toMatchObject({ taskMode: 'overdue' })
+    })
+
+    it('switches back to everything mode', async () => {
+      mockFetch.mockResolvedValueOnce({ ok: true })
+      const w = await mountPanel({ showTasks: true, taskMode: 'overdue' })
+      await w.findAll('button').find(b => b.text() === 'Everything')!.trigger('click')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      const call = mockFetch.mock.calls.find(c => c[0] === '/api/admin/calendar')!
+      expect((call[1] as { body: Record<string, unknown> }).body).toMatchObject({ taskMode: 'all' })
+    })
+  })
+
+  describe('tasks error warning', () => {
+    it('shows the tasks error when tasks are enabled and the fetch failed', async () => {
+      const w = await mountPanel({ showTasks: true }, {}, { tasksError: 'The Google Tasks API is not enabled for your Google Cloud project.' })
+      expect(w.text()).toContain('The Google Tasks API is not enabled')
+    })
+
+    it('hides the warning when tasks are disabled', async () => {
+      const w = await mountPanel({ showTasks: false }, {}, { tasksError: 'Some error' })
+      expect(w.text()).not.toContain('Some error')
+    })
+
+    it('hides the warning when there is no tasks error', async () => {
+      const w = await mountPanel({ showTasks: true }, {}, { tasksError: null })
+      expect(w.find('.border-warning\\/30').exists()).toBe(false)
+    })
+
+    it('offers a link to enable the Tasks API in the setup steps', async () => {
+      const w = await mountPanel()
+      const link = w.findAll('a').find(a => a.text().includes('Enable Tasks API'))
+      expect(link?.attributes('href')).toContain('tasks.googleapis.com')
     })
   })
 })

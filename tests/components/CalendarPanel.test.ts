@@ -7,7 +7,7 @@ import CalendarPanel from '~/components/dashboard/CalendarPanel.vue'
 
 type CalEvent = { id: string; summary: string; url: string; start?: string; end?: string; color?: string }
 type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
-type CalTask  = { id: string; title: string; due?: string; url: string }
+type CalTask  = { id: string; listId?: string; title: string; due?: string; url: string }
 type CalendarData = { authorized: boolean; days: CalDay[]; tasks: CalTask[] }
 
 const stubs = {
@@ -326,32 +326,79 @@ describe('CalendarPanel.vue', () => {
       expect(label.classes()).toContain('text-secondary')
     })
 
-    it('applies cardStyle to task rows', () => {
+    it('provides an open link to the task url', () => {
       const wrapper = mountPanel({
         authorized: true,
         days: [],
         tasks: [{ id: 't1', title: 'Do something', url: 'https://tasks.google.com/t1' }],
       })
-      const row = wrapper.find('a[href="https://tasks.google.com/t1"]')
-      expect(row.attributes('style')).toContain('var(--color-elevated)')
+      const link = wrapper.find('a[href="https://tasks.google.com/t1"]')
+      expect(link.exists()).toBe(true)
+      expect(link.attributes('target')).toBe('_blank')
     })
 
-    it('shows formatted due date', () => {
+    it('shows the due date in a pill', () => {
       const wrapper = mountPanel({
         authorized: true,
         days: [],
         tasks: [{ id: 't1', title: 'Task', due: '2025-03-15T00:00:00', url: '' }],
       })
-      expect(wrapper.text()).toContain('Mar')
+      const pill = wrapper.findAll('span').find(s => s.text().includes('Mar'))
+      expect(pill?.classes()).toContain('rounded-full')
     })
 
-    it('shows No due date when due is absent', () => {
+    it('uses a warning pill for an overdue task', () => {
+      const wrapper = mountPanel({
+        authorized: true,
+        days: [],
+        tasks: [{ id: 't1', title: 'Task', due: '2000-01-02T00:00:00', url: '' }],
+      })
+      const pill = wrapper.findAll('span').find(s => s.text().includes('Jan'))
+      expect(pill?.classes()).toContain('text-warning')
+    })
+
+    it('uses an emerald pill for a future task', () => {
+      const future = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10)
+      const wrapper = mountPanel({
+        authorized: true,
+        days: [],
+        tasks: [{ id: 't1', title: 'Task', due: `${future}T00:00:00`, url: '' }],
+      })
+      const pill = wrapper.findAll('span').find(s => s.classes().includes('px-2'))
+      expect(pill?.classes()).toContain('text-emerald-300')
+      expect(pill?.classes()).not.toContain('text-warning')
+    })
+
+    it('shows No date when due is absent', () => {
       const wrapper = mountPanel({
         authorized: true,
         days: [],
         tasks: [{ id: 't1', title: 'Task', url: '' }],
       })
-      expect(wrapper.text()).toContain('No due date')
+      expect(wrapper.text()).toContain('No date')
+    })
+
+    it('renders a complete trigger row per task', () => {
+      const wrapper = mountPanel({
+        authorized: true,
+        days: [],
+        tasks: [{ id: 't1', title: 'Task', url: '' }],
+      })
+      expect(wrapper.find('[role="button"][aria-label="Complete Task"]').exists()).toBe(true)
+    })
+
+    it('emits complete with the task when the row is clicked', async () => {
+      const task = { id: 't1', listId: 'l1', title: 'Task', url: '' }
+      const wrapper = mountPanel({ authorized: true, days: [], tasks: [task] })
+      await wrapper.find('[role="button"][aria-label="Complete Task"]').trigger('click')
+      expect(wrapper.emitted('complete')?.[0]?.[0]).toMatchObject({ id: 't1', listId: 'l1' })
+    })
+
+    it('does not emit complete when the open link is clicked', async () => {
+      const task = { id: 't1', listId: 'l1', title: 'Task', url: 'https://tasks.google.com/t1' }
+      const wrapper = mountPanel({ authorized: true, days: [], tasks: [task] })
+      await wrapper.find('a[href="https://tasks.google.com/t1"]').trigger('click')
+      expect(wrapper.emitted('complete')).toBeFalsy()
     })
 
     it('does not render Tasks label when tasks list is empty', () => {

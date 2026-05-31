@@ -7,6 +7,7 @@ type Body = {
   showEvents?: boolean
   showTasks?: boolean
   daysAhead?: number
+  taskMode?: string
 }
 
 export default defineEventHandler(async (event) => {
@@ -19,11 +20,12 @@ export default defineEventHandler(async (event) => {
   if (body.clientId !== undefined) g.clientId = body.clientId
   if (body.clientSecret !== undefined) g.clientSecret = body.clientSecret
 
-  if (body.showEvents !== undefined || body.showTasks !== undefined || body.daysAhead !== undefined) {
+  if (body.showEvents !== undefined || body.showTasks !== undefined || body.daysAhead !== undefined || body.taskMode !== undefined) {
     const cal = ((g.calendar ?? {}) as Record<string, unknown>)
     if (body.showEvents !== undefined) cal.showEvents = body.showEvents
     if (body.showTasks !== undefined) cal.showTasks = body.showTasks
     if (body.daysAhead !== undefined) cal.daysAhead = body.daysAhead
+    if (body.taskMode !== undefined) cal.taskMode = body.taskMode
     g.calendar = cal
   }
 

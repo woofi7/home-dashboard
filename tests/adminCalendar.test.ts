@@ -64,14 +64,16 @@ describe('GET /api/admin/calendar', () => {
     expect(result.showEvents).toBe(true)
     expect(result.showTasks).toBe(false)
     expect(result.daysAhead).toBe(2)
+    expect(result.taskMode).toBe('all')
   })
 
   it('returns saved display settings', () => {
-    mockLoadConfigRaw.mockReturnValue({ google: { calendar: { showEvents: false, showTasks: true, daysAhead: 7 } } })
+    mockLoadConfigRaw.mockReturnValue({ google: { calendar: { showEvents: false, showTasks: true, daysAhead: 7, taskMode: 'overdue' } } })
     const result = (getHandler as (e: unknown) => unknown)(null) as Record<string, unknown>
     expect(result.showEvents).toBe(false)
     expect(result.showTasks).toBe(true)
     expect(result.daysAhead).toBe(7)
+    expect(result.taskMode).toBe('overdue')
   })
 })
 
@@ -107,6 +109,14 @@ describe('POST /api/admin/calendar', () => {
     await (postHandler as (e: unknown) => Promise<unknown>)(null)
     const written = mockWriteConfig.mock.calls[0][1] as { google: { calendar: Record<string, unknown> } }
     expect(written.google.calendar).toEqual({ showEvents: false, showTasks: true, daysAhead: 7 })
+  })
+
+  it('saves the taskMode to google.calendar', async () => {
+    mockLoadConfigRaw.mockReturnValue({ google: {} })
+    vi.mocked(globalThis.readBody as (...args: unknown[]) => Promise<unknown>).mockResolvedValue({ taskMode: 'overdue' })
+    await (postHandler as (e: unknown) => Promise<unknown>)(null)
+    const written = mockWriteConfig.mock.calls[0][1] as { google: { calendar: Record<string, unknown> } }
+    expect(written.google.calendar.taskMode).toBe('overdue')
   })
 
   it('merges display settings with existing calendar config', async () => {

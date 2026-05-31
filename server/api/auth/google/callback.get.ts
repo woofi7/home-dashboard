@@ -1,4 +1,5 @@
 import { loadConfig, writeConfig } from '#server/utils/config'
+import { clearGoogleToken } from '#server/utils/googleToken'
 
 export default defineEventHandler(async (event) => {
   const { code } = getQuery(event) as Record<string, string>
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
 
   ;(settings.google as Record<string, string>).refreshToken = res.refresh_token
   writeConfig('settings.yaml', settings)
+  clearGoogleToken()
 
   return sendRedirect(event, '/admin/calendar?connected=1')
 })
