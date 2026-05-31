@@ -6,9 +6,31 @@ import { useConnectivityStore } from '~/stores/connectivity'
 
 definePageMeta({ ssr: false })
 
-const { weather, calendar, background } = storeToRefs(useViewStore())
+const viewStore = useViewStore()
+const { weather, calendar, background } = storeToRefs(viewStore)
 const { online } = storeToRefs(useConnectivityStore())
 useDashboardData()
+
+type CalTask = { id: string; listId: string; title: string; due?: string; url: string }
+const pendingTask = ref<CalTask | null>(null)
+
+function onCompleteTask(task: CalTask) {
+  pendingTask.value = task
+}
+
+async function confirmCompleteTask() {
+  const task = pendingTask.value
+  pendingTask.value = null
+  if (!task)
+    return
+  // The store reverts the row on failure; swallow so a 403 (e.g. read-only
+  // token before reconnecting) does not surface as an unhandled rejection.
+  try {
+    await viewStore.completeTask(task)
+  } catch {
+    // intentionally ignored
+  }
+}
 
 const {
   localConfig, sectionOrder, saveError,
@@ -114,7 +136,7 @@ onMounted(() => {
     <OfflineBanner />
 
     <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 px-4 md:px-6 pt-6 md:pt-8 pb-2 items-start">
-      <CalendarPanel :calendar="calendar as any" />
+      <CalendarPanel :calendar="calendar as any" @complete="onCompleteTask" />
       <ClockWidget :timezone="(localConfig.settings?.timezone as string) || undefined" />
       <WeatherCard :weather="weather as any" />
     </div>
@@ -151,6 +173,15 @@ onMounted(() => {
       message="You have unsaved changes. Leave and discard them?"
       @confirm="confirmLeave"
       @cancel="leaveConfirmVisible = false"
+    />
+    <ConfirmModal
+      v-if="pendingTask"
+      :message="`Mark &quot;${pendingTask.title.trim()}&quot; as complete?`"
+      confirm-label="Complete"
+      cancel-label="Cancel"
+      tone="accent"
+      @confirm="confirmCompleteTask"
+      @cancel="pendingTask = null"
     />
 
     <div v-if="localConfig.widgets?.length" class="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 px-4 md:px-6 pt-4">

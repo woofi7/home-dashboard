@@ -46,6 +46,17 @@ function configWithCreds() {
   }
 }
 
+function configWithTasks(taskMode?: string) {
+  return {
+    google: {
+      clientId: 'cid',
+      clientSecret: 'csec',
+      refreshToken: 'rtok',
+      calendar: { showEvents: false, showTasks: true, daysAhead: 2, ...(taskMode ? { taskMode } : {}) },
+    },
+  }
+}
+
 beforeEach(() => {
   mockFetch.mockReset()
   mockLoadConfig.mockReset()
@@ -94,6 +105,81 @@ describe('GET /api/calendar', () => {
       expect(event.color).toBeUndefined()
     })
 
+  })
+
+  describe('tasks error reporting', () => {
+    it('tasksError is null when tasks load successfully', async () => {
+      mockLoadConfig.mockReturnValue(configWithTasks())
+      mockFetch.mockResolvedValueOnce({ items: [{ id: 'l1' }] }) // task lists
+      mockFetch.mockResolvedValueOnce({ items: [] })             // tasks for list
+      const result = await (handler as () => Promise<unknown>)() as { tasksError: string | null }
+      expect(result.tasksError).toBeNull()
+    })
+
+    it('default (everything) mode has no dueMin so overdue tasks are included', async () => {
+      mockLoadConfig.mockReturnValue(configWithTasks())
+      mockFetch.mockResolvedValueOnce({ items: [{ id: 'l1' }] })
+      mockFetch.mockResolvedValueOnce({ items: [] })
+      await (handler as () => Promise<unknown>)()
+      const tasksUrl = mockFetch.mock.calls.at(-1)![0] as string
+      expect(tasksUrl).not.toContain('dueMin=')
+      expect(tasksUrl).toContain('dueMax=')
+    })
+
+    it('overdue mode also has no dueMin and caps dueMax earlier than everything mode', async () => {
+      const sot = new Date(_now.getFullYear(), _now.getMonth(), _now.getDate())
+      const tomorrow = new Date(sot); tomorrow.setDate(tomorrow.getDate() + 1)
+      const endOfRange = new Date(sot); endOfRange.setDate(endOfRange.getDate() + 2) // daysAhead = 2
+
+      mockLoadConfig.mockReturnValue(configWithTasks('overdue'))
+      mockFetch.mockResolvedValueOnce({ items: [{ id: 'l1' }] })
+      mockFetch.mockResolvedValueOnce({ items: [] })
+      await (handler as () => Promise<unknown>)()
+      const overdueUrl = new URL(mockFetch.mock.calls.at(-1)![0] as string)
+      expect(overdueUrl.searchParams.get('dueMin')).toBeNull()
+      expect(overdueUrl.searchParams.get('dueMax')).toBe(tomorrow.toISOString())
+
+      mockFetch.mockReset()
+      mockLoadConfig.mockReturnValue(configWithTasks('all'))
+      mockFetch.mockResolvedValueOnce({ access_token: 'tok', expires_in: 3600 })
+      mockFetch.mockResolvedValueOnce({ items: [{ id: 'l1' }] })
+      mockFetch.mockResolvedValueOnce({ items: [] })
+      await (handler as () => Promise<unknown>)()
+      const allUrl = new URL(mockFetch.mock.calls.at(-1)![0] as string)
+      expect(allUrl.searchParams.get('dueMax')).toBe(endOfRange.toISOString())
+    })
+
+    it('maps listId and the user-facing webViewLink onto tasks', async () => {
+      mockLoadConfig.mockReturnValue(configWithTasks())
+      mockFetch.mockResolvedValueOnce({ items: [{ id: 'list-123' }] })
+      mockFetch.mockResolvedValueOnce({ items: [{ id: 'task-9', title: 'Buy milk', status: 'needsAction', webViewLink: 'https://tasks.google.com/task/abc' }] })
+      const result = await (handler as () => Promise<unknown>)() as { tasks: { id: string; listId: string; url: string }[] }
+      expect(result.tasks[0]).toMatchObject({ id: 'task-9', listId: 'list-123', url: 'https://tasks.google.com/task/abc' })
+    })
+
+    it('reports a Tasks-API-not-enabled message on accessNotConfigured', async () => {
+      mockLoadConfig.mockReturnValue(configWithTasks())
+      mockFetch.mockRejectedValueOnce({ data: { error: { status: 'PERMISSION_DENIED', errors: [{ reason: 'accessNotConfigured' }] } } })
+      const result = await (handler as () => Promise<unknown>)() as { tasksError: string | null }
+      expect(result.tasksError).toContain('Tasks API is not enabled')
+    })
+
+    it('reports a permission message on scope denial', async () => {
+      mockLoadConfig.mockReturnValue(configWithTasks())
+      mockFetch.mockRejectedValueOnce({ data: { error: { status: 'PERMISSION_DENIED', errors: [{ reason: 'insufficientPermissions' }] } } })
+      const result = await (handler as () => Promise<unknown>)() as { tasksError: string | null }
+      expect(result.tasksError).toContain('reconnect')
+    })
+
+    it('falls back to a generic message for unknown failures', async () => {
+      mockLoadConfig.mockReturnValue(configWithTasks())
+      mockFetch.mockRejectedValueOnce(new Error('network down'))
+      const result = await (handler as () => Promise<unknown>)() as { tasksError: string | null }
+      expect(result.tasksError).toBe('Could not load Google Tasks.')
+    })
+  })
+
+  describe('color mapping cont.', () => {
     it('maps all 11 standard Google Calendar color IDs', async () => {
       const expected: Record<string, string> = {
         '1': '#7986CB', '2': '#33B679', '3': '#8E24AA',  '4': '#E67C73',

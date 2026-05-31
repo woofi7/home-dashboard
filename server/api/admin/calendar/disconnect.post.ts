@@ -1,5 +1,6 @@
 import { loadConfigRaw, writeConfig } from '../../../utils/config'
 import { assertAuth } from '../../../utils/adminAuth'
+import { clearGoogleToken } from '../../../utils/googleToken'
 
 export default defineEventHandler((event) => {
   assertAuth(event)
@@ -8,5 +9,6 @@ export default defineEventHandler((event) => {
   delete g.refreshToken
   settings.google = g
   writeConfig('settings.yaml', settings)
+  clearGoogleToken()
   return { ok: true }
 })

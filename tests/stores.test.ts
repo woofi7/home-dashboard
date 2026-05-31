@@ -58,6 +58,26 @@ describe('useViewStore', () => {
     await store.refresh()
     expect(store.weather).toEqual({ temp: 99 })
   })
+
+  it('completeTask removes the task and posts to the API', async () => {
+    fetchMock.mockResolvedValue({ ok: true })
+    const store = useViewStore()
+    store.calendar = { authorized: true, days: [], tasks: [
+      { id: 't1', listId: 'l1', title: 'A', url: '' },
+      { id: 't2', listId: 'l1', title: 'B', url: '' },
+    ] }
+    await store.completeTask({ id: 't1', listId: 'l1', title: 'A', url: '' })
+    expect(store.calendar?.tasks.map(t => t.id)).toEqual(['t2'])
+    expect(fetchMock).toHaveBeenCalledWith('/api/calendar/task', { method: 'POST', body: { listId: 'l1', taskId: 't1' } })
+  })
+
+  it('completeTask restores the task when the request fails', async () => {
+    fetchMock.mockRejectedValue(new Error('403'))
+    const store = useViewStore()
+    store.calendar = { authorized: true, days: [], tasks: [{ id: 't1', listId: 'l1', title: 'A', url: '' }] }
+    await expect(store.completeTask({ id: 't1', listId: 'l1', title: 'A', url: '' })).rejects.toThrow()
+    expect(store.calendar?.tasks.map(t => t.id)).toEqual(['t1'])
+  })
 })
 
 describe('useStatusStore', () => {

@@ -1,5 +1,5 @@
 import { loadConfig } from '../utils/config'
-import { createCache } from '../utils/cache'
+import { getGoogleCreds, getGoogleAccessToken, clearGoogleToken } from '../utils/googleToken'
 
 type CalEvent = { id: string; summary: string; start: string; end: string; allDay: boolean; location?: string; url: string; color?: string }
 
@@ -16,24 +16,8 @@ const GCAL_COLORS: Record<string, string> = {
   '10': '#0F9D58', // Basil
   '11': '#D50000', // Tomato
 }
-type CalTask  = { id: string; title: string; due?: string; notes?: string; url: string }
+type CalTask  = { id: string; listId: string; title: string; due?: string; notes?: string; url: string }
 type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
-
-const tokenCache = createCache<string>()
-
-async function getAccessToken(clientId: string, clientSecret: string, refreshToken: string): Promise<string> {
-  const hit = tokenCache.get()
-  if (hit)
-    return hit
-
-  const res = await $fetch<{ access_token: string; expires_in: number }>('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, refresh_token: refreshToken, grant_type: 'refresh_token' }).toString(),
-  })
-
-  return tokenCache.set(res.access_token, (res.expires_in - 60) * 1000)
-}
 
 function dayLabel(offset: number, date: Date): string {
   if (offset === 0)
@@ -41,6 +25,18 @@ function dayLabel(offset: number, date: Date): string {
   if (offset === 1)
     return 'Tomorrow'
   return date.toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric' })
+}
+
+function describeTasksError(err: unknown): string {
+  const gErr = (err as { data?: { error?: { message?: string; status?: string; errors?: { reason?: string }[] } } })?.data?.error
+  const reason = gErr?.errors?.[0]?.reason
+  if (reason === 'accessNotConfigured')
+    return 'The Google Tasks API is not enabled for your Google Cloud project. Open the Cloud Console, enable the Tasks API, then reload.'
+  if (gErr?.status === 'PERMISSION_DENIED' || reason === 'insufficientPermissions' || /scope/i.test(gErr?.message ?? ''))
+    return 'Missing Tasks permission. Disconnect and reconnect your Google account to grant access to Tasks.'
+  if (gErr?.message)
+    return `Could not load Google Tasks: ${gErr.message}`
+  return 'Could not load Google Tasks.'
 }
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -54,20 +50,21 @@ export default defineEventHandler(async () => {
   const g = (settings?.google ?? {}) as Record<string, unknown>
   const cal = (g.calendar ?? {}) as Record<string, unknown>
 
-  const { clientId, clientSecret, refreshToken } = g as Record<string, string>
-  if (!clientId || !clientSecret || !refreshToken)
-    return { authorized: false, days: [], tasks: [] }
+  const creds = getGoogleCreds()
+  if (!creds)
+    return { authorized: false, days: [], tasks: [], tasksError: null }
 
   const showEvents = (cal.showEvents as boolean) ?? true
   const showTasks  = (cal.showTasks  as boolean) ?? false
   const daysAhead  = Math.max(1, Math.min(30, Number(cal.daysAhead) || 2))
+  const taskMode   = (cal.taskMode as string) === 'overdue' ? 'overdue' : 'all'
 
   let accessToken: string
   try {
-    accessToken = await getAccessToken(clientId, clientSecret, refreshToken)
+    accessToken = await getGoogleAccessToken(creds)
   } catch {
-    tokenCache.clear()
-    return { authorized: false, days: [], tasks: [] }
+    clearGoogleToken()
+    return { authorized: false, days: [], tasks: [], tasksError: null }
   }
   const headers = { Authorization: `Bearer ${accessToken}` }
 
@@ -81,6 +78,7 @@ export default defineEventHandler(async () => {
   })
 
   let tasks: CalTask[] = []
+  let tasksError: string | null = null
 
   if (showEvents) {
     try {
@@ -115,35 +113,44 @@ export default defineEventHandler(async () => {
           day.allDay.push(toEvent(e))
       }
     } catch {
-      tokenCache.clear()
+      clearGoogleToken()
     }
   }
 
   if (showTasks) {
     try {
+      // Both modes include every past-due incomplete task (no lower bound).
+      // overdue: caps at the end of today (today + all earlier).
+      // all:     caps at the end of the days-ahead window (past-due + upcoming).
+      const startOfTomorrow = new Date(startOfToday)
+      startOfTomorrow.setDate(startOfTomorrow.getDate() + 1)
       const endOfRange = new Date(startOfToday)
       endOfRange.setDate(endOfRange.getDate() + daysAhead)
 
+      const params = new URLSearchParams({ showCompleted: 'false' })
+      params.set('dueMax', (taskMode === 'overdue' ? startOfTomorrow : endOfRange).toISOString())
+
       type GTaskList = { id: string }
-      type GTask = { id: string; title?: string; due?: string; notes?: string; selfLink?: string; status?: string }
+      type GTask = { id: string; title?: string; due?: string; notes?: string; webViewLink?: string; status?: string }
 
       const listsRes = await $fetch<{ items?: GTaskList[] }>('https://www.googleapis.com/tasks/v1/users/@me/lists', { headers })
       const lists = listsRes.items ?? []
 
       const allTaskArrays = await Promise.all(lists.map(async (list) => {
         const res = await $fetch<{ items?: GTask[] }>(
-          `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?showCompleted=false&dueMin=${startOfToday.toISOString()}&dueMax=${endOfRange.toISOString()}`,
+          `https://www.googleapis.com/tasks/v1/lists/${list.id}/tasks?${params.toString()}`,
           { headers }
         )
-        return (res.items ?? []).filter(t => t.status !== 'completed')
+        return (res.items ?? []).filter(t => t.status !== 'completed').map(t => ({ ...t, listId: list.id }))
       }))
 
       tasks = allTaskArrays.flat().map(t => ({
         id: t.id,
+        listId: t.listId,
         title: t.title ?? '(no title)',
         due: t.due,
         notes: t.notes,
-        url: t.selfLink ?? '',
+        url: t.webViewLink ?? '',
       }))
 
       tasks.sort((a, b) => {
@@ -152,10 +159,10 @@ export default defineEventHandler(async () => {
         if (!b.due) return -1
         return a.due.localeCompare(b.due)
       })
-    } catch {
-      // tasks fetch failed silently — show events only
+    } catch (err: unknown) {
+      tasksError = describeTasksError(err)
     }
   }
 
-  return { authorized: true, days, tasks }
+  return { authorized: true, days, tasks, tasksError }
 })

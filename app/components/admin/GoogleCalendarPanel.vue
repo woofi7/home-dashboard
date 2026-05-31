@@ -6,6 +6,7 @@ type CalendarConfig = {
   showEvents: boolean
   showTasks: boolean
   daysAhead: number
+  taskMode: string
 }
 
 const DAYS_OPTIONS = [1, 2, 3, 5, 7, 14, 30]
@@ -15,7 +16,7 @@ const route = useRoute()
 const { data: current, refresh: refreshCurrent } = await useFetch<CalendarConfig>('/api/admin/calendar')
 
 const form = ref({ clientId: '', clientSecret: '' })
-const display = ref({ showEvents: true, showTasks: false, daysAhead: 2 })
+const display = ref({ showEvents: true, showTasks: false, daysAhead: 2, taskMode: 'all' })
 
 watch(current, (val) => {
   form.value = {
@@ -26,6 +27,7 @@ watch(current, (val) => {
     showEvents: val?.showEvents ?? true,
     showTasks:  val?.showTasks  ?? false,
     daysAhead:  val?.daysAhead  ?? 2,
+    taskMode:   val?.taskMode   ?? 'all',
   }
 }, { immediate: true })
 
@@ -37,7 +39,8 @@ const isDirty = computed(() =>
 const isDisplayDirty = computed(() =>
   display.value.showEvents !== (current.value?.showEvents ?? true) ||
   display.value.showTasks  !== (current.value?.showTasks  ?? false) ||
-  display.value.daysAhead  !== (current.value?.daysAhead  ?? 2)
+  display.value.daysAhead  !== (current.value?.daysAhead  ?? 2) ||
+  display.value.taskMode   !== (current.value?.taskMode   ?? 'all')
 )
 
 function cancelDisplay() {
@@ -45,6 +48,7 @@ function cancelDisplay() {
     showEvents: current.value?.showEvents ?? true,
     showTasks:  current.value?.showTasks  ?? false,
     daysAhead:  current.value?.daysAhead  ?? 2,
+    taskMode:   current.value?.taskMode   ?? 'all',
   }
 }
 
@@ -57,8 +61,9 @@ async function saveDisplay() {
   saveDisplayError.value = ''
   saveDisplaySuccess.value = false
   try {
-    await $fetch('/api/admin/calendar', { method: 'POST', body: { showEvents: display.value.showEvents, showTasks: display.value.showTasks, daysAhead: display.value.daysAhead } })
+    await $fetch('/api/admin/calendar', { method: 'POST', body: { showEvents: display.value.showEvents, showTasks: display.value.showTasks, daysAhead: display.value.daysAhead, taskMode: display.value.taskMode } })
     await refreshCurrent()
+    await refreshCalendar()
     saveDisplaySuccess.value = true
     setTimeout(() => { saveDisplaySuccess.value = false }, 2000)
   } catch (err: unknown) {
@@ -122,7 +127,9 @@ onMounted(() => {
   if (justConnected.value) refreshCurrent()
 })
 
-const { data: calendarData } = useFetch('/api/calendar')
+const { data: calendarData, refresh: refreshCalendar } = useFetch('/api/calendar')
+
+const tasksError = computed(() => (calendarData.value as { tasksError?: string | null } | null)?.tasksError ?? null)
 
 const stepsExpanded = ref(!isConnected.value)
 watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
@@ -185,7 +192,7 @@ watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
           <span class="shrink-0 mt-0.5 w-6 h-6 rounded-full bg-accent/15 border border-accent/30 text-accent text-[11px] flex items-center justify-center font-bold">1</span>
           <div class="space-y-2 min-w-0">
             <p class="text-sm font-medium text-primary">Create a Google Cloud project</p>
-            <p class="text-xs text-muted">Open the Google Cloud Console and create a new project (or select an existing one). Then enable the <strong class="text-primary">Google Calendar API</strong> for it.</p>
+            <p class="text-xs text-muted">Open the Google Cloud Console and create a new project (or select an existing one). Then enable the <strong class="text-primary">Google Calendar API</strong> for it. To show tasks, also enable the <strong class="text-primary">Google Tasks API</strong>.</p>
             <div class="flex flex-wrap gap-2 pt-1">
               <a href="https://console.cloud.google.com" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted hover:text-primary hover:border-primary/40 transition-colors">
                 <FaIcon icon="arrow-up-right-from-square" class="text-[10px]" />
@@ -194,6 +201,10 @@ watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
               <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted hover:text-primary hover:border-primary/40 transition-colors">
                 <FaIcon icon="arrow-up-right-from-square" class="text-[10px]" />
                 Enable Calendar API
+              </a>
+              <a href="https://console.cloud.google.com/apis/library/tasks.googleapis.com" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs text-muted hover:text-primary hover:border-primary/40 transition-colors">
+                <FaIcon icon="arrow-up-right-from-square" class="text-[10px]" />
+                Enable Tasks API
               </a>
             </div>
           </div>
@@ -345,6 +356,7 @@ watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
         </label>
 
         <!-- Show tasks toggle -->
+        <div class="space-y-2">
         <label class="flex items-center justify-between gap-4 cursor-pointer">
           <div>
             <p class="text-sm text-primary">Show tasks</p>
@@ -367,6 +379,44 @@ watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
             />
           </button>
         </label>
+
+        <!-- Live tasks failure warning -->
+        <div
+          v-if="display.showTasks && tasksError"
+          class="flex items-start gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/30"
+        >
+          <FaIcon icon="circle-exclamation" class="text-warning text-xs mt-0.5 shrink-0" />
+          <p class="text-xs text-warning leading-snug">{{ tasksError }}</p>
+        </div>
+
+        <!-- Task window mode -->
+        <div v-if="display.showTasks" class="flex items-center justify-between gap-4 pt-1">
+          <div class="min-w-0">
+            <p class="text-sm text-primary">Tasks to show</p>
+            <p class="text-xs text-muted mt-0.5">
+              {{ display.taskMode === 'overdue'
+                ? 'Every overdue task plus today.'
+                : 'Every overdue task plus today and upcoming tasks within the days-ahead window.' }}
+            </p>
+          </div>
+          <div class="flex gap-1 shrink-0">
+            <button
+              class="cursor-pointer px-2.5 py-1 rounded-lg text-xs border transition-colors"
+              :class="display.taskMode === 'all'
+                ? 'bg-accent text-white border-accent'
+                : 'border-border text-muted hover:text-primary hover:border-primary/40'"
+              @click="display.taskMode = 'all'"
+            >Everything</button>
+            <button
+              class="cursor-pointer px-2.5 py-1 rounded-lg text-xs border transition-colors"
+              :class="display.taskMode === 'overdue'
+                ? 'bg-accent text-white border-accent'
+                : 'border-border text-muted hover:text-primary hover:border-primary/40'"
+              @click="display.taskMode = 'overdue'"
+            >Overdue</button>
+          </div>
+        </div>
+        </div>
 
         <!-- Days ahead -->
         <div class="flex items-center justify-between gap-4">

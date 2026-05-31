@@ -13,5 +13,6 @@ export default defineEventHandler((event) => {
     showEvents: (cal.showEvents as boolean) ?? true,
     showTasks:  (cal.showTasks  as boolean) ?? false,
     daysAhead:  (cal.daysAhead  as number)  ?? 2,
+    taskMode:   (cal.taskMode   as string)  ?? 'all',
   }
 })

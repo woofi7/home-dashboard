@@ -1,10 +1,11 @@
 <script setup lang="ts">
 type CalEvent = { id: string; summary: string; url: string; start?: string; end?: string; color?: string }
 type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
-type CalTask  = { id: string; title: string; due?: string; notes?: string; url: string }
+type CalTask  = { id: string; listId: string; title: string; due?: string; notes?: string; url: string }
 type CalendarData = { authorized: boolean; days: CalDay[]; tasks: CalTask[] }
 
 const props = defineProps<{ calendar?: CalendarData | null }>()
+const emit = defineEmits<{ complete: [task: CalTask] }>()
 
 const { cardStyle } = useAppearanceSettings()
 
@@ -23,6 +24,23 @@ function formatTime(d: string) {
 function formatDue(d: string) {
   return new Date(d).toLocaleDateString('en', { month: 'short', day: 'numeric' })
 }
+
+function complete(task: CalTask) {
+  emit('complete', task)
+}
+
+// Google Tasks stores `due` as UTC midnight standing for a calendar date, so
+// compare the date portion against today's local date to avoid TZ off-by-one.
+const todayStr = computed(() => {
+  const n = new Date()
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`
+})
+
+function isOverdue(due?: string) {
+  if (!due)
+    return false
+  return due.slice(0, 10) < todayStr.value
+}
 </script>
 
 <template>
@@ -40,9 +58,49 @@ function formatDue(d: string) {
     <div v-else class="ltr">
       <template v-if="calendar.authorized">
 
+          <!-- Tasks: checkbox to-do rows with a due-date pill -->
+          <template v-if="calendar.tasks?.length">
+            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2">Tasks</p>
+            <div
+              v-for="t in calendar.tasks"
+              :key="t.id"
+              role="button"
+              tabindex="0"
+              :aria-label="`Complete ${t.title}`"
+              class="task-row flex items-center gap-2.5 rounded-lg px-3 py-1.5 border border-border group mb-1 cursor-pointer hover:border-accent/40 transition-colors"
+              :style="cardStyle"
+              @click="complete(t)"
+              @keydown.enter="complete(t)"
+            >
+              <span class="w-4 h-4 rounded-full border-2 border-secondary/40 group-hover:border-emerald-400 group-hover:bg-emerald-400/15 transition-colors shrink-0 flex items-center justify-center">
+                <FaIcon icon="check" class="text-emerald-400 text-[8px] opacity-0 group-hover:opacity-70 transition-opacity" />
+              </span>
+              <span class="min-w-0 flex-1 text-xs text-secondary font-medium truncate">{{ t.title }}</span>
+              <span
+                class="shrink-0 text-[10px] px-2 py-0.5 rounded-full border whitespace-nowrap"
+                :class="!t.due
+                  ? 'text-muted border-border/60'
+                  : isOverdue(t.due)
+                    ? 'text-warning border-warning/40 bg-warning/10'
+                    : 'text-emerald-300 border-emerald-400/30 bg-emerald-400/10'"
+              >{{ t.due ? formatDue(t.due) : 'No date' }}</span>
+              <a
+                v-if="t.url"
+                :href="t.url"
+                target="_blank"
+                rel="noopener"
+                :aria-label="`Open ${t.title} in Google Tasks`"
+                class="shrink-0 text-white/25 hover:text-white/60 transition-colors"
+                @click.stop
+              >
+                <FaIcon icon="arrow-up-right-from-square" class="text-[10px]" />
+              </a>
+            </div>
+          </template>
+
           <!-- Event days -->
           <template v-for="(day, i) in visibleDays" :key="day.date">
-            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2" :class="i > 0 ? 'mt-3' : ''">{{ day.label }}</p>
+            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2" :class="(i > 0 || calendar.tasks?.length) ? 'mt-3' : ''">{{ day.label }}</p>
             <a
               v-for="e in day.allDay"
               :key="e.id"
@@ -82,27 +140,6 @@ function formatDue(d: string) {
             v-if="calendar.days.length && !visibleDays.length"
             class="text-xs text-muted italic"
           >No events</p>
-
-          <!-- Tasks -->
-          <template v-if="calendar.tasks?.length">
-            <p class="text-[10px] text-secondary uppercase tracking-widest mt-3 mb-2">Tasks</p>
-            <a
-              v-for="t in calendar.tasks"
-              :key="t.id"
-              :href="t.url || undefined"
-              target="_blank"
-              rel="noopener"
-              class="flex items-center gap-2 rounded-lg px-3 py-1.5 border border-border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
-              :style="cardStyle"
-            >
-              <div class="w-1 self-stretch rounded-full bg-emerald-400/70 shrink-0" />
-              <div class="min-w-0 flex-1">
-                <p class="text-xs text-secondary font-medium truncate">{{ t.title }}</p>
-                <p class="text-[10px] text-muted">{{ t.due ? formatDue(t.due) : 'No due date' }}</p>
-              </div>
-              <FaIcon icon="check" class="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors shrink-0 text-[10px]" />
-            </a>
-          </template>
 
         </template>
 
