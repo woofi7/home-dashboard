@@ -14,9 +14,9 @@ function baseForm() {
   return { position: 'center', overlay: 40, blur: 'none', fadeSpeed: 'normal', sectionStyle: 'glass', cardStyle: 'dark' }
 }
 
-function mountApp(overrides: Partial<ReturnType<typeof baseForm>> = {}) {
+function mountApp(overrides: Partial<ReturnType<typeof baseForm>> = {}, part?: 'background' | 'ui' | 'all') {
   return mount(BackgroundAppearance, {
-    props: { modelValue: { ...baseForm(), ...overrides } },
+    props: { modelValue: { ...baseForm(), ...overrides }, ...(part ? { part } : {}) },
     global: { stubs: { OptionPicker: OPTION_PICKER_STUB } },
   })
 }
@@ -126,6 +126,32 @@ describe('BackgroundAppearance.vue', () => {
     it('emits cardStyle change', async () => {
       const w = mountApp({ cardStyle: 'dark' })
       // second 'Glass' button belongs to the card picker (first is section)
+      const buttons = w.findAll('button').filter(b => b.text() === 'Glass')
+      await buttons[1].trigger('click')
+      const emitted = w.emitted('update:modelValue') as [{ cardStyle: string }][]
+      expect(emitted?.[0]?.[0]?.cardStyle).toBe('glass')
+    })
+  })
+
+  describe('part prop', () => {
+    it('background part shows display settings but not UI elements', () => {
+      const w = mountApp({}, 'background')
+      expect(w.text()).toContain('Position')
+      expect(w.text()).toContain('Blur')
+      expect(w.text()).not.toContain('Sections background')
+      expect(w.text()).not.toContain('UI elements')
+    })
+
+    it('ui part shows UI elements but not display settings', () => {
+      const w = mountApp({}, 'ui')
+      expect(w.text()).toContain('Sections background')
+      expect(w.text()).toContain('Cards background')
+      expect(w.text()).not.toContain('Position')
+      expect(w.text()).not.toContain('Overlay opacity')
+    })
+
+    it('ui part still emits cardStyle change', async () => {
+      const w = mountApp({ cardStyle: 'dark' }, 'ui')
       const buttons = w.findAll('button').filter(b => b.text() === 'Glass')
       await buttons[1].trigger('click')
       const emitted = w.emitted('update:modelValue') as [{ cardStyle: string }][]

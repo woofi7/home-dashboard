@@ -8,7 +8,10 @@ export type AppearanceForm = {
   cardStyle: string
 }
 
-const props = defineProps<{ modelValue: AppearanceForm }>()
+const props = withDefaults(
+  defineProps<{ modelValue: AppearanceForm; part?: 'background' | 'ui' | 'all' }>(),
+  { part: 'all' },
+)
 const emit = defineEmits<{ 'update:modelValue': [v: AppearanceForm] }>()
 
 function set(patch: Partial<AppearanceForm>) {
@@ -55,55 +58,57 @@ const CARD_STYLES = [
 <template>
   <div class="space-y-5">
 
-    <div>
-      <label class="text-xs text-muted block mb-2">Position</label>
-      <OptionPicker
-        :model-value="modelValue.position"
-        :options="POSITIONS"
-        size="sm"
-        @update:model-value="set({ position: $event })"
-      />
-    </div>
-
-    <div>
-      <label class="text-xs text-muted block mb-2">Overlay opacity: {{ modelValue.overlay }}%</label>
-      <input
-        :value="modelValue.overlay"
-        type="range"
-        min="0"
-        max="80"
-        step="5"
-        class="w-full accent-accent cursor-pointer"
-        @input="set({ overlay: Number(($event.target as HTMLInputElement).value) })"
-      />
-      <div class="flex justify-between text-[10px] text-muted/50 mt-1">
-        <span>Transparent</span>
-        <span>Dark</span>
+    <template v-if="part !== 'ui'">
+      <div>
+        <label class="text-xs text-muted block mb-2">Position</label>
+        <OptionPicker
+          :model-value="modelValue.position"
+          :options="POSITIONS"
+          size="sm"
+          @update:model-value="set({ position: $event })"
+        />
       </div>
-    </div>
 
-    <div>
-      <label class="text-xs text-muted block mb-2">Blur</label>
-      <OptionPicker
-        :model-value="modelValue.blur"
-        :options="BLURS"
-        size="sm"
-        @update:model-value="set({ blur: $event })"
-      />
-    </div>
+      <div>
+        <label class="text-xs text-muted block mb-2">Overlay opacity: {{ modelValue.overlay }}%</label>
+        <input
+          :value="modelValue.overlay"
+          type="range"
+          min="0"
+          max="80"
+          step="5"
+          class="w-full accent-accent cursor-pointer"
+          @input="set({ overlay: Number(($event.target as HTMLInputElement).value) })"
+        />
+        <div class="flex justify-between text-[10px] text-muted/50 mt-1">
+          <span>Transparent</span>
+          <span>Dark</span>
+        </div>
+      </div>
 
-    <div>
-      <label class="text-xs text-muted block mb-2">Fade-in speed</label>
-      <OptionPicker
-        :model-value="modelValue.fadeSpeed"
-        :options="SPEEDS"
-        size="sm"
-        @update:model-value="set({ fadeSpeed: $event })"
-      />
-    </div>
+      <div>
+        <label class="text-xs text-muted block mb-2">Blur</label>
+        <OptionPicker
+          :model-value="modelValue.blur"
+          :options="BLURS"
+          size="sm"
+          @update:model-value="set({ blur: $event })"
+        />
+      </div>
 
-    <div class="border-t border-border pt-5">
-      <p class="text-xs text-muted uppercase tracking-widest mb-4">UI elements</p>
+      <div>
+        <label class="text-xs text-muted block mb-2">Fade-in speed</label>
+        <OptionPicker
+          :model-value="modelValue.fadeSpeed"
+          :options="SPEEDS"
+          size="sm"
+          @update:model-value="set({ fadeSpeed: $event })"
+        />
+      </div>
+    </template>
+
+    <div v-if="part !== 'background'" :class="part === 'all' ? 'border-t border-border pt-5' : ''">
+      <p v-if="part === 'all'" class="text-xs text-muted uppercase tracking-widest mb-4">UI elements</p>
 
       <div class="space-y-4">
         <div>
