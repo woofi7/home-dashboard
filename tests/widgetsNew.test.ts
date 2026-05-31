@@ -6,6 +6,7 @@ import { fetchBeszel } from '../server/api/widget/beszel.get'
 import { fetchUptimekuma } from '../server/api/widget/uptimekuma.get'
 import { fetchRestic } from '../server/api/widget/restic.get'
 import { fetchTugtainer } from '../server/api/widget/tugtainer.get'
+import { fetchQbittorrent } from '../server/api/widget/qbittorrent.get'
 
 vi.mock('../server/utils/widget-fields', () => ({
   getActiveFields: (_type: string, labels: string[]) => new Set(labels),
@@ -821,5 +822,62 @@ describe('fetchTugtainer', () => {
       const result = await fetchTugtainer({ url: 'http://tug', password: 'pw' })
       expect(result?.fields.map(f => f.label)).toEqual(['Unused images'])
     })
+  })
+})
+
+// ─── qBittorrent ────────────────────────────────────────────────────────────────
+
+function mockQbitLogin(setCookie: string) {
+  fetchDollar.mockImplementationOnce(async (_url: string, opts?: { onResponse?: (ctx: unknown) => void }) => {
+    opts?.onResponse?.({
+      response: {
+        headers: { get: (h: string) => h === 'set-cookie' ? setCookie : '' },
+      },
+    })
+  })
+}
+
+function mockQbitData(torrents: Array<{ state: string }>, transfer: Record<string, number>) {
+  fetchDollar.mockResolvedValueOnce(torrents)
+  fetchDollar.mockResolvedValueOnce(transfer)
+}
+
+const qbitTransfer = { dl_info_speed: 1024, up_info_speed: 512, dl_rate_limit: 0, up_rate_limit: 0 }
+
+describe('fetchQbittorrent', () => {
+  it('returns null when url is missing', async () => {
+    expect(await fetchQbittorrent({ username: 'admin', password: 'pw' })).toBeNull()
+  })
+
+  it('returns null when login sets no session cookie (bad credentials)', async () => {
+    mockQbitLogin('')
+    expect(await fetchQbittorrent({ url: 'http://qbit', username: 'admin', password: 'wrong' })).toBeNull()
+  })
+
+  it('authenticates with the 5.1.x SID cookie', async () => {
+    mockQbitLogin('SID=abc123; HttpOnly; SameSite=Strict; path=/')
+    mockQbitData([{ state: 'downloading' }, { state: 'pausedUP' }], qbitTransfer)
+    const result = await fetchQbittorrent({ url: 'http://qbit', username: 'admin', password: 'pw' })
+    const cookieHeader = (fetchDollar.mock.calls[1][1] as { headers: { Cookie: string } }).headers.Cookie
+    expect(cookieHeader).toBe('SID=abc123')
+    expect(result?.fields.find(f => f.label === 'Total')?.value).toBe(2)
+    expect(result?.fields.find(f => f.label === 'Active')?.value).toBe(1)
+  })
+
+  it('authenticates with the 5.2.x QBT_SID_<port> cookie', async () => {
+    mockQbitLogin('QBT_SID_8112=xyz789; HttpOnly; SameSite=Strict; path=/')
+    mockQbitData([{ state: 'downloading' }], qbitTransfer)
+    const result = await fetchQbittorrent({ url: 'http://qbit', username: 'admin', password: 'pw' })
+    const cookieHeader = (fetchDollar.mock.calls[1][1] as { headers: { Cookie: string } }).headers.Cookie
+    expect(cookieHeader).toBe('QBT_SID_8112=xyz789')
+    expect(result?.fields.find(f => f.label === 'Total')?.value).toBe(1)
+  })
+
+  it('strips a trailing slash from the url before building endpoints', async () => {
+    mockQbitLogin('QBT_SID_8112=xyz789')
+    mockQbitData([], qbitTransfer)
+    await fetchQbittorrent({ url: 'http://qbit:8112/', username: 'admin', password: 'pw' })
+    expect(fetchDollar.mock.calls[0][0]).toBe('http://qbit:8112/api/v2/auth/login')
+    expect(fetchDollar.mock.calls[1][0]).toBe('http://qbit:8112/api/v2/torrents/info')
   })
 })
