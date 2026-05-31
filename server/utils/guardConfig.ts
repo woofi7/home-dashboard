@@ -7,16 +7,21 @@
  * Within surviving groups, any item present in the raw YAML but absent from
  * the entire incoming payload is treated as accidentally lost and recovered
  * back into its original group.
+ *
+ * `deletedNames` lists items the user explicitly removed in this edit; they are
+ * absent from the payload on purpose, so they are never recovered.
  */
 export function recoverOrphanedItems<T extends { name: string }>(
   rawGroups: Array<{ name: string; [key: string]: unknown }>,
   incoming: Array<{ name: string; [key: string]: unknown }>,
   itemsKey: string,
+  deletedNames: Iterable<string> = [],
 ): Array<{ name: string; [key: string]: unknown }> {
   const incomingGroupNames = new Set(incoming.map(g => g.name))
   const incomingItemNames = new Set(
     incoming.flatMap(g => ((g[itemsKey] as T[]) ?? []).map((i: T) => i.name)),
   )
+  const deleted = new Set(deletedNames)
 
   const orphaned: Array<{ item: T; originalGroup: string }> = []
   for (const group of rawGroups) {
@@ -25,7 +30,7 @@ export function recoverOrphanedItems<T extends { name: string }>(
       continue
 
     for (const item of ((group[itemsKey] as T[]) ?? [])) {
-      if (!incomingItemNames.has(item.name)) {
+      if (!incomingItemNames.has(item.name) && !deleted.has(item.name)) {
         orphaned.push({ item, originalGroup: group.name })
         console.warn(`[guard] "${item.name}" from group "${group.name}" is missing from reorderGroups payload — recovering it`)
       }

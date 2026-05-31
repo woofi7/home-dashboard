@@ -4,8 +4,8 @@ import { recoverOrphanedItems } from '../server/utils/guardConfig'
 type Item = { name: string; [key: string]: unknown }
 type Group = { name: string; services?: Item[]; bookmarks?: Item[] }
 
-function run(raw: Group[], incoming: Group[], key: string) {
-  return recoverOrphanedItems(raw, incoming, key) as Group[]
+function run(raw: Group[], incoming: Group[], key: string, deleted: string[] = []) {
+  return recoverOrphanedItems(raw, incoming, key, deleted) as Group[]
 }
 
 describe('recoverOrphanedItems', () => {
@@ -104,6 +104,25 @@ describe('recoverOrphanedItems', () => {
     expect(allNames).not.toContain('Overseerr')
     expect(allNames).not.toContain('Sonarr')
     expect(allNames).toContain('Plex')
+  })
+
+  it('does not recover an item the user explicitly deleted from a surviving group', () => {
+    // Raw: Services group has Home Assistant and Sonarr
+    const raw = [{ name: 'Services', services: [{ name: 'Home Assistant' }, { name: 'Sonarr' }] }]
+    // User deleted Home Assistant; the group survives. It is listed in `deleted`.
+    const incoming = [{ name: 'Services', services: [{ name: 'Sonarr' }] }]
+    const result = run(raw, incoming, 'services', ['Home Assistant'])
+    expect(result[0].services!.map(s => s.name)).toEqual(['Sonarr'])
+  })
+
+  it('still recovers an accidentally dropped item even when another item was deleted', () => {
+    const raw = [{ name: 'G1', services: [{ name: 'A' }, { name: 'B' }, { name: 'C' }] }]
+    // A was deleted on purpose; B vanished due to a desync and must come back.
+    const incoming = [{ name: 'G1', services: [{ name: 'C' }] }]
+    const result = run(raw, incoming, 'services', ['A'])
+    const names = result[0].services!.map(s => s.name)
+    expect(names).toContain('B')
+    expect(names).not.toContain('A')
   })
 
   it('recovers item accidentally lost from a surviving group (the original move bug)', () => {

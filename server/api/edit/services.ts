@@ -22,6 +22,7 @@ export default defineEventHandler(async (event) => {
     originalName?: string
     services?: Service[]
     groups?: ServiceGroup[]
+    deleted?: string[]
   }>(event)
 
   const groups = loadConfig<ServiceGroup[]>('services.yaml') ?? []
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
     if (raw.length > 0 && (!body.groups || body.groups.length === 0)) {
       throw createError({ statusCode: 400, statusMessage: 'Refusing to wipe all service groups: incoming list is empty' })
     }
-    updated = recoverOrphanedItems<Service>(raw, updated, 'services') as ServiceGroup[]
+    updated = recoverOrphanedItems<Service>(raw, updated, 'services', body.deleted ?? []) as ServiceGroup[]
     updated = preserveCredentials(raw, updated)
   }
 

@@ -12,6 +12,14 @@ type Config = {
   settings: Record<string, unknown>
 }
 
+// Item names present when editing began but gone from the saved payload: these
+// were deleted on purpose, so the backend orphan guard must not recover them.
+function removedItemNames<G>(original: G[], final: G[], items: (g: G) => Array<{ name: string }>): string[] {
+  const finalNames = new Set(final.flatMap(g => items(g).map(i => i.name)))
+  const originalNames = new Set(original.flatMap(g => items(g).map(i => i.name)))
+  return [...originalNames].filter(n => !finalNames.has(n))
+}
+
 export function useDashboardConfig() {
   const { active: editActive, dirty, snapshot, enter, exit } = useEditMode()
   const configStore = useConfigStore()
@@ -110,10 +118,16 @@ export function useDashboardConfig() {
     const bookmarkOrder = sectionOrder.value.filter(s => s.type === 'bookmark').map(s => s.name)
     const orderedServices = serviceOrder.map(n => localConfig.value.services.find(g => g.name === n)).filter(Boolean) as ServiceGroup[]
     const orderedBookmarks = bookmarkOrder.map(n => localConfig.value.bookmarks.find(g => g.name === n)).filter(Boolean) as BookmarkGroup[]
+    const deletedServices = removedItemNames(
+      (snapshot.value?.services as ServiceGroup[]) ?? [], orderedServices, g => g.services,
+    )
+    const deletedBookmarks = removedItemNames(
+      (snapshot.value?.bookmarks as BookmarkGroup[]) ?? [], orderedBookmarks, g => g.bookmarks,
+    )
     try {
       await Promise.all([
-        $fetch('/api/edit/services', { method: 'POST', body: { action: 'reorderGroups', groups: orderedServices } }),
-        $fetch('/api/edit/bookmarks', { method: 'POST', body: { action: 'reorderGroups', groups: orderedBookmarks } }),
+        $fetch('/api/edit/services', { method: 'POST', body: { action: 'reorderGroups', groups: orderedServices, deleted: deletedServices } }),
+        $fetch('/api/edit/bookmarks', { method: 'POST', body: { action: 'reorderGroups', groups: orderedBookmarks, deleted: deletedBookmarks } }),
         $fetch('/api/edit/settings', { method: 'POST', body: { sectionOrder: sectionOrder.value } }),
       ])
       await refresh()
