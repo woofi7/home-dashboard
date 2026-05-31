@@ -211,11 +211,14 @@ const previewCardStyle    = computed((): CSSVars => CARD_STYLE_MAP[form.value.ca
           <div class="px-4 py-3 border-b border-border">
             <p class="text-xs text-muted uppercase tracking-widest">Background</p>
           </div>
-          <div class="p-6">
+          <div class="p-6 space-y-6">
             <BackgroundProviderConfig
               v-model="providerForm"
               :saved-provider="current?.provider"
             />
+            <div class="border-t border-border pt-6">
+              <BackgroundAppearance v-model="appearanceForm" part="background" />
+            </div>
           </div>
         </div>
 
@@ -225,7 +228,7 @@ const previewCardStyle    = computed((): CSSVars => CARD_STYLE_MAP[form.value.ca
             <p class="text-xs text-muted uppercase tracking-widest">Appearance</p>
           </div>
           <div class="p-6">
-            <BackgroundAppearance v-model="appearanceForm" />
+            <BackgroundAppearance v-model="appearanceForm" part="ui" />
           </div>
         </div>
 
