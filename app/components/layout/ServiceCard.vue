@@ -15,6 +15,7 @@ const { online } = storeToRefs(useConnectivityStore())
 const { cardStyle } = useAppearanceSettings()
 const { settings } = useGlobalSettings()
 const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
+const hrefURL = computed(() => props.service.url?.startsWith('http://') || props.service.url?.startsWith('https://') ? props.service.url : 'http://' + props.service.url)
 
 const hc = computed(() => props.service.healthcheck ?? '')
 const isAuto = computed(() => hc.value === '' || hc.value === 'auto')
@@ -122,12 +123,12 @@ const widgetFields = computed(() =>
 
 <template>
   <component
-    :is="!edit && service.url ? 'a' : 'div'"
-    v-bind="!edit && service.url ? { href: service.url, target: linkTarget, rel: 'noopener' } : {}"
+    :is="!edit && hrefURL? 'a' : 'div'"
+    v-bind="!edit && hrefURL ? { href: hrefURL, target: linkTarget, rel: 'noopener' } : {}"
     class="relative group/card rounded-lg border p-3 flex flex-col gap-2 transition-colors"
     :style="cardStyle"
     :class="[
-      !edit && service.url ? 'cursor-pointer' : 'cursor-default',
+      !edit && hrefURL ? 'cursor-pointer' : 'cursor-default',
       pendingDelete ? 'border-danger/60 opacity-50' : pending ? 'border-warning/60 hover:border-warning/80' : 'border-border hover:border-accent/40',
     ]"
   >
@@ -150,7 +151,7 @@ const widgetFields = computed(() =>
       />
 
       <div class="flex-1 min-w-0">
-        <span class="text-sm font-medium text-primary truncate block transition-colors" :class="!edit && service.url ? 'group-hover/card:text-accent' : ''">{{ service.name }}</span>
+        <span class="text-sm font-medium text-primary truncate block transition-colors" :class="!edit && hrefURL ? 'group-hover/card:text-accent' : ''">{{ service.name }}</span>
         <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
         <div v-if="targetLabel" class="flex items-center gap-1 text-[10px] text-muted mt-0.5 min-w-0">
           <FaIcon icon="server" class="opacity-70 flex-shrink-0" />
