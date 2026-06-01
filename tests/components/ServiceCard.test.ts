@@ -167,19 +167,19 @@ describe('ServiceCard.vue — Status dot', () => {
   it('status dot title shows container status text when docker data available', () => {
     dockerStatus.value = { myserver: { sonarr: { state: 'running', status: 'Up 2 hours' } } }
     const wrapper = mountCard({ name: 'Sonarr' })
-    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Up 2 hours')
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Docker container: Up 2 hours')
   })
 
   it('status dot title shows Reachable for ping up', () => {
     pingStatus.value = { 'http://sonarr': true }
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
-    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Reachable')
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('HTTP ping http://sonarr: Reachable')
   })
 
   it('status dot title shows Unreachable for ping down', () => {
     pingStatus.value = { 'http://sonarr': false }
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
-    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Unreachable')
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('HTTP ping http://sonarr: Unreachable')
   })
 })
 
@@ -204,24 +204,24 @@ describe('ServiceCard.vue — Widget data', () => {
     expect(wrapper.text()).toContain('5')
   })
 
-  it('shows the inline reason and tooltip when the widget errors', () => {
+  it('shows the full error inline (label and message) when the widget errors', () => {
     widgetData.value = { Sonarr: { error: { kind: 'auth', status: 401, message: 'Credentials refused' } } }
     const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
-    const el = wrapper.find('.cursor-help')
-    expect(el.text()).toBe('Auth failed (401)')
-    expect(el.attributes('title')).toContain('Credentials refused')
+    const el = wrapper.find('.text-danger\\/70')
+    expect(el.text()).toBe('Auth failed (401) - Credentials refused')
+    expect(el.attributes('title')).toBeUndefined()
   })
 
-  it('labels an unreachable widget error', () => {
+  it('shows the full inline message for an unreachable widget error', () => {
     widgetData.value = { Sonarr: { error: { kind: 'unreachable', message: 'Server not responding (ECONNREFUSED)' } } }
     const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
-    expect(wrapper.text()).toContain('Unreachable')
+    expect(wrapper.text()).toContain('Unreachable - Server not responding (ECONNREFUSED)')
   })
 
-  it('shows no error label while the widget result is still loading', () => {
+  it('shows no error text while the widget result is still loading', () => {
     widgetData.value = {}
     const wrapper = mountCard({ name: 'Sonarr', type: 'sonarr' })
-    expect(wrapper.find('.cursor-help').exists()).toBe(false)
+    expect(wrapper.find('.text-danger\\/70').exists()).toBe(false)
   })
 })
 
@@ -382,10 +382,47 @@ describe('ServiceCard.vue — Healthcheck', () => {
     expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
   })
 
-  it('status dot title shows just Reachable for HTTP ping to service URL', () => {
+  it('auto behavior: falls back to HTTP ping (green) when Docker container is down but service responds', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'exited', status: 'Exited (1) 2 hours ago' } } }
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('HTTP ping http://sonarr: Reachable')
+  })
+
+  it('auto behavior: falls back to HTTP ping (green) when Docker container is unhealthy but service responds', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'running', status: 'Up 2 hours (unhealthy)' } } }
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(true)
+  })
+
+  it('auto behavior: keeps Docker failure color when ping also fails', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'exited', status: 'Exited (1) 2 hours ago' } } }
+    pingStatus.value = { 'http://sonarr': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', server: 'nas' })
+    expect(wrapper.find('span.bg-red-400').exists()).toBe(true)
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Docker container on nas: Exited (1) 2 hours ago')
+  })
+
+  it('auto behavior: keeps Docker failure color when no ping data is available', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'exited', status: 'Exited (1) 2 hours ago' } } }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.bg-red-400').exists()).toBe(true)
+  })
+
+  it('docker-only healthcheck does not fall back to HTTP when container is down', () => {
+    dockerStatus.value = { nas: { sonarr: { state: 'exited', status: 'Exited (1)' } } }
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'docker' })
+    expect(wrapper.find('span.bg-red-400').exists()).toBe(true)
+    expect(wrapper.find('span.bg-green-400').exists()).toBe(false)
+  })
+
+  it('status dot title names HTTP ping with the service URL', () => {
     pingStatus.value = { 'http://sonarr': true }
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http' })
-    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Reachable')
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('HTTP ping http://sonarr: Reachable')
   })
 
   it('status dot title includes custom URL when using custom healthcheck URL', () => {
@@ -474,5 +511,67 @@ describe('ServiceCard.vue — Drag handle', () => {
   it('handle renders grip-vertical icon', () => {
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
     expect(wrapper.find('.service-handle').find('[data-icon="grip-vertical"]').exists()).toBe(true)
+  })
+})
+
+describe('ServiceCard.vue — Server/container label', () => {
+  beforeEach(() => {
+    dockerStatus.value = {}
+    pingStatus.value = {}
+    widgetData.value = {}
+  })
+
+  it('shows server and container as "server / container"', () => {
+    const wrapper = mountCard({ name: 'Sonarr', server: 'roger', container: 'sonarr-app' })
+    expect(wrapper.find('[data-icon="server"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('roger / sonarr-app')
+  })
+
+  it('shows only the container when no server configured', () => {
+    const wrapper = mountCard({ name: 'Sonarr', container: 'sonarr-app' })
+    expect(wrapper.text()).toContain('sonarr-app')
+    expect(wrapper.text()).not.toContain('/')
+  })
+
+  it('shows only the server when no container configured', () => {
+    const wrapper = mountCard({ name: 'Sonarr', server: 'roger' })
+    expect(wrapper.text()).toContain('roger')
+  })
+
+  it('hides the label when neither server nor container is configured', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('[data-icon="server"]').exists()).toBe(false)
+  })
+})
+
+describe('ServiceCard.vue — Healthcheck method in tooltip', () => {
+  beforeEach(() => {
+    dockerStatus.value = {}
+    pingStatus.value = {}
+    widgetData.value = {}
+  })
+
+  it('tooltip names Docker container and includes the server', () => {
+    dockerStatus.value = { roger: { sonarr: { state: 'running', status: 'Up 2 hours' } } }
+    const wrapper = mountCard({ name: 'Sonarr', server: 'roger' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Docker container on roger: Up 2 hours')
+  })
+
+  it('tooltip names Docker container without server when none configured', () => {
+    dockerStatus.value = { roger: { sonarr: { state: 'running', status: 'Up 2 hours' } } }
+    const wrapper = mountCard({ name: 'Sonarr' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('Docker container: Up 2 hours')
+  })
+
+  it('tooltip names HTTP ping and includes the pinged URL', () => {
+    pingStatus.value = { 'http://sonarr': true }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('HTTP ping http://sonarr: Reachable')
+  })
+
+  it('tooltip names HTTP ping with the custom healthcheck URL', () => {
+    pingStatus.value = { 'http://sonarr/health': false }
+    const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr', healthcheck: 'http://sonarr/health' })
+    expect(wrapper.find('span.rounded-full').attributes('title')).toBe('HTTP ping http://sonarr/health: Unreachable')
   })
 })

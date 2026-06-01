@@ -31,7 +31,7 @@ function onUrlInput(url: string) {
 }
 
 const TYPE_OPTIONS: { value: HcType; label: string; description: string }[] = [
-  { value: 'auto', label: 'Auto', description: 'Docker container if configured, otherwise ping service URL' },
+  { value: 'auto', label: 'Auto', description: 'Docker container state, falling back to an HTTP ping of the service URL when the container is missing or unhealthy' },
   { value: 'none', label: 'None', description: 'Disable the status dot for this service' },
   { value: 'docker', label: 'Docker', description: 'Show Docker container state only' },
   { value: 'http', label: 'HTTP', description: 'Ping via HTTP (service URL, or specify a custom URL below)' },
