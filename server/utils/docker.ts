@@ -27,9 +27,12 @@ function httpOverSocket(socketPath: string, path: string): Promise<unknown> {
 
 async function fetchContainersForServer(server: DockerServerConfig): Promise<DockerContainer[]> {
   if (server.host) {
-    const base = server.host.replace(/^tcp:/, 'http:')
-    const origin = server.port ? `${base}:${server.port}` : base
-    return $fetch<DockerContainer[]>(`${origin}/v1.41/containers/json`)
+    const url = new URL(server.host.replace(/^tcp:/, 'http:'))
+    if (server.port)
+      url.port = String(server.port)
+    else if (!url.port)
+      url.port = '2375'
+    return $fetch<DockerContainer[]>(`${url.origin}/v1.41/containers/json`)
   }
 
   const socketPath = server.socket ?? '/var/run/docker.sock'
@@ -80,13 +83,11 @@ export async function pingDockerServer(server: DockerServerConfig): Promise<bool
 
 export function fetchDockerStatus(): Promise<DockerStatus> {
   return cache.fetch(async () => {
-    const servers = loadConfig<Record<string, DockerServerConfig>>('docker.yaml') ?? {}
+    const servers = { ...(loadConfig<Record<string, DockerServerConfig>>('docker.yaml') ?? {}) }
 
-    if (Object.keys(servers).length === 0) {
+    if (!servers.local) {
       const host = process.env.DOCKER_HOST
-      const fallback: DockerServerConfig = host ? { host } : { socket: '/var/run/docker.sock' }
-      const containers = await fetchContainersForServer(fallback).catch(() => [] as DockerContainer[])
-      return { local: toServerStatus(containers) }
+      servers.local = host ? { host } : { socket: '/var/run/docker.sock' }
     }
 
     const entries = await Promise.all(

@@ -118,6 +118,17 @@ describe('fetchDockerStatus', () => {
     expect(globalThis.$fetch).toHaveBeenCalledWith('http://192.168.1.50:2375/v1.41/containers/json')
   })
 
+  it('defaults to docker API port 2375 when host has no port and no port field', async () => {
+    mockLoadConfig.mockReturnValue({
+      server: { host: 'http://100.75.255.89' },
+    })
+    ;(globalThis.$fetch as ReturnType<typeof vi.fn>).mockResolvedValue([])
+
+    await fetchDockerStatus()
+
+    expect(globalThis.$fetch).toHaveBeenCalledWith('http://100.75.255.89:2375/v1.41/containers/json')
+  })
+
   it('replaces tcp: scheme with http: in host URL', async () => {
     mockLoadConfig.mockReturnValue({
       nas: { host: 'tcp://10.0.1.2', port: 2375 },
@@ -143,6 +154,29 @@ describe('fetchDockerStatus', () => {
     expect(Object.keys(result)).toEqual(expect.arrayContaining(['nas', 'vps']))
     expect(result.nas).toHaveProperty('sonarr')
     expect(result.vps).toHaveProperty('nginx')
+  })
+
+  it('always monitors local via the host socket even when remote servers are configured', async () => {
+    mockLoadConfig.mockReturnValue({
+      server: { host: 'http://100.75.255.89:2375' },
+    })
+    mockExistsSync.mockReturnValue(true)
+    ;(globalThis.$fetch as ReturnType<typeof vi.fn>).mockResolvedValue([])
+
+    const result = await fetchDockerStatus()
+
+    expect(Object.keys(result)).toEqual(expect.arrayContaining(['server', 'local']))
+  })
+
+  it('does not override an explicitly configured local server', async () => {
+    mockLoadConfig.mockReturnValue({
+      local: { host: 'http://10.0.1.200:2375' },
+    })
+    ;(globalThis.$fetch as ReturnType<typeof vi.fn>).mockResolvedValue([])
+
+    await fetchDockerStatus()
+
+    expect(globalThis.$fetch).toHaveBeenCalledWith('http://10.0.1.200:2375/v1.41/containers/json')
   })
 
   it('returns empty containers for a failed server, others succeed', async () => {

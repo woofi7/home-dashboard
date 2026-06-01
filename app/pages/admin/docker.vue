@@ -398,7 +398,7 @@ async function save() {
 
     <!-- Info note -->
     <p class="text-xs text-muted/70">
-      When no remote servers are configured, Docker status falls back to <span class="font-mono">local</span> (the host socket or <span class="font-mono">DOCKER_HOST</span> env). If you add remote servers, include <span class="font-mono">local</span> explicitly to keep localhost monitoring.
+      The built-in <span class="font-mono">local</span> server always monitors the host via its Docker socket (or the <span class="font-mono">DOCKER_HOST</span> env), even alongside remote servers. Add a <span class="font-mono">local</span> entry only to override its connection (e.g. a custom socket path).
     </p>
 
   </div>
