@@ -94,6 +94,11 @@ describe('ServiceCard.vue — Link behavior', () => {
     expect((root as HTMLAnchorElement).href).toContain('http://sonarr')
   })
 
+  it('normalizes a scheme-less URL to http in the href', () => {
+    const wrapper = mountCard({ name: 'Sonarr', url: '10.0.1.2:8200' })
+    expect(wrapper.element.getAttribute('href')).toBe('http://10.0.1.2:8200')
+  })
+
   it('renders as <div> when editing=true (even with URL)', () => {
     const wrapper = mountCard({ name: 'Sonarr', url: 'http://sonarr' }, { edit: true })
     const root = wrapper.element as HTMLElement

@@ -79,6 +79,11 @@ describe('BookmarkItem.vue — Settings page', () => {
     expect(wrapper.element.getAttribute('href')).toBe('https://jira.example.com')
   })
 
+  it('normalizes a scheme-less url to http in the href', () => {
+    const wrapper = mountItem({ name: 'Jira', url: 'jira.example.com' })
+    expect(wrapper.element.getAttribute('href')).toBe('http://jira.example.com')
+  })
+
   it('includes rel=noopener', () => {
     const wrapper = mountItem({ name: 'Jira', url: 'https://jira.example.com' })
     expect(wrapper.element.getAttribute('rel')).toBe('noopener')

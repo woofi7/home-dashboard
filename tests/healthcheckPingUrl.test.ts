@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { externalUrl } from '../shared/externalUrl'
 
 type Service = { url?: string; healthcheck?: string; [key: string]: unknown }
 
@@ -6,9 +7,8 @@ function healthcheckPingUrl(service: Service): string | null {
   const hc = service.healthcheck as string | undefined
   if (hc === 'none' || hc === 'docker')
     return null
-  if (hc && hc !== 'http')
-    return hc
-  return (service.url as string | undefined) ?? null
+  const raw = hc && hc !== 'http' ? hc : (service.url as string | undefined)
+  return raw ? externalUrl(raw) : null
 }
 
 describe('healthcheckPingUrl', () => {
@@ -42,5 +42,13 @@ describe('healthcheckPingUrl', () => {
 
   it('returns null for http healthcheck with no service URL', () => {
     expect(healthcheckPingUrl({ healthcheck: 'http' })).toBeNull()
+  })
+
+  it('normalizes a scheme-less service URL to http for the ping', () => {
+    expect(healthcheckPingUrl({ url: '10.0.1.2:8200' })).toBe('http://10.0.1.2:8200')
+  })
+
+  it('normalizes a scheme-less custom healthcheck URL to http for the ping', () => {
+    expect(healthcheckPingUrl({ url: 'http://sonarr', healthcheck: 'sonarr.local/health' })).toBe('http://sonarr.local/health')
   })
 })
