@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { externalUrl } from '#shared/externalUrl'
+
 type Bookmark = { name: string; url: string; icon?: string }
 
 const props = defineProps<{
@@ -19,11 +21,11 @@ const emit = defineEmits<{
 
 const { settings } = useGlobalSettings()
 const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
-const hrefURL = computed(() => props.bookmark.url.startsWith('http://') || props.bookmark.url.startsWith('https://') ? props.bookmark.url : 'https://' + props.bookmark.url)
+const href = computed(() => externalUrl(props.bookmark.url))
 
 function faviconUrl(url: string) {
   try {
-    const { hostname } = new URL(url)
+    const { hostname } = new URL(externalUrl(url))
     return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`
   } catch {
     return null
@@ -34,7 +36,7 @@ function faviconUrl(url: string) {
 <template>
   <component
     :is="edit ? 'div' : 'a'"
-    v-bind="edit ? {} : { href: hrefURL, target: linkTarget, rel: 'noopener' }"
+    v-bind="edit ? {} : { href, target: linkTarget, rel: 'noopener' }"
     class="group/bm relative flex flex-col items-center gap-1.5 transition-opacity"
     :class="[edit ? 'cursor-default' : 'cursor-pointer', pendingDelete ? 'opacity-40' : '']"
     @click="!edit && emit('click')"
@@ -44,7 +46,7 @@ function faviconUrl(url: string) {
       :class="pendingDelete ? 'border-danger/70' : pending ? 'border-warning/60' : 'border-border hover:border-accent/40'"
     >
       <img
-        :src="bookmark.icon || faviconUrl(hrefURL) || ''"
+        :src="bookmark.icon || faviconUrl(bookmark.url) || ''"
         :alt="bookmark.name"
         class="w-3/5 h-3/5 object-contain"
         @error="($event.target as HTMLImageElement).style.display = 'none'"
