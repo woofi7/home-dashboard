@@ -526,10 +526,10 @@ describe('ServiceCard.vue — Server/container label', () => {
     widgetData.value = {}
   })
 
-  it('shows server and container as "server / container"', () => {
+  it('shows server and container as "server/container"', () => {
     const wrapper = mountCard({ name: 'Sonarr', server: 'roger', container: 'sonarr-app' })
     expect(wrapper.find('[data-icon="server"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('roger / sonarr-app')
+    expect(wrapper.text()).toContain('roger/sonarr-app')
   })
 
   it('shows only the container when no server configured', () => {

@@ -94,7 +94,7 @@ const statusColor = computed(() => {
 
 const targetLabel = computed(() => {
   const parts = [props.service.server, props.service.container].filter(Boolean)
-  return parts.length ? parts.join(' / ') : null
+  return parts.length ? parts.join('/') : null
 })
 
 const statusTitle = computed(() => {
@@ -152,11 +152,11 @@ const widgetFields = computed(() =>
 
       <div class="flex-1 min-w-0">
         <span class="text-sm font-medium text-primary truncate block transition-colors" :class="!edit && service.url ? 'group-hover/card:text-accent' : ''">{{ service.name }}</span>
-        <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
         <div v-if="targetLabel" class="flex items-center gap-1 text-[10px] text-muted mt-0.5 min-w-0">
           <FaIcon icon="server" class="opacity-70 flex-shrink-0" />
           <span class="truncate font-mono">{{ targetLabel }}</span>
         </div>
+        <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
       </div>
 
       <div v-if="edit" class="absolute top-1/2 -translate-y-1/2 right-2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
