@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { resolveContainerState } from '~/utils/dockerLookup'
-import { isWidgetError, widgetErrorLabel, widgetErrorTooltip } from '~/utils/widgetError'
+import { isWidgetError, widgetErrorTooltip } from '~/utils/widgetError'
 import { useStatusStore } from '~/stores/status'
 import { useConnectivityStore } from '~/stores/connectivity'
 
@@ -17,6 +17,7 @@ const { settings } = useGlobalSettings()
 const linkTarget = computed(() => settings.value?.linkTarget === 'same-tab' ? '_self' : '_blank')
 
 const hc = computed(() => props.service.healthcheck ?? '')
+const isAuto = computed(() => hc.value === '' || hc.value === 'auto')
 
 const pingUrl = computed(() => {
   if (hc.value === 'none' || hc.value === 'docker')
@@ -37,27 +38,62 @@ const containerState = computed(() => {
   )
 })
 
+const dockerColor = computed(() => {
+  if (!containerState.value)
+    return null
+  const { state, status } = containerState.value
+  if (state === 'running')
+    return status.includes('(unhealthy)') ? 'bg-yellow-400' : 'bg-green-400'
+  if (state === 'restarting' || state === 'paused')
+    return 'bg-yellow-400'
+  return 'bg-red-400'
+})
+
+const pingColor = computed(() => {
+  if (pingUrl.value === null)
+    return null
+  const up = pingStatus.value[pingUrl.value]
+  if (up === true)
+    return 'bg-green-400'
+  if (up === false)
+    return 'bg-red-400'
+  return null
+})
+
+const statusSource = computed<'docker' | 'http' | null>(() => {
+  if (isAuto.value) {
+    if (dockerColor.value === 'bg-green-400')
+      return 'docker'
+    if (pingColor.value === 'bg-green-400')
+      return 'http'
+    if (dockerColor.value)
+      return 'docker'
+    if (pingColor.value)
+      return 'http'
+    return null
+  }
+  if (dockerColor.value)
+    return 'docker'
+  if (pingColor.value)
+    return 'http'
+  return null
+})
+
 const statusColor = computed(() => {
   if (hc.value === 'none')
     return null
   if (!online.value)
     return 'bg-yellow-400'
-  if (containerState.value) {
-    const { state, status } = containerState.value
-    if (state === 'running')
-      return status.includes('(unhealthy)') ? 'bg-yellow-400' : 'bg-green-400'
-    if (state === 'restarting' || state === 'paused')
-      return 'bg-yellow-400'
-    return 'bg-red-400'
-  }
-  if (pingUrl.value !== null) {
-    const up = pingStatus.value[pingUrl.value]
-    if (up === true)
-      return 'bg-green-400'
-    if (up === false)
-      return 'bg-red-400'
-  }
+  if (statusSource.value === 'docker')
+    return dockerColor.value
+  if (statusSource.value === 'http')
+    return pingColor.value
   return null
+})
+
+const targetLabel = computed(() => {
+  const parts = [props.service.server, props.service.container].filter(Boolean)
+  return parts.length ? parts.join(' / ') : null
 })
 
 const statusTitle = computed(() => {
@@ -65,15 +101,14 @@ const statusTitle = computed(() => {
     return null
   if (!online.value)
     return 'Offline: status unavailable'
-  if (containerState.value)
-    return containerState.value.status
-  if (pingUrl.value !== null) {
+  if (statusSource.value === 'docker' && containerState.value) {
+    const where = props.service.server ? ` on ${props.service.server}` : ''
+    return `Docker container${where}: ${containerState.value.status}`
+  }
+  if (statusSource.value === 'http' && pingUrl.value !== null) {
     const up = pingStatus.value[pingUrl.value]
-    if (up !== undefined) {
-      const label = up ? 'Reachable' : 'Unreachable'
-      const isCustomUrl = hc.value && hc.value !== 'http' && hc.value !== 'none' && hc.value !== 'docker'
-      return isCustomUrl ? `${label}: ${pingUrl.value}` : label
-    }
+    const label = up ? 'Reachable' : 'Unreachable'
+    return `HTTP ping ${pingUrl.value}: ${label}`
   }
   return null
 })
@@ -117,6 +152,10 @@ const widgetFields = computed(() =>
       <div class="flex-1 min-w-0">
         <span class="text-sm font-medium text-primary truncate block transition-colors" :class="!edit && service.url ? 'group-hover/card:text-accent' : ''">{{ service.name }}</span>
         <p v-if="service.description" class="text-xs text-muted truncate mt-0.5">{{ service.description }}</p>
+        <div v-if="targetLabel" class="flex items-center gap-1 text-[10px] text-muted mt-0.5 min-w-0">
+          <FaIcon icon="server" class="opacity-70 flex-shrink-0" />
+          <span class="truncate font-mono">{{ targetLabel }}</span>
+        </div>
       </div>
 
       <div v-if="edit" class="absolute top-1/2 -translate-y-1/2 right-2 flex gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity z-10">
@@ -157,8 +196,7 @@ const widgetFields = computed(() =>
     </div>
     <div
       v-else-if="!edit && widgetError"
-      class="text-xs text-danger/70 cursor-help"
-      :title="widgetErrorTooltip(widgetError)"
-    >{{ widgetErrorLabel(widgetError) }}</div>
+      class="text-xs text-danger/70 break-words min-w-0"
+    >{{ widgetErrorTooltip(widgetError) }}</div>
   </component>
 </template>
