@@ -4,7 +4,15 @@ const BLOCKED_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
 
 function sanitize(input: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(input).filter(([k]) => !BLOCKED_KEYS.has(k) && !k.startsWith('__'))
+    Object.entries(input).filter(([k, v]) => {
+      if (BLOCKED_KEYS.has(k) || k.startsWith('__'))
+        return false
+      // A blank admin token means "leave it unchanged" — never overwrite the
+      // configured token with an empty value, which would disable auth.
+      if (k === 'adminToken' && (v === '' || v == null))
+        return false
+      return true
+    })
   )
 }
 

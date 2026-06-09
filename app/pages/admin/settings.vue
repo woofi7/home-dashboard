@@ -1,16 +1,18 @@
 <script setup lang="ts">
 definePageMeta({ ssr: false, layout: 'admin', middleware: 'admin' })
 
-type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
+type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminTokenSet?: boolean; timezone?: string }
 
 const { data: current, refresh } = await useFetch<SettingsConfig>('/api/admin/settings')
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
 
-const form = ref<SettingsConfig>({ title: '', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminToken: '', timezone: '' })
+// adminToken is write-only: the API never sends the stored token back, so the
+// field starts blank and only carries a value when the admin types a new one.
+const form = ref<SettingsConfig & { adminToken: string }>({ title: '', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminToken: '', timezone: '' })
 
 watch(current, (v) => {
   if (v)
-    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, bookmarkAutoSort: v.bookmarkAutoSort ?? false, linkTarget: v.linkTarget ?? 'new-tab', adminToken: v.adminToken ?? '', timezone: v.timezone ?? '' }
+    form.value = { title: v.title ?? '', bookmarkCounterEnabled: v.bookmarkCounterEnabled ?? true, bookmarkAutoSort: v.bookmarkAutoSort ?? false, linkTarget: v.linkTarget ?? 'new-tab', adminToken: '', timezone: v.timezone ?? '' }
 }, { immediate: true })
 
 const isDirty = computed(() => {
@@ -19,13 +21,13 @@ const isDirty = computed(() => {
     || (form.value.bookmarkCounterEnabled ?? true) !== (c?.bookmarkCounterEnabled ?? true)
     || (form.value.bookmarkAutoSort ?? false) !== (c?.bookmarkAutoSort ?? false)
     || (form.value.linkTarget ?? 'new-tab') !== (c?.linkTarget ?? 'new-tab')
-    || (form.value.adminToken ?? '') !== (c?.adminToken ?? '')
+    || form.value.adminToken !== ''
     || (form.value.timezone ?? '') !== (c?.timezone ?? '')
 })
 
 function cancel() {
   if (current.value)
-    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, bookmarkAutoSort: current.value.bookmarkAutoSort ?? false, linkTarget: current.value.linkTarget ?? 'new-tab', adminToken: current.value.adminToken ?? '', timezone: current.value.timezone ?? '' }
+    form.value = { title: current.value.title ?? '', bookmarkCounterEnabled: current.value.bookmarkCounterEnabled ?? true, bookmarkAutoSort: current.value.bookmarkAutoSort ?? false, linkTarget: current.value.linkTarget ?? 'new-tab', adminToken: '', timezone: current.value.timezone ?? '' }
 }
 
 const saving = ref(false)
@@ -37,8 +39,14 @@ async function save() {
   saveError.value = ''
   saveSuccess.value = false
   try {
-    await $fetch('/api/edit/settings', { method: 'POST', body: { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, bookmarkAutoSort: form.value.bookmarkAutoSort, linkTarget: form.value.linkTarget, adminToken: form.value.adminToken, timezone: form.value.timezone } })
+    const body: Record<string, unknown> = { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, bookmarkAutoSort: form.value.bookmarkAutoSort, linkTarget: form.value.linkTarget, timezone: form.value.timezone }
+    // Only send the token when the admin actually entered a new one — a blank
+    // field means "keep the existing token", never "clear it".
+    if (form.value.adminToken !== '')
+      body.adminToken = form.value.adminToken
+    await $fetch('/api/edit/settings', { method: 'POST', body })
     await refresh()
+    form.value.adminToken = ''
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 2000)
   } catch (err: unknown) {
@@ -125,8 +133,8 @@ async function resetClicks() {
       </div>
       <div class="p-6">
         <label class="text-xs text-muted block mb-2">Admin token</label>
-        <SecretInput v-model="form.adminToken" placeholder="Enter admin token" />
-        <p class="text-xs text-muted/60 mt-1">Required to access the admin panel. Keep this secret.</p>
+        <SecretInput v-model="form.adminToken" :placeholder="current?.adminTokenSet ? 'Token set — type to change' : 'Enter admin token'" />
+        <p class="text-xs text-muted/60 mt-1">Required to access the admin panel. Keep this secret. For security it is never displayed; leave blank to keep the current token.</p>
       </div>
     </div>
 

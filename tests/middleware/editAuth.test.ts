@@ -26,9 +26,10 @@ describe('editAuth middleware', () => {
     expect(mockAssertAuth).toHaveBeenCalledTimes(2)
   })
 
-  it('allows GET /api/admin without auth (read-only)', () => {
+  it('requires auth for GET /api/admin too (config/secrets must not leak)', () => {
     run('/api/admin/settings', 'GET')
-    expect(mockAssertAuth).not.toHaveBeenCalled()
+    run('/api/admin/backup', 'GET')
+    expect(mockAssertAuth).toHaveBeenCalledTimes(2)
   })
 
   it('ignores unrelated paths', () => {

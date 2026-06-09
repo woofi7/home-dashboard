@@ -9,10 +9,10 @@ vi.stubGlobal('definePageMeta', vi.fn())
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
 
-type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminToken?: string; timezone?: string }
+type SettingsData = { title?: string; bookmarkCounterEnabled?: boolean; bookmarkAutoSort?: boolean; linkTarget?: 'new-tab' | 'same-tab'; adminTokenSet?: boolean; timezone?: string }
 
 function makeUseFetch(settings: SettingsData = {}, clicks: Record<string, number> = {}) {
-  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminToken: '', timezone: '', ...settings })
+  const settingsData = ref<SettingsData>({ title: 'My Dashboard', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminTokenSet: false, timezone: '', ...settings })
   const clicksData = ref<Record<string, number>>(clicks)
   const refresh = vi.fn().mockImplementation(() => {
     const lastPost = [...mockFetch.mock.calls].reverse()
@@ -227,35 +227,50 @@ describe('admin/settings.vue', () => {
   })
 
   describe('admin token', () => {
-    it('populates the token input from config', async () => {
-      const w = await mountPage({ adminToken: 'secret123' })
-      const input = w.find('input[placeholder="Enter admin token"]')
-      expect(input.element.value).toBe('secret123')
+    it('starts blank — the stored token is never sent to the client', async () => {
+      const w = await mountPage({ adminTokenSet: true })
+      const input = w.find('input[placeholder="Token set — type to change"]')
+      expect(input.element.value).toBe('')
+    })
+
+    it('shows the "enter" placeholder when no token is configured', async () => {
+      const w = await mountPage({ adminTokenSet: false })
+      expect(w.find('input[placeholder="Enter admin token"]').exists()).toBe(true)
     })
 
     it('changing the token marks the form dirty', async () => {
-      const w = await mountPage({ adminToken: 'old' })
-      await w.find('input[placeholder="Enter admin token"]').setValue('new')
+      const w = await mountPage({ adminTokenSet: true })
+      await w.find('input[placeholder="Token set — type to change"]').setValue('new')
       expect(w.text()).toContain('Unsaved changes')
     })
 
-    it('Cancel resets the token to its original value', async () => {
-      const w = await mountPage({ adminToken: 'original' })
-      await w.find('input[placeholder="Enter admin token"]').setValue('changed')
+    it('Cancel clears the typed token back to blank', async () => {
+      const w = await mountPage({ adminTokenSet: true })
+      await w.find('input[placeholder="Token set — type to change"]').setValue('changed')
       await w.findAll('button').find(b => b.text() === 'Cancel')!.trigger('click')
-      expect(w.find('input[placeholder="Enter admin token"]').element.value).toBe('original')
+      expect(w.find('input[placeholder="Token set — type to change"]').element.value).toBe('')
     })
 
-    it('saves adminToken in POST body', async () => {
+    it('sends adminToken in the POST body only when a new one is typed', async () => {
       mockFetch.mockResolvedValueOnce({})
-      const w = await mountPage({ adminToken: 'old' })
-      await w.find('input[placeholder="Enter admin token"]').setValue('newtoken')
+      const w = await mountPage({ adminTokenSet: true })
+      await w.find('input[placeholder="Token set — type to change"]').setValue('newtoken')
       await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
       await flushPromises()
       expect(mockFetch).toHaveBeenCalledWith(
         '/api/edit/settings',
         expect.objectContaining({ body: expect.objectContaining({ adminToken: 'newtoken' }) }),
       )
+    })
+
+    it('omits adminToken from the POST body when left blank', async () => {
+      mockFetch.mockResolvedValueOnce({})
+      const w = await mountPage({ title: 'Old', adminTokenSet: true })
+      await w.find('input[type="text"]').setValue('New')
+      await w.findAll('button').find(b => b.text() === 'Save')!.trigger('click')
+      await flushPromises()
+      const body = (mockFetch.mock.calls[0]![1] as { body: Record<string, unknown> }).body
+      expect('adminToken' in body).toBe(false)
     })
   })
 
