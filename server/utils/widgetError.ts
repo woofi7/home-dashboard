@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import type { WidgetResult } from '../types'
 import type { ServiceCredentials } from './auth'
 import { WIDGETS } from './widgetRegistry'
+import { isConfiguredWidgetHost } from './widgetHostAllowlist'
 
 export type WidgetErrorKind =
   | 'auth'
@@ -72,6 +73,12 @@ export function widgetEndpoint(event: H3Event, fetchFn: WidgetFetcher, required:
   for (const field of required) {
     if (!creds[field as keyof ServiceCredentials])
       return Promise.resolve({ error: { kind: 'config', message: `${field} is required` } })
+  }
+  // SSRF guard: these endpoints are unauthenticated and take a client-supplied
+  // `url`. Only allow fetching hosts that already exist in the saved config, so
+  // the server can't be used to probe arbitrary internal/metadata addresses.
+  if (!isConfiguredWidgetHost(creds.url)) {
+    return Promise.resolve({ error: { kind: 'config', message: 'URL is not a configured host' } })
   }
   return runWidget(fetchFn, creds)
 }

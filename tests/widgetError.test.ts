@@ -1,6 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../server/utils/widgetRegistry', () => ({ WIDGETS: { sonarr: vi.fn() } }))
+const { mockIsConfiguredWidgetHost } = vi.hoisted(() => ({ mockIsConfiguredWidgetHost: vi.fn(() => true) }))
+vi.mock('../server/utils/widgetHostAllowlist', () => ({ isConfiguredWidgetHost: mockIsConfiguredWidgetHost }))
 vi.stubGlobal('getQuery', vi.fn())
 
 import { classifyWidgetError, runWidget, widgetEndpoint, isWidgetError } from '../server/utils/widgetError'
@@ -62,6 +64,11 @@ describe('runWidget', () => {
 })
 
 describe('widgetEndpoint', () => {
+  beforeEach(() => {
+    mockIsConfiguredWidgetHost.mockReset()
+    mockIsConfiguredWidgetHost.mockReturnValue(true)
+  })
+
   it('returns a config error when a required cred is missing', async () => {
     (getQuery as ReturnType<typeof vi.fn>).mockReturnValue({ url: 'http://x' })
     const r = await widgetEndpoint({} as never, vi.fn(), ['url', 'apiKey'])
@@ -69,11 +76,20 @@ describe('widgetEndpoint', () => {
     expect(isWidgetError(r) && r.error.message).toContain('apiKey')
   })
 
-  it('runs the fetcher when required creds are present', async () => {
+  it('runs the fetcher when required creds are present and host is configured', async () => {
     (getQuery as ReturnType<typeof vi.fn>).mockReturnValue({ url: 'http://x', apiKey: 'k' })
     const fn = vi.fn().mockResolvedValue({ fields: [] })
     const r = await widgetEndpoint({} as never, fn, ['url', 'apiKey'])
     expect(fn).toHaveBeenCalled()
     expect(isWidgetError(r)).toBe(false)
+  })
+
+  it('blocks fetching a host that is not in the saved config (SSRF guard)', async () => {
+    mockIsConfiguredWidgetHost.mockReturnValue(false)
+    ;(getQuery as ReturnType<typeof vi.fn>).mockReturnValue({ url: 'http://169.254.169.254/latest/meta-data', apiKey: 'k' })
+    const fn = vi.fn().mockResolvedValue({ fields: [] })
+    const r = await widgetEndpoint({} as never, fn, ['url', 'apiKey'])
+    expect(fn).not.toHaveBeenCalled()
+    expect(isWidgetError(r) && r.error.kind).toBe('config')
   })
 })
