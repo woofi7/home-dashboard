@@ -16,11 +16,23 @@ function loadEnv(configDir: string) {
   envLoaded = true
 }
 
+// Variables that must never be exposed through ${VAR} substitution, even if
+// they exist in the environment. Substituted values can be read back through
+// public endpoints (e.g. /api/background, /api/config), so the app's own auth
+// secrets must not be reachable this way — otherwise a config value like
+// "${ADMIN_TOKEN}" would leak the admin token / session key to anonymous users.
+const PROTECTED_ENV_VARS = new Set(['ADMIN_TOKEN', 'SESSION_KEY'])
+
 function substituteVars(value: string): string {
   return value.replace(/\$\{([^}]+)}/g, (_, key) => {
-    const val = process.env[key]
+    const name = String(key).trim()
+    if (PROTECTED_ENV_VARS.has(name)) {
+      console.warn(`[config] Refusing to substitute protected variable "${name}"`)
+      return ''
+    }
+    const val = process.env[name]
     if (val === undefined) {
-      console.warn(`[config] Environment variable "${key}" is not set; substituting empty string`)
+      console.warn(`[config] Environment variable "${name}" is not set; substituting empty string`)
     }
     return val ?? ''
   })
