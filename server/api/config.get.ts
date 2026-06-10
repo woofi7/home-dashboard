@@ -40,6 +40,8 @@ export default defineEventHandler(() => {
     settings: stripCredentials(loadConfig<Settings>('settings.yaml') ?? {}),
     services: sanitizedServices,
     bookmarks: loadConfig<BookmarkGroup[]>('bookmarks.yaml') ?? [],
-    widgets: loadConfig<Widget[]>('widgets.yaml') ?? [],
+    // Strip credential-like keys here too: this endpoint is public and the
+    // widgets array could carry a token/apiKey if one is ever added to a widget.
+    widgets: stripCredentials(loadConfig<Widget[]>('widgets.yaml') ?? []) as Widget[],
   }
 })
