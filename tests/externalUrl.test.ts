@@ -34,6 +34,25 @@ describe('externalUrl', () => {
   it('trims surrounding whitespace before normalizing', () => {
     expect(externalUrl('  example.com  ')).toBe('http://example.com')
   })
+
+  it('neutralizes a javascript: URL', () => {
+    expect(externalUrl('javascript:alert(1)')).toBe('#')
+  })
+
+  it('neutralizes the javascript:// comment-trick bypass', () => {
+    expect(externalUrl('javascript://%0aalert(document.cookie)')).toBe('#')
+    expect(externalUrl('JavaScript://comment%0Aalert(1)')).toBe('#')
+  })
+
+  it('neutralizes data: and vbscript: URLs', () => {
+    expect(externalUrl('data:text/html,<script>alert(1)</script>')).toBe('#')
+    expect(externalUrl('vbscript:msgbox(1)')).toBe('#')
+  })
+
+  it('neutralizes javascript: hidden behind embedded control characters', () => {
+    expect(externalUrl('java\tscript:alert(1)')).toBe('#')
+    expect(externalUrl('java\nscript:alert(1)')).toBe('#')
+  })
 })
 
 describe('fetchCandidates', () => {
