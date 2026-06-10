@@ -37,13 +37,14 @@ describe('GET /api/admin/calendar', () => {
   it('returns empty strings and false when no google config', () => {
     mockLoadConfigRaw.mockReturnValue({})
     const result = (getHandler as (e: unknown) => unknown)(null)
-    expect(result).toMatchObject({ clientId: '', clientSecret: '', hasRefreshToken: false })
+    expect(result).toMatchObject({ clientId: '', hasClientSecret: false, hasRefreshToken: false })
   })
 
-  it('returns clientId and clientSecret from config', () => {
+  it('returns clientId and a hasClientSecret flag, never the secret itself', () => {
     mockLoadConfigRaw.mockReturnValue({ google: { clientId: 'cid', clientSecret: 'csec' } })
-    const result = (getHandler as (e: unknown) => unknown)(null)
-    expect(result).toMatchObject({ clientId: 'cid', clientSecret: 'csec', hasRefreshToken: false })
+    const result = (getHandler as (e: unknown) => unknown)(null) as Record<string, unknown>
+    expect(result).toMatchObject({ clientId: 'cid', hasClientSecret: true, hasRefreshToken: false })
+    expect(result.clientSecret).toBeUndefined()
   })
 
   it('returns hasRefreshToken true when refreshToken present', () => {
@@ -85,6 +86,15 @@ describe('POST /api/admin/calendar', () => {
     expect(mockWriteConfig).toHaveBeenCalledWith('settings.yaml', expect.objectContaining({
       google: expect.objectContaining({ clientId: 'new-id', clientSecret: 'new-sec' }),
     }))
+  })
+
+  it('does not overwrite the stored secret when clientSecret is blank', async () => {
+    mockLoadConfigRaw.mockReturnValue({ google: { clientSecret: 'kept-secret' } })
+    vi.mocked(globalThis.readBody as (...args: unknown[]) => Promise<unknown>).mockResolvedValue({ clientId: 'new-id', clientSecret: '' })
+    await (postHandler as (e: unknown) => Promise<unknown>)(null)
+    const written = mockWriteConfig.mock.calls[0][1] as { google: Record<string, unknown> }
+    expect(written.google.clientSecret).toBe('kept-secret')
+    expect(written.google.clientId).toBe('new-id')
   })
 
   it('preserves existing refreshToken when saving credentials', async () => {

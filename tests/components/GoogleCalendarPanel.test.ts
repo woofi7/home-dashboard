@@ -9,7 +9,7 @@ vi.stubGlobal('$fetch', mockFetch)
 
 type Config = {
   clientId: string
-  clientSecret: string
+  hasClientSecret: boolean
   hasRefreshToken: boolean
   showEvents: boolean
   showTasks: boolean
@@ -23,7 +23,7 @@ let lastCalendarRefresh = vi.fn()
 function makeUseFetch(config: Partial<Config> = {}, calendar: { tasksError?: string | null } = {}) {
   const adminData = ref<Config>({
     clientId:        config.clientId        ?? '',
-    clientSecret:    config.clientSecret    ?? '',
+    hasClientSecret: config.hasClientSecret ?? false,
     hasRefreshToken: config.hasRefreshToken ?? false,
     showEvents:      config.showEvents      ?? true,
     showTasks:       config.showTasks       ?? false,
@@ -129,7 +129,7 @@ describe('GoogleCalendarPanel.vue', () => {
     })
 
     it('step 3 shows checkmark icon when credentials are saved', async () => {
-      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec' })
+      const w = await mountPanel({ clientId: 'id', hasClientSecret: true })
       const checkmarks = w.findAll('[data-icon="check"]')
       expect(checkmarks.length).toBeGreaterThan(0)
     })
@@ -148,12 +148,12 @@ describe('GoogleCalendarPanel.vue', () => {
     })
 
     it('populates inputs with current config', async () => {
-      const w = await mountPanel({ clientId: 'my-id', clientSecret: 'my-secret' })
+      const w = await mountPanel({ clientId: 'my-id', hasClientSecret: true })
       expect((w.find('input[placeholder="Client ID"]').element as HTMLInputElement).value).toBe('my-id')
     })
 
     it('Save button appears only when dirty', async () => {
-      const w = await mountPanel({ clientId: 'x', clientSecret: 'y' })
+      const w = await mountPanel({ clientId: 'x', hasClientSecret: true })
       expect(w.findAll('button').some(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)).toBe(false)
       await w.find('input[placeholder="Client ID"]').setValue('changed')
       expect(w.findAll('button').some(b => b.text() === 'Save' && !(b.element as HTMLButtonElement).disabled)).toBe(true)
@@ -198,13 +198,13 @@ describe('GoogleCalendarPanel.vue', () => {
 
   describe('connect step', () => {
     it('shows Connect button when credentials saved but not connected', async () => {
-      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: false })
+      const w = await mountPanel({ clientId: 'id', hasClientSecret: true, hasRefreshToken: false })
       expect(w.find('a[href="/api/auth/google"]').exists()).toBe(true)
       expect(w.find('a[href="/api/auth/google"]').text()).toContain('Connect Google Account')
     })
 
     it('collapses steps when connected', async () => {
-      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      const w = await mountPanel({ clientId: 'id', hasClientSecret: true, hasRefreshToken: true })
       expect(w.text()).not.toContain('Create a Google Cloud project')
     })
 
@@ -220,7 +220,7 @@ describe('GoogleCalendarPanel.vue', () => {
     })
 
     it('shows Disconnect button when connected and steps expanded', async () => {
-      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      const w = await mountPanel({ clientId: 'id', hasClientSecret: true, hasRefreshToken: true })
       await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
       await w.vm.$nextTick()
       expect(w.findAll('button').some(b => b.text() === 'Disconnect account')).toBe(true)
@@ -228,7 +228,7 @@ describe('GoogleCalendarPanel.vue', () => {
 
     it('calls disconnect endpoint on click', async () => {
       mockFetch.mockResolvedValueOnce({ ok: true })
-      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      const w = await mountPanel({ clientId: 'id', hasClientSecret: true, hasRefreshToken: true })
       await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
       await w.vm.$nextTick()
       await w.findAll('button').find(b => b.text() === 'Disconnect account')!.trigger('click')
@@ -238,7 +238,7 @@ describe('GoogleCalendarPanel.vue', () => {
 
     it('shows disconnect error on failure', async () => {
       mockFetch.mockRejectedValueOnce({ data: { message: 'Network error' } })
-      const w = await mountPanel({ clientId: 'id', clientSecret: 'sec', hasRefreshToken: true })
+      const w = await mountPanel({ clientId: 'id', hasClientSecret: true, hasRefreshToken: true })
       await w.find('button[class*="cursor-pointer w-full"]').trigger('click')
       await w.vm.$nextTick()
       await w.findAll('button').find(b => b.text() === 'Disconnect account')!.trigger('click')

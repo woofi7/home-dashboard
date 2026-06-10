@@ -18,7 +18,9 @@ export default defineEventHandler(async (event) => {
   const g = ((settings.google ?? {}) as Record<string, unknown>)
 
   if (body.clientId !== undefined) g.clientId = body.clientId
-  if (body.clientSecret !== undefined) g.clientSecret = body.clientSecret
+  // Blank means "leave unchanged" — the secret is write-only in the UI and is
+  // never sent back, so an empty value must not wipe the stored secret.
+  if (body.clientSecret) g.clientSecret = body.clientSecret
 
   if (body.showEvents !== undefined || body.showTasks !== undefined || body.daysAhead !== undefined || body.taskMode !== undefined) {
     const cal = ((g.calendar ?? {}) as Record<string, unknown>)

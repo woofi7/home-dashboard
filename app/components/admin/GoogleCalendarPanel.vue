@@ -1,7 +1,7 @@
 <script setup lang="ts">
 type CalendarConfig = {
   clientId: string
-  clientSecret: string
+  hasClientSecret: boolean
   hasRefreshToken: boolean
   showEvents: boolean
   showTasks: boolean
@@ -19,9 +19,10 @@ const form = ref({ clientId: '', clientSecret: '' })
 const display = ref({ showEvents: true, showTasks: false, daysAhead: 2, taskMode: 'all' })
 
 watch(current, (val) => {
+  // clientSecret is write-only — never prefilled, only set when the admin types.
   form.value = {
-    clientId:     val?.clientId     ?? '',
-    clientSecret: val?.clientSecret ?? '',
+    clientId:     val?.clientId ?? '',
+    clientSecret: '',
   }
   display.value = {
     showEvents: val?.showEvents ?? true,
@@ -33,7 +34,7 @@ watch(current, (val) => {
 
 const isDirty = computed(() =>
   form.value.clientId !== (current.value?.clientId ?? '') ||
-  form.value.clientSecret !== (current.value?.clientSecret ?? '')
+  form.value.clientSecret !== ''
 )
 
 const isDisplayDirty = computed(() =>
@@ -75,8 +76,8 @@ async function saveDisplay() {
 
 function cancel() {
   form.value = {
-    clientId:     current.value?.clientId     ?? '',
-    clientSecret: current.value?.clientSecret ?? '',
+    clientId:     current.value?.clientId ?? '',
+    clientSecret: '',
   }
 }
 
@@ -89,8 +90,13 @@ async function save() {
   saveError.value = ''
   saveSuccess.value = false
   try {
-    await $fetch('/api/admin/calendar', { method: 'POST', body: form.value })
+    const body: Record<string, unknown> = { clientId: form.value.clientId }
+    // Only send the secret when a new one was typed; blank keeps the stored one.
+    if (form.value.clientSecret !== '')
+      body.clientSecret = form.value.clientSecret
+    await $fetch('/api/admin/calendar', { method: 'POST', body })
     await refreshCurrent()
+    form.value.clientSecret = ''
     saveSuccess.value = true
     setTimeout(() => { saveSuccess.value = false }, 2000)
   } catch (err: unknown) {
@@ -118,7 +124,7 @@ async function disconnect() {
 
 const redirectUri = computed(() => import.meta.client ? `${window.location.origin}/api/auth/google/callback` : '')
 
-const hasCredentials = computed(() => !!(current.value?.clientId && current.value?.clientSecret))
+const hasCredentials = computed(() => !!(current.value?.clientId && current.value?.hasClientSecret))
 const isConnected = computed(() => !!current.value?.hasRefreshToken)
 
 const justConnected = computed(() => route.query.connected === '1')
@@ -253,7 +259,7 @@ watch(isConnected, (v) => { if (v) stepsExpanded.value = false })
 
             <div>
               <label class="text-xs text-muted block mb-1">Client Secret</label>
-              <SecretInput v-model="form.clientSecret" placeholder="Client Secret" suggested-var="GOOGLE_CLIENT_SECRET" />
+              <SecretInput v-model="form.clientSecret" :placeholder="current?.hasClientSecret ? 'Client Secret set — type to change' : 'Client Secret'" suggested-var="GOOGLE_CLIENT_SECRET" />
             </div>
 
             <div v-if="isDirty" class="flex items-center gap-2 pt-1">
