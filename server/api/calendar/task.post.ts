@@ -1,8 +1,13 @@
 import { getGoogleCreds, getGoogleAccessToken } from '../../utils/googleToken'
+import { assertAuth } from '../../utils/adminAuth'
 
 type Body = { listId?: string; taskId?: string }
 
 export default defineEventHandler(async (event) => {
+  // Completing a task writes to the connected Google account, so it requires an
+  // authenticated admin even though the dashboard is otherwise public.
+  assertAuth(event)
+
   const { listId, taskId } = await readBody<Body>(event)
   if (!listId || !taskId)
     throw createError({ statusCode: 400, message: 'listId and taskId are required' })

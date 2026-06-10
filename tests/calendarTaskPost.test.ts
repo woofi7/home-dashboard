@@ -5,6 +5,9 @@ vi.mock('../server/utils/googleToken', () => ({
   getGoogleAccessToken: vi.fn(),
 }))
 
+const { mockAssertAuth } = vi.hoisted(() => ({ mockAssertAuth: vi.fn() }))
+vi.mock('../server/utils/adminAuth', () => ({ assertAuth: mockAssertAuth }))
+
 vi.stubGlobal('readBody', vi.fn())
 const mockFetch = vi.fn()
 vi.stubGlobal('$fetch', mockFetch)
@@ -21,6 +24,7 @@ beforeEach(() => {
   creds.mockReset()
   token.mockReset()
   readBody.mockReset()
+  mockAssertAuth.mockReset()
 })
 
 function run() {
@@ -28,6 +32,13 @@ function run() {
 }
 
 describe('POST /api/calendar/task', () => {
+  it('requires authentication', async () => {
+    mockAssertAuth.mockImplementation(() => { throw new Error('401: Unauthorized') })
+    readBody.mockResolvedValue({ listId: 'l1', taskId: 't1' })
+    await expect(run()).rejects.toThrow('401')
+    expect(mockFetch).not.toHaveBeenCalled()
+  })
+
   it('PATCHes the task to completed', async () => {
     readBody.mockResolvedValue({ listId: 'l1', taskId: 't1' })
     creds.mockReturnValue({ clientId: 'c', clientSecret: 's', refreshToken: 'r' })
