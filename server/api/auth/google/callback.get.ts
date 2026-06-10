@@ -2,9 +2,18 @@ import { loadConfig, writeConfig } from '#server/utils/config'
 import { clearGoogleToken } from '#server/utils/googleToken'
 
 export default defineEventHandler(async (event) => {
-  const { code } = getQuery(event) as Record<string, string>
+  const { code, state } = getQuery(event) as Record<string, string>
   if (!code)
     throw createError({ statusCode: 400, message: 'Missing code' })
+
+  // CSRF: the callback writes the returned refresh token into settings.yaml, so
+  // it must only accept a flow that the authenticated admin started. The `state`
+  // must match the single-use cookie set by /api/auth/google. Without this an
+  // attacker could replay an authorization code and inject their own token.
+  const expectedState = getCookie(event, 'hm_oauth_state')
+  deleteCookie(event, 'hm_oauth_state', { path: '/' })
+  if (!state || !expectedState || state !== expectedState)
+    throw createError({ statusCode: 400, message: 'Invalid OAuth state' })
 
   const settings = loadConfig<Record<string, unknown>>('settings.yaml')!
   const { clientId, clientSecret } = (settings.google ?? {}) as Record<string, string | undefined>
