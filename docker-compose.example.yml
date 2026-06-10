@@ -11,7 +11,13 @@ services:
       - PUID=1000
       - PGID=1000
       - CONFIG_DIR=/config
+      # Comma-separated Host header allow-list (DNS-rebinding hardening).
+      # "*" disables the check — set this to the hostname(s) you actually serve,
+      # e.g. ALLOWED_HOSTS=home.example.com,192.168.1.10
       - ALLOWED_HOSTS=*
+      # Set ADMIN_TOKEN here to configure the admin password via env instead of
+      # the UI. Generate a long random value, e.g. `openssl rand -hex 32`.
+      # - ADMIN_TOKEN=replace-with-a-long-random-secret
       # Inject secrets directly — referenced as ${VAR} in YAML files
       # - SONARR_KEY=your-api-key
       # - RADARR_KEY=your-api-key

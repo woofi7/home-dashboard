@@ -143,7 +143,10 @@ export default defineNuxtConfig({
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',
         'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http: blob:; connect-src 'self' https: http:; font-src 'self' data:; frame-ancestors 'none';",
+        // Note: 'unsafe-inline' is kept for script-src because Nuxt injects an
+        // inline hydration payload; removing it needs a nonce/hash setup.
+        // 'unsafe-eval' is dropped — the production build does not need it.
+        'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http: blob:; connect-src 'self' https: http:; font-src 'self' data:; frame-ancestors 'none';",
       },
     },
   },
