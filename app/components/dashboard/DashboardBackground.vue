@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { externalUrl } from '#shared/externalUrl'
+
+// The author link comes from the photo provider's API — guard the scheme
+// before it reaches an href.
+const safeHref = (u?: string) => (u ? externalUrl(u) : undefined)
+
 type Appearance = {
   position?: string
   overlay?: number
@@ -100,7 +106,7 @@ const fadeDuration = computed(() => {
     </div>
     <a
       v-if="background.author"
-      :href="background.authorLink"
+      :href="safeHref(background.authorLink)"
       target="_blank"
       rel="noopener"
       class="fixed bottom-2 right-2 text-[10px] text-white/30 hover:text-white/60 transition-colors z-10"

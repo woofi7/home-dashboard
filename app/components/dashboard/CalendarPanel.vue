@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { externalUrl } from '#shared/externalUrl'
+
+// Calendar/task URLs come from the Google API. Run them through the scheme
+// guard so a malicious/unexpected javascript: link can never reach an href.
+const safeHref = (u?: string) => (u ? externalUrl(u) : undefined)
+
 type CalEvent = { id: string; summary: string; url: string; start?: string; end?: string; color?: string }
 type CalDay   = { label: string; date: string; timed: CalEvent[]; allDay: CalEvent[] }
 type CalTask  = { id: string; listId: string; title: string; due?: string; notes?: string; url: string }
@@ -86,7 +92,7 @@ function isOverdue(due?: string) {
               >{{ t.due ? formatDue(t.due) : 'No date' }}</span>
               <a
                 v-if="t.url"
-                :href="t.url"
+                :href="safeHref(t.url)"
                 target="_blank"
                 rel="noopener"
                 :aria-label="`Open ${t.title} in Google Tasks`"
@@ -104,7 +110,7 @@ function isOverdue(due?: string) {
             <a
               v-for="e in day.allDay"
               :key="e.id"
-              :href="e.url"
+              :href="safeHref(e.url)"
               target="_blank"
               rel="noopener"
               class="flex items-center gap-2 rounded-lg px-3 py-1.5 border border-border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
@@ -120,7 +126,7 @@ function isOverdue(due?: string) {
             <a
               v-for="e in day.timed"
               :key="e.id"
-              :href="e.url"
+              :href="safeHref(e.url)"
               target="_blank"
               rel="noopener"
               class="flex items-center gap-2 rounded-lg px-3 py-1.5 border text-left hover:border-accent/40 transition-colors no-underline group mb-1"
