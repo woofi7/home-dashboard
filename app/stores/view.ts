@@ -5,12 +5,14 @@ type Background = { thumb: string; full: string; author?: string; authorLink?: s
 type Weather = Record<string, unknown>
 type CalTask = { id: string; listId: string; title: string; due?: string; url: string }
 type Calendar = { authorized: boolean; days: unknown[]; tasks: CalTask[] }
+type PublicTransit = { passes: { name: string; count: number }[]; url: string }
 
 export const useViewStore = defineStore('view', {
   state: () => ({
     weather: null as Weather | null,
     calendar: null as Calendar | null,
     background: null as Background | null,
+    publictransit: null as PublicTransit | null,
     lastUpdated: 0,
   }),
   actions: {
@@ -22,6 +24,7 @@ export const useViewStore = defineStore('view', {
         this.refreshWeather(),
         this.refreshCalendar(),
         this.refreshBackground(),
+        this.refreshPublictransit(),
       ])
     },
     async refreshWeather() {
@@ -44,6 +47,14 @@ export const useViewStore = defineStore('view', {
       const result = await apiFetch<Background>('/api/background').catch(() => null)
       if (result) {
         this.background = result.data
+        if (result.at > 0)
+          this.lastUpdated = Math.max(this.lastUpdated, result.at)
+      }
+    },
+    async refreshPublictransit() {
+      const result = await apiFetch<PublicTransit | null>('/api/publictransit').catch(() => null)
+      if (result) {
+        this.publictransit = result.data
         if (result.at > 0)
           this.lastUpdated = Math.max(this.lastUpdated, result.at)
       }

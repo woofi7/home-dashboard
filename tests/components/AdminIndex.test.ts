@@ -85,8 +85,19 @@ describe('admin/index.vue', () => {
     expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
   })
 
-  it('renders 7 setting nav cards (links)', () => {
-    expect(mountPage().findAll('a').length).toBe(7)
+  it('renders 8 setting nav cards (links)', () => {
+    expect(mountPage().findAll('a').length).toBe(8)
+  })
+
+  it('renders a Public Transit card linking to /admin/publictransit', () => {
+    const links = mountPage().findAll('a')
+    const card = links.find(l => l.attributes('href') === '/admin/publictransit')
+    expect(card).toBeTruthy()
+    expect(card!.text()).toContain('Public Transit')
+  })
+
+  it('uses ticket icon for the Bus Pass card', () => {
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'ticket')).toBe(true)
   })
 
   it('renders a Backup & Restore card linking to /admin/backup', () => {

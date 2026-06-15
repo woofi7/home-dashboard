@@ -57,6 +57,15 @@ watch([() => useAuth().editEnabled.value, () => useAuth().needsLogin.value], ([e
       </NuxtLink>
 
       <NuxtLink
+        to="/admin/publictransit"
+        class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer"
+      >
+        <FaIcon icon="ticket" class="text-2xl text-muted group-hover:text-accent transition-colors mb-3" />
+        <p class="font-medium text-primary group-hover:text-accent transition-colors">Public Transit</p>
+        <p class="text-xs text-muted mt-1">Transit card URL for remaining pass counts</p>
+      </NuxtLink>
+
+      <NuxtLink
         to="/admin/weather"
         class="group rounded-xl border border-border bg-surface p-6 hover:border-accent/50 hover:bg-elevated transition-colors cursor-pointer"
       >

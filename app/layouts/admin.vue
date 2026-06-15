@@ -5,6 +5,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin': 'Admin',
   '/admin/settings': 'General',
   '/admin/appearance': 'Appearance',
+  '/admin/publictransit': 'Public Transit',
   '/admin/weather': 'Weather',
   '/admin/widgets': 'Widget Fields',
   '/admin/calendar': 'Google Calendar',
