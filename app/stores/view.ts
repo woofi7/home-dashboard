@@ -18,26 +18,35 @@ export const useViewStore = defineStore('view', {
       await this.refresh()
     },
     async refresh() {
-      const results = await Promise.allSettled([
-        apiFetch<Weather>('/api/weather'),
-        apiFetch<Calendar>('/api/calendar'),
-        apiFetch<Background>('/api/background'),
+      await Promise.all([
+        this.refreshWeather(),
+        this.refreshCalendar(),
+        this.refreshBackground(),
       ])
-      let latest = 0
-      if (results[0].status === 'fulfilled') {
-        this.weather = results[0].value.data
-        latest = Math.max(latest, results[0].value.at)
+    },
+    async refreshWeather() {
+      const result = await apiFetch<Weather>('/api/weather').catch(() => null)
+      if (result) {
+        this.weather = result.data
+        if (result.at > 0)
+          this.lastUpdated = Math.max(this.lastUpdated, result.at)
       }
-      if (results[1].status === 'fulfilled') {
-        this.calendar = results[1].value.data
-        latest = Math.max(latest, results[1].value.at)
+    },
+    async refreshCalendar() {
+      const result = await apiFetch<Calendar>('/api/calendar').catch(() => null)
+      if (result) {
+        this.calendar = result.data
+        if (result.at > 0)
+          this.lastUpdated = Math.max(this.lastUpdated, result.at)
       }
-      if (results[2].status === 'fulfilled') {
-        this.background = results[2].value.data
-        latest = Math.max(latest, results[2].value.at)
+    },
+    async refreshBackground() {
+      const result = await apiFetch<Background>('/api/background').catch(() => null)
+      if (result) {
+        this.background = result.data
+        if (result.at > 0)
+          this.lastUpdated = Math.max(this.lastUpdated, result.at)
       }
-      if (latest > 0)
-        this.lastUpdated = latest
     },
     async completeTask(task: CalTask) {
       if (!this.calendar)

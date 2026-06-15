@@ -13,7 +13,7 @@ const DAYS_OPTIONS = [1, 2, 3, 5, 7, 14, 30]
 
 const route = useRoute()
 
-const { data: current, refresh: refreshCurrent } = await useFetch<CalendarConfig>('/api/admin/calendar')
+const { data: current, refresh: refreshCurrent } = useFetch<CalendarConfig>('/api/admin/calendar')
 
 const form = ref({ clientId: '', clientSecret: '' })
 const display = ref({ showEvents: true, showTasks: false, daysAhead: 2, taskMode: 'all' })

@@ -4,8 +4,6 @@ definePageMeta({ ssr: false, layout: 'admin', middleware: 'admin' })
 
 <template>
   <div class="px-4 md:px-6 py-6">
-    <Suspense>
-      <GoogleCalendarPanel />
-    </Suspense>
+    <GoogleCalendarPanel />
   </div>
 </template>
