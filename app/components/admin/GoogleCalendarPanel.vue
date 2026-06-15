@@ -19,7 +19,6 @@ const form = ref({ clientId: '', clientSecret: '' })
 const display = ref({ showEvents: true, showTasks: false, daysAhead: 2, taskMode: 'all' })
 
 watch(current, (val) => {
-  // clientSecret is write-only — never prefilled, only set when the admin types.
   form.value = {
     clientId:     val?.clientId ?? '',
     clientSecret: '',
@@ -91,7 +90,6 @@ async function save() {
   saveSuccess.value = false
   try {
     const body: Record<string, unknown> = { clientId: form.value.clientId }
-    // Only send the secret when a new one was typed; blank keeps the stored one.
     if (form.value.clientSecret !== '')
       body.clientSecret = form.value.clientSecret
     await $fetch('/api/admin/calendar', { method: 'POST', body })

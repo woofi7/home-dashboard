@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { externalUrl } from '#shared/externalUrl'
 
-// The author link comes from the photo provider's API — guard the scheme
-// before it reaches an href.
 const safeHref = (u?: string) => (u ? externalUrl(u) : undefined)
 
 type Appearance = {

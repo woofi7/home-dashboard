@@ -4,8 +4,6 @@ import { externalUrl } from '#shared/externalUrl'
 type ServiceGroup = { services?: Array<Record<string, unknown>> }
 type Widget = Record<string, unknown>
 
-// Normalise any configured/requested value to a comparable "host:port" key.
-// Returns null for anything that isn't a parseable URL/host.
 function hostOf(raw: unknown): string | null {
   if (typeof raw !== 'string' || !raw.trim())
     return null
@@ -18,8 +16,6 @@ function hostOf(raw: unknown): string | null {
   }
 }
 
-// Every host the dashboard is configured to talk to: service URLs/healthchecks
-// from services.yaml and widget URLs from widgets.yaml.
 function configuredHosts(): Set<string> {
   const hosts = new Set<string>()
 

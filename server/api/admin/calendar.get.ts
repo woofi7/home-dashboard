@@ -8,8 +8,6 @@ export default defineEventHandler((event) => {
   const cal = (g.calendar ?? {}) as Record<string, unknown>
   return {
     clientId:        (g.clientId        as string) ?? '',
-    // Never echo the client secret back; expose only whether one is set, like
-    // hasRefreshToken. The admin form treats it as write-only.
     hasClientSecret: !!(g.clientSecret),
     hasRefreshToken: !!(g.refreshToken),
     showEvents: (cal.showEvents as boolean) ?? true,

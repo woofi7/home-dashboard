@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { externalUrl } from '#shared/externalUrl'
 
-// Calendar/task URLs come from the Google API. Run them through the scheme
-// guard so a malicious/unexpected javascript: link can never reach an href.
 const safeHref = (u?: string) => (u ? externalUrl(u) : undefined)
 
 type CalEvent = { id: string; summary: string; url: string; start?: string; end?: string; color?: string }

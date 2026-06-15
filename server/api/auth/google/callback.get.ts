@@ -6,10 +6,6 @@ export default defineEventHandler(async (event) => {
   if (!code)
     throw createError({ statusCode: 400, message: 'Missing code' })
 
-  // CSRF: the callback writes the returned refresh token into settings.yaml, so
-  // it must only accept a flow that the authenticated admin started. The `state`
-  // must match the single-use cookie set by /api/auth/google. Without this an
-  // attacker could replay an authorization code and inject their own token.
   const expectedState = getCookie(event, 'hm_oauth_state')
   deleteCookie(event, 'hm_oauth_state', { path: '/' })
   if (!state || !expectedState || state !== expectedState)

@@ -17,9 +17,5 @@ function stripCredentials(obj: unknown): unknown {
 
 export default defineEventHandler(() => {
   const config = loadConfig<Record<string, unknown>>('settings.yaml') ?? {}
-  // Never return the admin token to the client. stripCredentials already
-  // removes it; we expose only whether one is configured so the settings form
-  // can show a "set / not set" state and leave the stored token untouched
-  // unless the admin deliberately types a new one.
   return { ...stripCredentials(config), adminTokenSet: tokenConfigured() }
 })

@@ -5,7 +5,6 @@ type ServiceGroup = { name: string; layout?: unknown; services: Record<string, u
 type BookmarkGroup = { name: string; bookmarks: unknown[] }
 type Widget = Record<string, unknown>
 
-// Fields safe to expose to the browser — everything else (tokens, passwords, apiKeys) is stripped
 const SERVICE_SAFE_FIELDS = new Set(['name', 'url', 'icon', 'description', 'type', 'container', 'server', 'healthcheck', 'widgetUrl'])
 
 function sanitizeService(s: Record<string, unknown>): Record<string, unknown> {
@@ -40,8 +39,6 @@ export default defineEventHandler(() => {
     settings: stripCredentials(loadConfig<Settings>('settings.yaml') ?? {}),
     services: sanitizedServices,
     bookmarks: loadConfig<BookmarkGroup[]>('bookmarks.yaml') ?? [],
-    // Strip credential-like keys here too: this endpoint is public and the
-    // widgets array could carry a token/apiKey if one is ever added to a widget.
     widgets: stripCredentials(loadConfig<Widget[]>('widgets.yaml') ?? []) as Widget[],
   }
 })

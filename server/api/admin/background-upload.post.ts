@@ -5,10 +5,6 @@ import { join } from 'node:path'
 
 const MAX_SIZE = 20 * 1024 * 1024
 
-// Detect the real image type from its magic bytes, ignoring the client-supplied
-// filename and Content-Type (both spoofable). Returns the safe extension to
-// write, or null if the bytes are not a recognised image. This is what stops a
-// caller from writing e.g. background-upload.svg / .html into the config dir.
 function detectImageExt(buf: Buffer): string | null {
   if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff)
     return '.jpg'
@@ -34,8 +30,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'File too large (max 20 MB)' })
   }
 
-  // Choose the on-disk extension from the verified content, never from the
-  // request — so the written filename can only ever be one of our image types.
   const ext = detectImageExt(file.data)
   if (!ext) {
     throw createError({ statusCode: 400, message: 'Invalid file type. Allowed: jpg, png, webp, gif' })

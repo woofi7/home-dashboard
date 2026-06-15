@@ -6,8 +6,6 @@ type SettingsConfig = { title?: string; bookmarkCounterEnabled?: boolean; bookma
 const { data: current, refresh } = await useFetch<SettingsConfig>('/api/admin/settings')
 const { data: clicks, refresh: refreshClicks } = useFetch<Record<string, number>>('/api/bookmarks/clicks')
 
-// adminToken is write-only: the API never sends the stored token back, so the
-// field starts blank and only carries a value when the admin types a new one.
 const form = ref<SettingsConfig & { adminToken: string }>({ title: '', bookmarkCounterEnabled: true, bookmarkAutoSort: false, adminToken: '', timezone: '' })
 
 watch(current, (v) => {
@@ -40,8 +38,6 @@ async function save() {
   saveSuccess.value = false
   try {
     const body: Record<string, unknown> = { title: form.value.title, bookmarkCounterEnabled: form.value.bookmarkCounterEnabled, bookmarkAutoSort: form.value.bookmarkAutoSort, linkTarget: form.value.linkTarget, timezone: form.value.timezone }
-    // Only send the token when the admin actually entered a new one — a blank
-    // field means "keep the existing token", never "clear it".
     if (form.value.adminToken !== '')
       body.adminToken = form.value.adminToken
     await $fetch('/api/edit/settings', { method: 'POST', body })
