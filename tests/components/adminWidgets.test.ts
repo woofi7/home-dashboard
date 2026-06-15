@@ -26,7 +26,7 @@ const WidgetCardStub = defineComponent({
   template: '<div class="widget-card-stub">{{ entry.name }}</div>',
 })
 
-import AdminWidgets from '~/pages/admin/widgets.vue'
+import AdminWidgets from '~/pages/admin/service-fields.vue'
 
 async function mountPage() {
   const App = defineComponent({

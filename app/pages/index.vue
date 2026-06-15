@@ -3,13 +3,20 @@ import { storeToRefs } from 'pinia'
 import { applyPalette, getPaletteById } from '~/utils/colorPalettes'
 import { useViewStore } from '~/stores/view'
 import { useConnectivityStore } from '~/stores/connectivity'
+import { useConfigStore } from '~/stores/config'
 
 definePageMeta({ ssr: false })
 
 const viewStore = useViewStore()
 const { weather, calendar, background, publictransit } = storeToRefs(viewStore)
 const { online } = storeToRefs(useConnectivityStore())
+const { config: dashConfig } = storeToRefs(useConfigStore())
 useDashboardData()
+
+function widgetEnabled(name: string): boolean {
+  const s = dashConfig.value.settings?.[name] as { enabled?: boolean } | undefined
+  return s?.enabled !== false
+}
 
 type CalTask = { id: string; listId: string; title: string; due?: string; url: string }
 const pendingTask = ref<CalTask | null>(null)
@@ -136,12 +143,13 @@ onMounted(() => {
     <OfflineBanner />
 
     <div class="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 px-4 md:px-6 pt-6 md:pt-8 pb-2 items-start">
-      <CalendarPanel :calendar="calendar as any" @complete="onCompleteTask" />
+      <CalendarPanel v-if="widgetEnabled('calendar')" :calendar="calendar as any" @complete="onCompleteTask" />
+      <div v-else />
       <div class="flex flex-col gap-4 order-1 md:order-2">
         <div><ClockWidget :timezone="(localConfig.settings?.timezone as string) || undefined" /></div>
-        <PublicTransitCard v-if="publictransit" :data="publictransit as any" />
+        <PublicTransitCard v-if="widgetEnabled('publictransit') && publictransit" :data="publictransit as any" />
       </div>
-      <WeatherCard :weather="weather as any" />
+      <WeatherCard v-if="widgetEnabled('weather')" :weather="weather as any" />
     </div>
 
     <Transition name="fade">

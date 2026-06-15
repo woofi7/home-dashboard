@@ -149,7 +149,7 @@ function isOverdue(due?: string) {
 
         </template>
 
-        <NuxtLink v-else-if="calendar.authorized === false" to="/admin/calendar" class="text-xs text-muted hover:text-secondary transition-colors">Set up Google Calendar</NuxtLink>
+        <NuxtLink v-else-if="calendar.authorized === false" to="/admin/widgets/calendar" class="text-xs text-muted hover:text-secondary transition-colors">Set up Google Calendar</NuxtLink>
     </div>
 
   </div>

@@ -113,26 +113,37 @@ describe('AdminLayout.vue', () => {
     })
   })
 
-  it('renders Dashboard link to /', () => {
+  it('renders Dashboard link to / on all pages', () => {
     const wrapper = mountLayout('/admin')
     const links = wrapper.findAll('a')
     expect(links.some(l => l.attributes('href') === '/' && l.text() === 'Dashboard')).toBe(true)
   })
 
-  it('renders Admin back-link to /admin on sub-pages', () => {
+  it('renders Dashboard link to / on sub-pages', () => {
     const wrapper = mountLayout('/admin/settings')
     const links = wrapper.findAll('a')
-    expect(links.some(l => l.attributes('href') === '/admin' && l.text().includes('Admin'))).toBe(true)
+    expect(links.some(l => l.attributes('href') === '/' && l.text() === 'Dashboard')).toBe(true)
   })
 
-  it('shows no extra crumb on /admin root', () => {
+  it('renders Admin link to /admin on sub-pages', () => {
+    const wrapper = mountLayout('/admin/settings')
+    const links = wrapper.findAll('a')
+    expect(links.some(l => l.attributes('href') === '/admin' && l.text() === 'Admin')).toBe(true)
+  })
+
+  it('shows Admin as bold text on /admin root', () => {
     const wrapper = mountLayout('/admin')
-    expect(wrapper.text()).not.toContain('/ Admin /')
+    expect(wrapper.find('span.font-semibold').text()).toBe('Admin')
   })
 
-  it('shows Widget Fields crumb on /admin/widgets', () => {
+  it('shows Widgets crumb on /admin/widgets', () => {
     const wrapper = mountLayout('/admin/widgets')
-    expect(wrapper.text()).toContain('Widget Fields')
+    expect(wrapper.text()).toContain('Widgets')
+  })
+
+  it('shows Service Fields crumb on /admin/service-fields', () => {
+    const wrapper = mountLayout('/admin/service-fields')
+    expect(wrapper.text()).toContain('Service Fields')
   })
 
   it('shows Background crumb on /admin/background', () => {
@@ -143,7 +154,34 @@ describe('AdminLayout.vue', () => {
   it('shows the mapped page title for known routes', () => {
     const wrapper = mountLayout('/admin/widgets')
     const crumbs = wrapper.findAll('span')
-    expect(crumbs.some(s => s.text() === 'Widget Fields')).toBe(true)
+    expect(crumbs.some(s => s.text() === 'Widgets')).toBe(true)
+  })
+
+  it('shows Widgets as parent breadcrumb on /admin/widgets/weather', () => {
+    const wrapper = mountLayout('/admin/widgets/weather')
+    const links = wrapper.findAll('a')
+    expect(links.some(l => l.attributes('href') === '/admin/widgets' && l.text() === 'Widgets')).toBe(true)
+    expect(wrapper.text()).toContain('Weather')
+  })
+
+  it('shows Widgets as parent breadcrumb on /admin/widgets/calendar', () => {
+    const wrapper = mountLayout('/admin/widgets/calendar')
+    const links = wrapper.findAll('a')
+    expect(links.some(l => l.attributes('href') === '/admin/widgets' && l.text() === 'Widgets')).toBe(true)
+    expect(wrapper.text()).toContain('Google Calendar')
+  })
+
+  it('shows Widgets as parent breadcrumb on /admin/widgets/publictransit', () => {
+    const wrapper = mountLayout('/admin/widgets/publictransit')
+    const links = wrapper.findAll('a')
+    expect(links.some(l => l.attributes('href') === '/admin/widgets' && l.text() === 'Widgets')).toBe(true)
+    expect(wrapper.text()).toContain('Public Transit')
+  })
+
+  it('does not show parent breadcrumb on /admin/settings', () => {
+    const wrapper = mountLayout('/admin/settings')
+    const links = wrapper.findAll('a')
+    expect(links.some(l => l.attributes('href') === '/admin/widgets')).toBe(false)
   })
 
   it('renders the default slot', () => {

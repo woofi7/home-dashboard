@@ -5,12 +5,19 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin': 'Admin',
   '/admin/settings': 'General',
   '/admin/appearance': 'Appearance',
-  '/admin/publictransit': 'Public Transit',
-  '/admin/weather': 'Weather',
-  '/admin/widgets': 'Widget Fields',
-  '/admin/calendar': 'Google Calendar',
+  '/admin/service-fields': 'Service Fields',
+  '/admin/widgets': 'Widgets',
+  '/admin/widgets/calendar': 'Google Calendar',
+  '/admin/widgets/weather': 'Weather',
+  '/admin/widgets/publictransit': 'Public Transit',
   '/admin/backup': 'Backup & Restore',
   '/admin/docker': 'Docker',
+}
+
+const PARENT_ROUTES: Record<string, string> = {
+  '/admin/widgets/calendar': '/admin/widgets',
+  '/admin/widgets/weather': '/admin/widgets',
+  '/admin/widgets/publictransit': '/admin/widgets',
 }
 
 const headerRef = ref<HTMLElement>()
@@ -26,6 +33,7 @@ onMounted(() => {
 })
 
 const isRoot = computed(() => route.path === '/admin')
+const parentRoute = computed(() => PARENT_ROUTES[route.path] ?? null)
 const pageTitle = computed(() => {
   if (PAGE_TITLES[route.path])
     return PAGE_TITLES[route.path]
@@ -38,22 +46,30 @@ const pageTitle = computed(() => {
 <template>
   <div class="min-h-screen bg-base text-primary">
     <div ref="headerRef" class="sticky top-0 z-50 flex items-center justify-between gap-4 px-4 md:px-6 py-3 border-b border-border bg-surface">
-      <div class="flex items-center gap-3 min-w-0">
+      <div class="flex items-center gap-2 min-w-0">
         <NuxtLink
-          v-if="!isRoot"
-          to="/admin"
-          class="text-muted hover:text-primary transition-colors text-sm shrink-0 flex items-center gap-1.5"
-        >
-          <FaIcon icon="chevron-left" class="text-xs" />
-          Admin
-        </NuxtLink>
-        <NuxtLink
-          v-else
           to="/"
           class="text-muted hover:text-primary transition-colors text-sm shrink-0"
         >Dashboard</NuxtLink>
-        <span v-if="!isRoot" class="text-border shrink-0">/</span>
-        <span class="font-semibold text-primary truncate">{{ pageTitle }}</span>
+        <span class="text-border shrink-0">/</span>
+        <template v-if="isRoot">
+          <span class="font-semibold text-primary truncate">Admin</span>
+        </template>
+        <template v-else>
+          <NuxtLink
+            to="/admin"
+            class="text-muted hover:text-primary transition-colors text-sm shrink-0"
+          >Admin</NuxtLink>
+          <template v-if="parentRoute">
+            <span class="text-border shrink-0">/</span>
+            <NuxtLink
+              :to="parentRoute"
+              class="text-muted hover:text-primary transition-colors text-sm shrink-0"
+            >{{ PAGE_TITLES[parentRoute] }}</NuxtLink>
+          </template>
+          <span class="text-border shrink-0">/</span>
+          <span class="font-semibold text-primary truncate">{{ pageTitle }}</span>
+        </template>
       </div>
       <div id="admin-header-actions" class="flex items-center gap-2 shrink-0" />
     </div>

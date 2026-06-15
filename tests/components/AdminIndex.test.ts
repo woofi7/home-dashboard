@@ -30,6 +30,10 @@ describe('admin/index.vue', () => {
     expect(mountPage().find('h1').text()).toBe('Settings')
   })
 
+  it('renders 6 setting nav cards (links)', () => {
+    expect(mountPage().findAll('a').length).toBe(6)
+  })
+
   it('renders a General card linking to /admin/settings', () => {
     const links = mountPage().findAll('a')
     const card = links.find(l => l.attributes('href') === '/admin/settings')
@@ -52,52 +56,26 @@ describe('admin/index.vue', () => {
     expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'image')).toBe(true)
   })
 
-  it('renders a Weather card linking to /admin/weather', () => {
+  it('renders a Service Fields card linking to /admin/service-fields', () => {
     const links = mountPage().findAll('a')
-    const card = links.find(l => l.attributes('href') === '/admin/weather')
+    const card = links.find(l => l.attributes('href') === '/admin/service-fields')
     expect(card).toBeTruthy()
-    expect(card!.text()).toContain('Weather')
+    expect(card!.text()).toContain('Service Fields')
   })
 
-  it('uses cloud-sun-rain icon for the Weather card', () => {
-    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'cloud-sun-rain')).toBe(true)
-  })
-
-  it('renders a Widget Fields card linking to /admin/widgets', () => {
-    const links = mountPage().findAll('a')
-    const card = links.find(l => l.attributes('href') === '/admin/widgets')
-    expect(card).toBeTruthy()
-    expect(card!.text()).toContain('Widget Fields')
-  })
-
-  it('uses table-cells icon for the Widget Fields card', () => {
+  it('uses table-cells icon for the Service Fields card', () => {
     expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'table-cells')).toBe(true)
   })
 
-  it('renders a Google Calendar card linking to /admin/calendar', () => {
+  it('renders a Widgets card linking to /admin/widgets', () => {
     const links = mountPage().findAll('a')
-    const card = links.find(l => l.attributes('href') === '/admin/calendar')
+    const card = links.find(l => l.attributes('href') === '/admin/widgets')
     expect(card).toBeTruthy()
-    expect(card!.text()).toContain('Google Calendar')
+    expect(card!.text()).toContain('Widgets')
   })
 
-  it('uses calendar-days icon for the Google Calendar card', () => {
-    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'calendar-days')).toBe(true)
-  })
-
-  it('renders 8 setting nav cards (links)', () => {
-    expect(mountPage().findAll('a').length).toBe(8)
-  })
-
-  it('renders a Public Transit card linking to /admin/publictransit', () => {
-    const links = mountPage().findAll('a')
-    const card = links.find(l => l.attributes('href') === '/admin/publictransit')
-    expect(card).toBeTruthy()
-    expect(card!.text()).toContain('Public Transit')
-  })
-
-  it('uses ticket icon for the Bus Pass card', () => {
-    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'ticket')).toBe(true)
+  it('uses sliders icon for the Widgets card', () => {
+    expect(mountPage().findAll('.fa-icon').some(i => i.attributes('data-icon') === 'sliders')).toBe(true)
   })
 
   it('renders a Backup & Restore card linking to /admin/backup', () => {

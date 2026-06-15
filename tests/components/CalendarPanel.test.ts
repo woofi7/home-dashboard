@@ -56,9 +56,9 @@ describe('CalendarPanel.vue', () => {
       expect(wrapper.text()).toContain('Set up Google Calendar')
     })
 
-    it('setup link points to /admin/calendar', () => {
+    it('setup link points to /admin/widgets/calendar', () => {
       const wrapper = mountPanel({ authorized: false, days: [], tasks: [] })
-      expect(wrapper.find('a').attributes('href')).toBe('/admin/calendar')
+      expect(wrapper.find('a').attributes('href')).toBe('/admin/widgets/calendar')
     })
   })
 

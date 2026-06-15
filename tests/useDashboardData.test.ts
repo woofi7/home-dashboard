@@ -47,13 +47,14 @@ beforeEach(() => {
   conn = useConnectivityStore()
   for (const [store, methods] of [
     [config, ['load', 'refresh']],
-    [view, ['load', 'refresh']],
     [status, ['load', 'refresh']],
     [cards, ['load', 'refresh']],
     [clicks, ['load', 'refresh']],
   ] as const)
     for (const m of methods)
       vi.spyOn(store as never, m).mockResolvedValue(undefined as never)
+  for (const m of ['refreshWeather', 'refreshCalendar', 'refreshBackground', 'refreshPublictransit'] as const)
+    vi.spyOn(view, m).mockResolvedValue(undefined)
   vi.spyOn(conn, 'ping').mockResolvedValue(undefined)
   vi.spyOn(conn, 'initialize').mockImplementation(() => {})
 })
@@ -64,7 +65,10 @@ describe('useDashboardData - initial load', () => {
     await flushPromises()
     expect(conn.initialize).toHaveBeenCalledOnce()
     expect(config.load).toHaveBeenCalledOnce()
-    expect(view.load).toHaveBeenCalledOnce()
+    expect(view.refreshWeather).toHaveBeenCalledOnce()
+    expect(view.refreshCalendar).toHaveBeenCalledOnce()
+    expect(view.refreshBackground).toHaveBeenCalledOnce()
+    expect(view.refreshPublictransit).toHaveBeenCalledOnce()
     expect(status.load).toHaveBeenCalledOnce()
     expect(cards.load).toHaveBeenCalledOnce()
     expect(clicks.load).toHaveBeenCalledOnce()
@@ -75,12 +79,16 @@ describe('useDashboardData - auto refresh tick', () => {
   it('refreshes only live status and connectivity, not the static view data', async () => {
     mount(Wrapper)
     await flushPromises()
+    vi.clearAllMocks()
+    vi.spyOn(conn, 'ping').mockResolvedValue(undefined)
+    vi.spyOn(status, 'refresh').mockResolvedValue(undefined as never)
     refreshKey.value++
     await nextTick()
     await flushPromises()
     expect(status.refresh).toHaveBeenCalledWith(false)
     expect(conn.ping).toHaveBeenCalled()
-    expect(view.refresh).not.toHaveBeenCalled()
+    expect(view.refreshWeather).not.toHaveBeenCalled()
+    expect(view.refreshCalendar).not.toHaveBeenCalled()
     expect(cards.refresh).not.toHaveBeenCalled()
     expect(clicks.refresh).not.toHaveBeenCalled()
   })
@@ -90,12 +98,22 @@ describe('useDashboardData - forced refresh', () => {
   it('refreshes everything when the force key changes', async () => {
     mount(Wrapper)
     await flushPromises()
+    vi.clearAllMocks()
+    vi.spyOn(conn, 'ping').mockResolvedValue(undefined)
+    vi.spyOn(status, 'refresh').mockResolvedValue(undefined as never)
+    vi.spyOn(cards, 'refresh').mockResolvedValue(undefined as never)
+    vi.spyOn(clicks, 'refresh').mockResolvedValue(undefined as never)
+    for (const m of ['refreshWeather', 'refreshCalendar', 'refreshBackground', 'refreshPublictransit'] as const)
+      vi.spyOn(view, m).mockResolvedValue(undefined)
     forceKey.value++
     refreshKey.value++
     await nextTick()
     await flushPromises()
     expect(status.refresh).toHaveBeenCalledWith(true)
-    expect(view.refresh).toHaveBeenCalledOnce()
+    expect(view.refreshWeather).toHaveBeenCalledOnce()
+    expect(view.refreshCalendar).toHaveBeenCalledOnce()
+    expect(view.refreshBackground).toHaveBeenCalledOnce()
+    expect(view.refreshPublictransit).toHaveBeenCalledOnce()
     expect(cards.refresh).toHaveBeenCalledOnce()
     expect(clicks.refresh).toHaveBeenCalledOnce()
     expect(conn.ping).toHaveBeenCalled()

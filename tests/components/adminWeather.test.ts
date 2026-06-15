@@ -38,7 +38,7 @@ function makeUseFetch(overrides: Partial<WeatherConfig> = {}) {
 
 vi.stubGlobal('useFetch', makeUseFetch())
 
-import AdminWeather from '~/pages/admin/weather.vue'
+import AdminWeather from '~/pages/admin/widgets/weather.vue'
 
 async function mountPage(overrides: Partial<WeatherConfig> = {}) {
   vi.stubGlobal('useFetch', makeUseFetch(overrides))
