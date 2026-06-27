@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; locked?: boolean; offline?: boolean }>()
+defineProps<{ active: boolean; dirty: boolean; pendingCount: number; countdown: number; locked?: boolean; offline?: boolean; authenticated?: boolean }>()
 defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
 </script>
 
@@ -46,13 +46,16 @@ defineEmits<{ edit: []; save: []; rollback: []; refresh: []; logout: [] }>()
     <template v-else>
       <button
         :disabled="offline"
-        class="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm transition-colors"
+        class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm transition-colors"
         :class="offline
           ? 'bg-elevated border border-border text-muted cursor-not-allowed select-none'
           : 'cursor-pointer bg-surface border border-border text-muted hover:border-accent hover:text-accent-hover'"
         :title="offline ? 'Editing unavailable while offline' : undefined"
         @click="$emit('edit')"
-      >Edit</button>
+      >
+        <span v-if="authenticated" class="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+        Edit
+      </button>
     </template>
   </div>
 </template>

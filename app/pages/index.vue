@@ -30,12 +30,12 @@ async function confirmCompleteTask() {
   pendingTask.value = null
   if (!task)
     return
-  // The store reverts the row on failure; swallow so a 403 (e.g. read-only
-  // token before reconnecting) does not surface as an unhandled rejection.
   try {
     await viewStore.completeTask(task)
-  } catch {
-    // intentionally ignored
+  } catch (err) {
+    const status = (err as { response?: { status?: number } })?.response?.status
+    if (status === 401)
+      loginVisible.value = true
   }
 }
 
@@ -51,7 +51,7 @@ const {
 } = useDashboardConfig()
 
 const { countdown, forceRefresh } = useWidgetRefresh()
-const { tokenConfigured, editEnabled, needsLogin, logout } = useAuth()
+const { tokenConfigured, editEnabled, needsLogin, authenticated, logout } = useAuth()
 const version = useRuntimeConfig().public.version
 const loginVisible = ref(false)
 const setupVisible = ref(false)
@@ -170,6 +170,7 @@ onMounted(() => {
       :countdown="countdown"
       :locked="needsLogin"
       :offline="!online"
+      :authenticated="authenticated"
       @edit="handleEdit"
       @save="save"
       @rollback="handleCancel"
