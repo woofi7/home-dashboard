@@ -7,6 +7,7 @@ import bazarr from './bazarr'
 import beszel from './beszel'
 import duplicati from './duplicati'
 import homeassistant from './homeassistant'
+import mealie from './mealie'
 import overseerr from './overseerr'
 import pihole from './pihole'
 import plex from './plex'
@@ -32,6 +33,7 @@ export const widgetDefinitions: Record<string, WidgetDefinition> = {
   beszel,
   duplicati,
   homeassistant,
+  mealie,
   overseerr,
   pihole,
   plex,
