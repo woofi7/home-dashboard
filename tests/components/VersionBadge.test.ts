@@ -35,6 +35,7 @@ vi.stubGlobal('useDashboardConfig', () => ({
   handleCancel: vi.fn(),
 }))
 vi.stubGlobal('useWidgetRefresh', () => ({ countdown: ref(0), forceRefresh: vi.fn() }))
+vi.stubGlobal('useChangelog', () => ({ show: ref(false), entry: ref(null), dismiss: vi.fn() }))
 vi.stubGlobal('useDashboardData', vi.fn())
 
 import IndexPage from '~/pages/index.vue'
@@ -51,6 +52,7 @@ function mountPage(version = 'v1.2.3') {
         WeatherCard: true,
         CalendarPanel: true,
         WidgetCard: true,
+        ChangelogModal: true,
         LoginModal: true,
         SetupTokenModal: true,
         ConfirmModal: true,

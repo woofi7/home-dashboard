@@ -51,6 +51,7 @@ const {
 } = useDashboardConfig()
 
 const { countdown, forceRefresh } = useWidgetRefresh()
+const { show: changelogVisible, entry: changelogEntry, dismiss: dismissChangelog } = useChangelog()
 const { tokenConfigured, editEnabled, needsLogin, authenticated, logout } = useAuth()
 const version = useRuntimeConfig().public.version
 const loginVisible = ref(false)
@@ -178,6 +179,7 @@ onMounted(() => {
       @logout="handleLogout"
     />
 
+    <ChangelogModal v-if="changelogVisible && changelogEntry" :entry="changelogEntry" @close="dismissChangelog" />
     <LoginModal v-if="loginVisible" @success="handleLoginSuccess" @close="loginVisible = false" />
     <SetupTokenModal v-if="setupVisible" @success="handleSetupSuccess" @close="setupVisible = false" />
     <ConfirmModal
