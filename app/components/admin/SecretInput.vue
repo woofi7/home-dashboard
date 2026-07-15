@@ -42,6 +42,7 @@ const inputType = computed(() => (!isMasked.value || visible.value || envRef.val
         <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono bg-success/10 border border-success/30 text-success">from env: {{ envRef }}</span>
         <button
           type="button"
+          tabindex="-1"
           class="text-[10px] text-muted hover:text-primary transition-colors cursor-pointer"
           @click="emit('update:modelValue', '')"
         >use inline</button>
@@ -49,6 +50,7 @@ const inputType = computed(() => (!isMasked.value || visible.value || envRef.val
       <button
         v-else
         type="button"
+        tabindex="-1"
         class="text-[10px] font-mono text-muted hover:text-accent transition-colors cursor-pointer"
         @click="emit('update:modelValue', '${' + suggestedVar + '}')"
       >use $&#123;{{ suggestedVar }}&#125;</button>

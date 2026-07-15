@@ -17,7 +17,7 @@ export async function fetchMealie(creds: ServiceCredentials) {
   const explore = `${base}/api/explore/groups/home`
 
   const [recipes, categories, tags] = await Promise.all([
-    $fetch<RecipePagedResult>(`${explore}/recipes?page=1&perPage=1&orderBy=createdAt&orderDirection=desc`),
+    $fetch<RecipePagedResult>(`${explore}/recipes?page=1&perPage=1&orderBy=updatedAt&orderDirection=desc`),
     $fetch<PagedResult>(`${explore}/organizers/categories?page=1&perPage=1`),
     $fetch<PagedResult>(`${explore}/organizers/tags?page=1&perPage=1`),
   ])
