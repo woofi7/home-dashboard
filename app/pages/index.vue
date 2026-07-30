@@ -20,6 +20,7 @@ function widgetEnabled(name: string): boolean {
 
 type CalTask = { id: string; listId: string; title: string; due?: string; url: string }
 const pendingTask = ref<CalTask | null>(null)
+const taskAwaitingLogin = ref<CalTask | null>(null)
 
 function onCompleteTask(task: CalTask) {
   pendingTask.value = task
@@ -34,8 +35,10 @@ async function confirmCompleteTask() {
     await viewStore.completeTask(task)
   } catch (err) {
     const status = (err as { response?: { status?: number } })?.response?.status
-    if (status === 401)
+    if (status === 401) {
+      taskAwaitingLogin.value = task
       loginVisible.value = true
+    }
   }
 }
 
@@ -89,6 +92,12 @@ function handleEdit() {
 }
 function handleLoginSuccess() {
   loginVisible.value = false
+  if (taskAwaitingLogin.value) {
+    const task = taskAwaitingLogin.value
+    taskAwaitingLogin.value = null
+    viewStore.completeTask(task)
+    return
+  }
   enter(localConfig.value)
 }
 function handleSetupSuccess() {

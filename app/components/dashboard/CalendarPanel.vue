@@ -64,7 +64,7 @@ function isOverdue(due?: string) {
 
           <!-- Tasks: checkbox to-do rows with a due-date pill -->
           <template v-if="calendar.tasks?.length">
-            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2">Tasks</p>
+            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2 [text-shadow:0_1px_4px_rgba(0,0,0,1),0_0_12px_rgba(0,0,0,0.9)]">Tasks</p>
             <div
               v-for="t in calendar.tasks"
               :key="t.id"
@@ -104,7 +104,7 @@ function isOverdue(due?: string) {
 
           <!-- Event days -->
           <template v-for="(day, i) in visibleDays" :key="day.date">
-            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2" :class="(i > 0 || calendar.tasks?.length) ? 'mt-3' : ''">{{ day.label }}</p>
+            <p class="text-[10px] text-secondary uppercase tracking-widest mb-2 [text-shadow:0_1px_4px_rgba(0,0,0,1),0_0_12px_rgba(0,0,0,0.9)]" :class="(i > 0 || calendar.tasks?.length) ? 'mt-3' : ''">{{ day.label }}</p>
             <a
               v-for="e in day.allDay"
               :key="e.id"
