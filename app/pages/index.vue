@@ -55,12 +55,18 @@ const {
 
 const { countdown, forceRefresh } = useWidgetRefresh()
 const { show: changelogVisible, entry: changelogEntry, dismiss: dismissChangelog } = useChangelog()
-const { tokenConfigured, editEnabled, needsLogin, authenticated, logout } = useAuth()
+const { ready, tokenConfigured, editEnabled, needsLogin, authenticated, logout } = useAuth()
 const version = useRuntimeConfig().public.version
 const loginVisible = ref(false)
 const setupVisible = ref(false)
 const leaveConfirmVisible = ref(false)
 const pendingRoute = ref('')
+const authReady = ref(false)
+
+onMounted(async () => {
+  await ready
+  authReady.value = true
+})
 
 onBeforeRouteLeave((to) => {
   if (dirty.value) {
@@ -148,6 +154,8 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen text-primary relative">
+    <AuthGate v-if="authReady && !authenticated" />
+    <template v-else-if="authReady">
     <DashboardBackground :background="background as any" :appearance="bgAppearance" />
 
     <OfflineBanner />
@@ -229,5 +237,6 @@ onMounted(() => {
       @request-edit="handleEdit"
       @dirty="dirty = true"
     />
+    </template>
   </div>
 </template>

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { defineComponent, nextTick } from 'vue'
+import { defineComponent, nextTick, ref } from 'vue'
 
 // useDashboardData imports useWidgetRefresh directly, so mock the module (not a global)
 vi.mock('../app/composables/useWidgetRefresh', async () => {
@@ -10,6 +10,8 @@ vi.mock('../app/composables/useWidgetRefresh', async () => {
   const forceKey = ref(0)
   return { useWidgetRefresh: () => ({ refreshKey, forceKey }) }
 })
+
+vi.stubGlobal('useAuth', () => ({ authenticated: ref(true), ready: Promise.resolve() }))
 
 import { useWidgetRefresh } from '../app/composables/useWidgetRefresh'
 import { useConfigStore } from '../app/stores/config'
@@ -72,6 +74,49 @@ describe('useDashboardData - initial load', () => {
     expect(status.load).toHaveBeenCalledOnce()
     expect(cards.load).toHaveBeenCalledOnce()
     expect(clicks.load).toHaveBeenCalledOnce()
+  })
+})
+
+describe('useDashboardData - gated by authentication', () => {
+  it('does not load any store while unauthenticated', async () => {
+    vi.stubGlobal('useAuth', () => ({ authenticated: ref(false), ready: Promise.resolve() }))
+    mount(Wrapper)
+    await flushPromises()
+    expect(config.load).not.toHaveBeenCalled()
+    expect(status.load).not.toHaveBeenCalled()
+    expect(cards.load).not.toHaveBeenCalled()
+    expect(clicks.load).not.toHaveBeenCalled()
+    expect(view.refreshWeather).not.toHaveBeenCalled()
+    // Connectivity still gets initialized so offline detection keeps working pre-login
+    expect(conn.initialize).toHaveBeenCalledOnce()
+    vi.stubGlobal('useAuth', () => ({ authenticated: ref(true), ready: Promise.resolve() }))
+  })
+
+  it('loads every store once authentication flips true after mount', async () => {
+    const authenticated = ref(false)
+    vi.stubGlobal('useAuth', () => ({ authenticated, ready: Promise.resolve() }))
+    mount(Wrapper)
+    await flushPromises()
+    expect(config.load).not.toHaveBeenCalled()
+    authenticated.value = true
+    await flushPromises()
+    expect(config.load).toHaveBeenCalledOnce()
+    expect(status.load).toHaveBeenCalledOnce()
+    vi.stubGlobal('useAuth', () => ({ authenticated: ref(true), ready: Promise.resolve() }))
+  })
+
+  it('refresh ticks only ping connectivity while unauthenticated', async () => {
+    vi.stubGlobal('useAuth', () => ({ authenticated: ref(false), ready: Promise.resolve() }))
+    mount(Wrapper)
+    await flushPromises()
+    vi.clearAllMocks()
+    vi.spyOn(conn, 'ping').mockResolvedValue(undefined)
+    refreshKey.value++
+    await nextTick()
+    await flushPromises()
+    expect(conn.ping).toHaveBeenCalled()
+    expect(status.refresh).not.toHaveBeenCalled()
+    vi.stubGlobal('useAuth', () => ({ authenticated: ref(true), ready: Promise.resolve() }))
   })
 })
 

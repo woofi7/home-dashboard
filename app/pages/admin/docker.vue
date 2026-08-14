@@ -6,21 +6,29 @@ watch([() => useAuth().editEnabled.value, () => useAuth().needsLogin.value], ([e
     navigateTo('/')
 })
 
-type DockerServerConfig = { host?: string; port?: number; socket?: string }
+type DockerServerConfig = { host?: string; port?: number; socket?: string; label?: string }
 type DockerServerEntry = { name: string } & DockerServerConfig
 
 const { data: current, refresh } = await useFetch<Record<string, DockerServerConfig>>('/api/admin/docker')
 const { data: pingStatus, refresh: refreshPing, pending: pinging } = useFetch<Record<string, boolean>>('/api/admin/docker-ping')
 
 const servers = ref<DockerServerEntry[]>([])
+const localLabel = ref('')
 
 watch(current, (v) => {
   if (v)
     servers.value = Object.entries(v).map(([name, cfg]) => ({ name, ...cfg }))
+  localLabel.value = v?.local?.label ?? ''
 }, { immediate: true })
+
+// The built-in local server's label/connection are edited via the dedicated
+// row above, not the generic add/edit form - keep it out of that list.
+const remoteServers = computed(() => servers.value.filter(s => s.name !== 'local'))
 
 const isDirty = computed(() => {
   const curr = current.value ?? {}
+  if (localLabel.value.trim() !== (curr.local?.label ?? ''))
+    return true
   if (servers.value.length !== Object.keys(curr).length)
     return true
   return servers.value.some((s) => {
@@ -69,7 +77,7 @@ function submitEdit() {
   servers.value = servers.value.map((s) => {
     if (s.name !== name)
       return s
-    const updated: DockerServerEntry = { name }
+    const updated: DockerServerEntry = { name, ...(s.label ? { label: s.label } : {}) }
     if (editConnType.value === 'http') {
       updated.host = editHost.value.trim()
       const portStr = String(editPort.value).trim()
@@ -111,6 +119,10 @@ function submitAdd() {
     addError.value = 'Name is required'
     return
   }
+  if (name === 'local') {
+    addError.value = '"local" is the built-in server - rename it above instead'
+    return
+  }
   if (servers.value.some(s => s.name === name)) {
     addError.value = 'A server with this name already exists'
     return
@@ -140,6 +152,7 @@ function cancelAdd() {
 function cancel() {
   const v = current.value ?? {}
   servers.value = Object.entries(v).map(([name, cfg]) => ({ name, ...cfg }))
+  localLabel.value = v.local?.label ?? ''
   showAdd.value = false
   editingName.value = null
 }
@@ -162,7 +175,17 @@ async function save() {
         cfg.port = s.port
       if (s.socket)
         cfg.socket = s.socket
+      if (s.label)
+        cfg.label = s.label
       body[s.name] = cfg
+    }
+    const trimmedLabel = localLabel.value.trim()
+    if (trimmedLabel || body.local) {
+      body.local = { ...body.local }
+      if (trimmedLabel)
+        body.local.label = trimmedLabel
+      else
+        delete body.local.label
     }
     await $fetch('/api/admin/docker', { method: 'POST', body })
     await refresh()
@@ -218,18 +241,24 @@ async function save() {
           class="w-2 h-2 rounded-full shrink-0 transition-colors"
           :class="pinging ? 'bg-muted animate-pulse' : pingStatus?.local ? 'bg-success' : 'bg-danger'"
         />
-        <div class="min-w-0">
-          <p class="text-xs font-mono text-primary">local</p>
+        <div class="min-w-0 flex-1">
+          <input
+            v-model="localLabel"
+            type="text"
+            placeholder="local"
+            class="w-full px-2 py-1 -mx-2 rounded-lg bg-transparent border border-transparent hover:border-border focus:border-accent focus:bg-elevated text-xs font-mono text-primary placeholder:text-muted focus:outline-none transition-colors"
+            title="Rename how this server is displayed"
+          />
           <p class="text-[10px] text-muted mt-0.5">localhost - built-in (socket or DOCKER_HOST env)</p>
         </div>
         <span class="ml-auto text-[10px] text-muted shrink-0">always available</span>
       </div>
 
       <!-- Configured servers -->
-      <div v-if="servers.length === 0 && !showAdd" class="px-4 py-6 text-center text-xs text-muted">
+      <div v-if="remoteServers.length === 0 && !showAdd" class="px-4 py-6 text-center text-xs text-muted">
         No remote servers configured. Add one above.
       </div>
-      <template v-for="s in servers" :key="s.name">
+      <template v-for="s in remoteServers" :key="s.name">
         <!-- Server row -->
         <div class="px-4 py-3 border-b border-border flex items-center gap-3">
           <div
@@ -398,7 +427,7 @@ async function save() {
 
     <!-- Info note -->
     <p class="text-xs text-muted/70">
-      The built-in <span class="font-mono">local</span> server always monitors the host via its Docker socket (or the <span class="font-mono">DOCKER_HOST</span> env), even alongside remote servers. Add a <span class="font-mono">local</span> entry only to override its connection (e.g. a custom socket path).
+      The built-in local server always monitors the host via its Docker socket (or the <span class="font-mono">DOCKER_HOST</span> env), even alongside remote servers. Its display name can be renamed above.
     </p>
 
   </div>

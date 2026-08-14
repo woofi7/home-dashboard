@@ -179,6 +179,21 @@ describe('fetchDockerStatus', () => {
     expect(globalThis.$fetch).toHaveBeenCalledWith('http://10.0.1.200:2375/v1.41/containers/json')
   })
 
+  it('still falls back to DOCKER_HOST when local has only a label (renamed, no connection override)', async () => {
+    mockLoadConfig.mockReturnValue({
+      local: { label: 'My NAS' },
+    })
+    vi.stubEnv('DOCKER_HOST', 'http://10.0.1.2:2375')
+    ;(globalThis.$fetch as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { Names: ['/plex'], State: 'running', Status: 'Up 3 days' },
+    ])
+
+    const result = await fetchDockerStatus()
+
+    expect(globalThis.$fetch).toHaveBeenCalledWith('http://10.0.1.2:2375/v1.41/containers/json')
+    expect(result.local).toEqual({ plex: { state: 'running', status: 'Up 3 days' } })
+  })
+
   it('returns empty containers for a failed server, others succeed', async () => {
     mockLoadConfig.mockReturnValue({
       nas: { host: 'http://10.0.1.2', port: 2375 },

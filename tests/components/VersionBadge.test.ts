@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import { globalStubs } from './helpers'
 
@@ -10,9 +10,11 @@ vi.stubGlobal('useHead', vi.fn())
 vi.stubGlobal('useFetch', () => ({ data: ref(null), refresh: vi.fn(), status: ref('success') }))
 vi.stubGlobal('useRuntimeConfig', () => ({ public: { version: 'v1.2.3' } }))
 vi.stubGlobal('useAuth', () => ({
+  ready: Promise.resolve(),
   tokenConfigured: ref(true),
   editEnabled: ref(true),
   needsLogin: ref(false),
+  authenticated: ref(true),
   logout: vi.fn(),
 }))
 vi.stubGlobal('useDashboardConfig', () => ({
@@ -55,6 +57,7 @@ function mountPage(version = 'v1.2.3') {
         ChangelogModal: true,
         LoginModal: true,
         SetupTokenModal: true,
+        AuthGate: true,
         ConfirmModal: true,
         DashboardBackground: true,
         Transition: { template: '<div><slot /></div>' },
@@ -64,18 +67,21 @@ function mountPage(version = 'v1.2.3') {
 }
 
 describe('index.vue version badge', () => {
-  it('renders the version string from runtimeConfig', () => {
+  it('renders the version string from runtimeConfig', async () => {
     const w = mountPage('v1.2.3')
+    await flushPromises()
     expect(w.text()).toContain('v1.2.3')
   })
 
-  it('renders dev when no tag is available', () => {
+  it('renders dev when no tag is available', async () => {
     const w = mountPage('dev')
+    await flushPromises()
     expect(w.text()).toContain('dev')
   })
 
-  it('version badge is fixed to bottom-left, high z-index, not interactive', () => {
+  it('version badge is fixed to bottom-left, high z-index, not interactive', async () => {
     const w = mountPage('v1.0.0')
+    await flushPromises()
     const badge = w.find('.pointer-events-none')
     expect(badge.exists()).toBe(true)
     expect(badge.classes()).toContain('fixed')

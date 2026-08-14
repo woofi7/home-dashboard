@@ -302,4 +302,69 @@ describe('admin/docker.vue', () => {
     const dots = wrapper.findAll('.bg-danger')
     expect(dots.length).toBeGreaterThan(0)
   })
+
+  // Local label rename
+  it('pre-fills the local rename input from the configured label', async () => {
+    const wrapper = await mountPage({ local: { label: 'My NAS' } })
+    const input = wrapper.find('input[placeholder="local"]')
+    expect((input.element as HTMLInputElement).value).toBe('My NAS')
+  })
+
+  it('renaming local marks the form dirty and saves the label', async () => {
+    const wrapper = await mountPage({})
+    const input = wrapper.find('input[placeholder="local"]')
+    await input.setValue('My NAS')
+    const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Save')
+    expect(saveBtn!.attributes('disabled')).toBeFalsy()
+    await saveBtn!.trigger('click')
+    await flushPromises()
+    expect(mockFetch).toHaveBeenCalledWith('/api/admin/docker', expect.objectContaining({
+      method: 'POST',
+      body: expect.objectContaining({ local: { label: 'My NAS' } }),
+    }))
+  })
+
+  it('renaming local preserves an existing connection override', async () => {
+    const wrapper = await mountPage({ local: { socket: '/custom/docker.sock' } })
+    const input = wrapper.find('input[placeholder="local"]')
+    await input.setValue('My NAS')
+    const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Save')
+    await saveBtn!.trigger('click')
+    await flushPromises()
+    expect(mockFetch).toHaveBeenCalledWith('/api/admin/docker', expect.objectContaining({
+      method: 'POST',
+      body: expect.objectContaining({ local: { socket: '/custom/docker.sock', label: 'My NAS' } }),
+    }))
+  })
+
+  it('clearing the local label removes it on save', async () => {
+    const wrapper = await mountPage({ local: { label: 'My NAS' } })
+    const input = wrapper.find('input[placeholder="local"]')
+    await input.setValue('')
+    const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Save')
+    await saveBtn!.trigger('click')
+    await flushPromises()
+    expect(mockFetch).toHaveBeenCalledWith('/api/admin/docker', expect.objectContaining({
+      method: 'POST',
+      body: expect.objectContaining({ local: {} }),
+    }))
+  })
+
+  it('does not appear a second time in the configured servers list', async () => {
+    const wrapper = await mountPage({ local: { label: 'My NAS' } })
+    // Only the built-in row's rename input should reference "local" as an editable server row
+    const editButtons = wrapper.findAll('button').filter(b => b.attributes('title') === 'Edit server')
+    expect(editButtons.length).toBe(0)
+    expect(wrapper.text()).toContain('No remote servers configured')
+  })
+
+  it('blocks adding a server literally named "local"', async () => {
+    const wrapper = await mountPage()
+    const addBtn = wrapper.findAll('button').find(b => b.text().includes('Add server'))
+    await addBtn!.trigger('click')
+    await wrapper.find('input[placeholder="nas"]').setValue('local')
+    const addSubmitBtn = wrapper.findAll('button').find(b => b.text() === 'Add')
+    await addSubmitBtn!.trigger('click')
+    expect(wrapper.text()).toContain('built-in server')
+  })
 })

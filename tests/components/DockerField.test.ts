@@ -4,7 +4,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { ref } from 'vue'
 import { globalStubs } from './helpers'
 
-type DockerServerConfig = { host?: string; port?: number; socket?: string }
+type DockerServerConfig = { host?: string; port?: number; socket?: string; label?: string }
 
 const dockerServersData = ref<Record<string, DockerServerConfig>>({})
 
@@ -99,5 +99,36 @@ describe('DockerField.vue — server select', () => {
     const wrapper = mountField('', '', { containerError: 'Container is required' })
     // Container field is hidden when no server, so error not visible
     expect(wrapper.find('input').exists()).toBe(false)
+  })
+
+  it('keeps a deleted server selected and labeled as removed', async () => {
+    dockerServersData.value = {}
+    const wrapper = mountField('nas', 'sonarr')
+    await flushPromises()
+    const options = wrapper.findAll('option')
+    const staleOption = options.find(o => o.element.value === 'nas')
+    expect(staleOption).toBeTruthy()
+    expect(staleOption!.text()).toContain('(removed)')
+    expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('nas')
+  })
+
+  it('does not add a stale option once the server exists again', async () => {
+    dockerServersData.value = { nas: { host: 'http://10.0.1.2' } }
+    const wrapper = mountField('nas', 'sonarr')
+    await flushPromises()
+    const staleOptions = wrapper.findAll('option').filter(o => o.text().includes('(removed)'))
+    expect(staleOptions.length).toBe(0)
+  })
+
+  it('shows configured labels instead of raw server names', async () => {
+    dockerServersData.value = {
+      local: { label: 'Home Server' },
+      nas: { host: 'http://10.0.1.2', label: 'Synology' },
+    }
+    const wrapper = mountField()
+    await flushPromises()
+    const options = wrapper.findAll('option')
+    expect(options.some(o => o.text() === 'Home Server')).toBe(true)
+    expect(options.some(o => o.text() === 'Synology')).toBe(true)
   })
 })

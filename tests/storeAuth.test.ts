@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+const { mockClearOfflineCache } = vi.hoisted(() => ({ mockClearOfflineCache: vi.fn() }))
+vi.mock('../app/utils/offlineCache', () => ({ clearOfflineCache: mockClearOfflineCache }))
+
 import { useAuthStore } from '../app/stores/auth'
 
 const fetchMock = vi.fn()
@@ -6,6 +10,7 @@ vi.stubGlobal('$fetch', fetchMock)
 
 beforeEach(() => {
   fetchMock.mockReset()
+  mockClearOfflineCache.mockReset()
 })
 
 describe('useAuthStore - fetchStatus', () => {
@@ -24,6 +29,43 @@ describe('useAuthStore - fetchStatus', () => {
     await store.fetchStatus()
     expect(store.tokenConfigured).toBe(false)
     expect(store.editEnabled).toBe(false)
+  })
+})
+
+describe('useAuthStore - clears offline caches whenever unauthenticated', () => {
+  it('clears cached snapshots on a failed/first-run status check', async () => {
+    fetchMock.mockResolvedValue({ tokenConfigured: false, editEnabled: false, authenticated: false })
+    const store = useAuthStore()
+    await store.fetchStatus()
+    expect(mockClearOfflineCache).toHaveBeenCalledOnce()
+  })
+
+  it('does not clear caches once a session is authenticated', async () => {
+    fetchMock.mockResolvedValue({ tokenConfigured: true, editEnabled: true, authenticated: true })
+    const store = useAuthStore()
+    await store.fetchStatus()
+    expect(mockClearOfflineCache).not.toHaveBeenCalled()
+  })
+
+  it('clears caches on logout', async () => {
+    fetchMock.mockResolvedValue({ tokenConfigured: true, editEnabled: true, authenticated: false })
+    const store = useAuthStore()
+    await store.logout()
+    expect(mockClearOfflineCache).toHaveBeenCalledOnce()
+  })
+})
+
+describe('useAuthStore - locked getter', () => {
+  it('is true whenever the session is not authenticated, even with no password configured yet', () => {
+    const store = useAuthStore()
+    store.tokenConfigured = false
+    store.authenticated = false
+    expect(store.locked).toBe(true)
+    store.tokenConfigured = true
+    store.authenticated = false
+    expect(store.locked).toBe(true)
+    store.authenticated = true
+    expect(store.locked).toBe(false)
   })
 })
 

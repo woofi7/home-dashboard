@@ -65,15 +65,30 @@ export function useDashboardData() {
     lastPublictransitAt.value = now
   }
 
-  onMounted(() => {
+  const { authenticated, ready } = useAuth()
+
+  onMounted(async () => {
     connectivity.initialize()
-    loadAll()
+    await ready
+    if (authenticated.value)
+      loadAll()
+  })
+
+  // Data behind /api/* now requires a session; once the auth gate is passed
+  // (setup/login), pull the dashboard data that was blocked until then.
+  watch(authenticated, (v) => {
+    if (v)
+      loadAll()
   })
 
   let lastForce = forceKey.value
   watch(refreshKey, async () => {
     const force = forceKey.value !== lastForce
     lastForce = forceKey.value
+    if (!authenticated.value) {
+      await connectivity.ping()
+      return
+    }
     const now = Date.now()
     const jobs: Promise<unknown>[] = [status.refresh(force), connectivity.ping()]
 

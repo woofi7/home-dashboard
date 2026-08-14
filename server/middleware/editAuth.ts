@@ -1,14 +1,20 @@
 import { assertAuth } from '../utils/adminAuth'
 
-// Every admin and edit surface requires an authenticated session — for ALL
-// methods, including GET. Previously GET /api/admin/* was left open, which
-// leaked the full config (admin token, API keys, Docker topology, backups).
-// The public dashboard never needs /api/admin/*; its read-only data comes from
-// unauthenticated endpoints (/api/config, /api/refresh, /api/widget/*,
-// /api/background, /api/weather, /api/calendar).
+// The dashboard is public-facing, so the whole app - not just edit/admin
+// surfaces - requires an authenticated session. Only the routes needed to
+// perform that authentication (and the container healthcheck) are exempt.
+// Everything else, including GET /api/config and friends, would otherwise
+// hand out service names, URLs, weather, calendar and widget data to anyone
+// who finds the URL.
+const PUBLIC_PREFIXES = ['/api/auth/', '/api/healthcheck']
+
 export default defineEventHandler((event) => {
   const path = event.path ?? ''
 
-  if (path.startsWith('/api/edit') || path.startsWith('/api/admin'))
-    assertAuth(event)
+  if (!path.startsWith('/api/'))
+    return
+  if (PUBLIC_PREFIXES.some(prefix => path.startsWith(prefix)))
+    return
+
+  assertAuth(event)
 })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{
+const props = defineProps<{
   server: string
   container: string
   serverError?: string
@@ -10,7 +10,7 @@ const emit = defineEmits<{
   'update:container': [v: string]
 }>()
 
-type DockerServerConfig = { host?: string; port?: number; socket?: string }
+type DockerServerConfig = { host?: string; port?: number; socket?: string; label?: string }
 
 const { data: configuredServers } = useFetch<Record<string, DockerServerConfig>>('/api/admin/docker', {
   key: 'docker-servers',
@@ -19,11 +19,17 @@ const { data: configuredServers } = useFetch<Record<string, DockerServerConfig>>
 const serverOptions = computed(() => {
   const servers = configuredServers.value ?? {}
   const names = Object.keys(servers).filter(n => n !== 'local')
-  return [
+  const options = [
     { value: '', label: 'None' },
-    { value: 'local', label: 'localhost' },
-    ...names.map(name => ({ value: name, label: name })),
+    { value: 'local', label: servers.local?.label || 'localhost' },
+    ...names.map(name => ({ value: name, label: servers[name]?.label || name })),
   ]
+  // A service can reference a docker server that was since deleted from
+  // /admin/docker - keep it selectable (and visible) rather than silently
+  // showing a blank select while still holding the stale name underneath.
+  if (props.server && !options.some(o => o.value === props.server))
+    options.push({ value: props.server, label: `${props.server} (removed)` })
+  return options
 })
 </script>
 

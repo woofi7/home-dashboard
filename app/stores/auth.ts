@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { clearOfflineCache } from '~/utils/offlineCache'
 
 type AuthStatus = { tokenConfigured: boolean; editEnabled: boolean; authenticated: boolean }
 
@@ -12,6 +13,10 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     needsLogin: (s): boolean => s.editEnabled && !s.authenticated,
+    // The whole dashboard - not just edit mode - is locked behind the same
+    // password. Locked whether a password still needs to be chosen (first
+    // run) or one is set but this session hasn't logged in yet.
+    locked: (s): boolean => !s.authenticated,
   },
   actions: {
     async fetchStatus() {
@@ -20,6 +25,8 @@ export const useAuthStore = defineStore('auth', {
         this.tokenConfigured = status.tokenConfigured
         this.editEnabled = status.editEnabled
         this.authenticated = status.authenticated
+        if (!status.authenticated)
+          clearOfflineCache()
       } catch { /* ignore */ }
     },
     ensureLoaded() {

@@ -6,7 +6,7 @@ import { createCache } from './cache'
 import type { DockerContainerStatus, DockerServerStatus, DockerStatus } from '../types'
 
 type DockerContainer = { Names: string[]; State: string; Status: string }
-type DockerServerConfig = { socket?: string; host?: string; port?: number }
+type DockerServerConfig = { socket?: string; host?: string; port?: number; label?: string }
 
 const cache = createCache<DockerStatus>()
 const TTL = 30_000
@@ -85,9 +85,11 @@ export function fetchDockerStatus(): Promise<DockerStatus> {
   return cache.fetch(async () => {
     const servers = { ...(loadConfig<Record<string, DockerServerConfig>>('docker.yaml') ?? {}) }
 
-    if (!servers.local) {
+    // A label-only "local" entry (renamed, but no connection override) must
+    // still fall through to the DOCKER_HOST/socket default below.
+    if (!servers.local?.host && !servers.local?.socket) {
       const host = process.env.DOCKER_HOST
-      servers.local = host ? { host } : { socket: '/var/run/docker.sock' }
+      servers.local = { ...servers.local, ...(host ? { host } : { socket: '/var/run/docker.sock' }) }
     }
 
     const entries = await Promise.all(
